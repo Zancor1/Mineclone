@@ -10,6 +10,7 @@ struct WaterFace {
     Vector3 normal{};
     bool visible=false;
 };
+WaterFace BuildFluidFace(int x,int y,int z,int direction);
 WaterFace BuildWaterFace(int x,int y,int z,int direction);
 class Renderer {
 public:

@@ -27,11 +27,14 @@ $(BUILD_DIR)/%.o: src/%.cpp Makefile | $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir -p $@
 
-test: $(BUILD_DIR)/water_test $(BUILD_DIR)/water_mesh_test $(BUILD_DIR)/lighting_test $(BUILD_DIR)/settings_test
+test: $(BUILD_DIR)/water_test $(BUILD_DIR)/water_mesh_test $(BUILD_DIR)/lighting_test $(BUILD_DIR)/settings_test $(BUILD_DIR)/lava_test $(BUILD_DIR)/streaming_test
 	./$(BUILD_DIR)/water_test
+	./$(BUILD_DIR)/water_test lava
 	./$(BUILD_DIR)/water_mesh_test
 	./$(BUILD_DIR)/lighting_test
 	./$(BUILD_DIR)/settings_test
+	./$(BUILD_DIR)/lava_test
+	./$(BUILD_DIR)/streaming_test
 
 $(BUILD_DIR)/water_test: tests/water_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h) Makefile
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/water_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
@@ -44,6 +47,12 @@ $(BUILD_DIR)/lighting_test: tests/lighting_test.cpp $(BUILD_DIR)/world.o $(BUILD
 
 $(BUILD_DIR)/settings_test: tests/settings_test.cpp $(BUILD_DIR)/settings.o $(BUILD_DIR)/player.o $(BUILD_DIR)/world.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/settings_test.cpp $(BUILD_DIR)/settings.o $(BUILD_DIR)/player.o $(BUILD_DIR)/world.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
+
+$(BUILD_DIR)/lava_test: tests/lava_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/lava_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
+
+$(BUILD_DIR)/streaming_test: tests/streaming_test.cpp $(BUILD_DIR)/player.o $(BUILD_DIR)/world.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/streaming_test.cpp $(BUILD_DIR)/player.o $(BUILD_DIR)/world.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
 
 test-renderer: $(BUILD_DIR)/renderer_smoke_test
 	./$(BUILD_DIR)/renderer_smoke_test

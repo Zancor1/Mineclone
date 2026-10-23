@@ -116,7 +116,7 @@ int RunGame() {
             case UiAction::None: break;
         }
         if(quit) break;
-        const bool active=state==GameState::Playing&&IsWindowFocused()&&!transition;
+        bool active=state==GameState::Playing&&IsWindowFocused()&&!transition;
         if(active) {
             PlayerInput input;
             input.look=GetMouseDelta();
@@ -124,9 +124,19 @@ int RunGame() {
             input.side=float(IsKeyDown(KEY_D))-float(IsKeyDown(KEY_A));
             input.jump=IsKeyDown(KEY_SPACE);input.swimUp=IsKeyDown(KEY_SPACE);
             input.swimDown=IsKeyDown(KEY_LEFT_SHIFT);
+            input.sprint=IsKeyDown(KEY_LEFT_CONTROL);
             float dt=std::min(GetFrameTime(),.05f);
             if(IsKeyPressed(KEY_F6)&&!Settings.freezeTime) WorldTime=std::fmod(WorldTime+DayDuration*.25f,DayDuration);
             player.Update(input,dt);UpdateWorld(dt);
+            PlayerState streamed=player.CaptureState();
+            const Vector3 previousPosition=streamed.position;bool shifted=false;
+            bool streamedOk=StreamWorld(streamed,activeSave,shifted);
+            if(shifted) player.Translate(Vector3Subtract(streamed.position,previousPosition));
+            if(!streamedOk) {
+                active=false;
+                enter(GameState::Paused);
+                ui.Notify("Falha ao carregar/salvar regioes. Verifique o disco antes de continuar.");
+            }
         }
         Hit hit;
         Camera3D camera{};
@@ -135,18 +145,21 @@ int RunGame() {
             camera=player.Camera();
             if(active) {
                 Vector3 direction=Vector3Normalize(Vector3Subtract(camera.target,camera.position));
-                bool targetWater=IsKeyDown(KEY_LEFT_ALT)||IsKeyDown(KEY_RIGHT_ALT);
-                hit=Trace(camera.position,direction,targetWater);
+                bool targetLiquids=IsKeyDown(KEY_LEFT_ALT)||IsKeyDown(KEY_RIGHT_ALT);
+                hit=Trace(camera.position,direction,targetLiquids);
                 if(hit.found) {
                     if(IsKeyPressed(KEY_F)&&(At(hit.x,hit.y,hit.z)==LampOn||At(hit.x,hit.y,hit.z)==LampOff))
                         Change(hit.x,hit.y,hit.z,At(hit.x,hit.y,hit.z)==LampOn?LampOff:LampOn);
                     if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) Change(hit.x,hit.y,hit.z,Air);
                     else if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
-                        int x=hit.x+hit.nx,y=hit.y+hit.ny,z=hit.z+hit.nz;
+                        const bool replaceLiquid=Liquid(At(hit.x,hit.y,hit.z));
+                        int x=hit.x+(replaceLiquid?0:hit.nx);
+                        int y=hit.y+(replaceLiquid?0:hit.ny);
+                        int z=hit.z+(replaceLiquid?0:hit.nz);
                         Block block=ui.SelectedBlock(),previous=At(x,y,z);
-                        if(Inside(x,y,z)&&(previous==Air||previous==Water)&&(!Solid(block)||!player.Overlaps(x,y,z))) Change(x,y,z,block);
+                        if(Inside(x,y,z)&&(previous==Air||Liquid(previous))&&(!Solid(block)||!player.Overlaps(x,y,z))) Change(x,y,z,block);
                     }
-                    hit=Trace(camera.position,direction,targetWater);
+                    hit=Trace(camera.position,direction,targetLiquids);
                 }
             }
         }

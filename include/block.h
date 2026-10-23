@@ -6,7 +6,9 @@ enum Block : unsigned char {
     Bricks, CoalOre, WhiteWool, Planks, Cobblestone, StoneBricks, CarvedStone, SpruceLeaves, AcaciaPlanks,
     DarkOakPlanks, LampOn, LampOff, RedWool, GreenWool, BlueWool, YellowWool,
     Gravel, Clay, Snow, Slime, Lava, Bedrock, TallGrass, DeadBush, Kelp,
-    Allium, Orchid, RedTulip, PinkTulip, Rose, Dandelion, BlockCount
+    Allium, Orchid, RedTulip, PinkTulip, Rose, Dandelion,
+    OrangeWool, MagentaWool, LightBlueWool, LimeWool, PinkWool, GrayWool,
+    LightGrayWool, CyanWool, PurpleWool, BrownWool, BlackWool, BlockCount
 };
 struct BlockProperties {
     const char* name;
@@ -27,7 +29,11 @@ inline constexpr BlockProperties Blocks[BlockCount]={
     {"Lava",false,true},{"Rocha matriz",true,false},{"Capim",false,true},
     {"Arbusto seco",false,true},{"Alga",false,true},{"Allium",false,true},
     {"Orquidea",false,true},{"Tulipa rubra",false,true},{"Tulipa rosa",false,true},
-    {"Rosa",false,true},{"Dente leao",false,true}
+    {"Rosa",false,true},{"Dente leao",false,true},
+    {"La laranja",true,false},{"La magenta",true,false},{"La azul cl.",true,false},
+    {"La lima",true,false},{"La rosa",true,false},{"La cinza",true,false},
+    {"La cinza cl.",true,false},{"La ciano",true,false},{"La roxa",true,false},
+    {"La marrom",true,false},{"La preta",true,false}
 };
 inline constexpr auto Names=[] {
     struct NamesArray { const char* values[BlockCount]{};
@@ -35,12 +41,15 @@ inline constexpr auto Names=[] {
     for(int i=0;i<BlockCount;++i) names.values[i]=Blocks[i].name;
     return names;
 }();
-constexpr bool Plant(Block b) {return b>=TallGrass&&b<BlockCount;}
+constexpr bool Liquid(Block b) {return b==Water||b==Lava;}
+constexpr bool Plant(Block b) {return b>=TallGrass&&b<=Dandelion;}
+constexpr bool Wool(Block b) {return b==WhiteWool||(b>=RedWool&&b<=YellowWool)||(b>=OrangeWool&&b<=BlackWool);}
 constexpr bool LightPassable(Block b) {return b==Air||b==Water||b==Glass||b==Slime||Plant(b);}
 constexpr unsigned char Emission(Block b) {return b==LampOn?24:(b==Lava?18:0);}
 constexpr bool ValidBlock(Block b) {return b<BlockCount;}
 constexpr bool Solid(Block b) {return ValidBlock(b)&&Blocks[b].solid;}
 constexpr bool Transparent(Block b) {return ValidBlock(b)&&Blocks[b].transparent;}
+static_assert(!Plant(OrangeWool)&&Wool(BlackWool)&&Solid(BlackWool)&&!Transparent(BlackWool),"Wool renders as opaque full cubes");
 static_assert(!Solid(Water),"Water must never collide with the player");
 static_assert(Solid(Glass)&&Transparent(Glass),"Glass is transparent but solid");
 }

@@ -37,7 +37,7 @@ bool InWater(Vector3 p) {
     for(int x=int(std::floor(p.x-Radius));x<=int(std::floor(p.x+Radius));++x)
         for(int y=int(std::floor(p.y));y<=int(std::floor(p.y+BodyHeight));++y)
             for(int z=int(std::floor(p.z-Radius));z<=int(std::floor(p.z+Radius));++z)
-                if(At(x,y,z)==Water&&Overlap(p,x,y,z)&&p.y<y+WaterHeight(x,y,z)) return true;
+                if(Liquid(At(x,y,z))&&Overlap(p,x,y,z)&&p.y<y+FluidHeight(x,y,z)) return true;
     return false;
 }
 Vector3 Spawn() {
@@ -51,15 +51,17 @@ Vector3 Spawn() {
 }
 
 }
-PlayerState Player::CaptureState() const {return {position,yaw,pitch,velocityY,true};}
+PlayerState Player::CaptureState() const {return {position,yaw,pitch,velocityY,true,flying};}
 bool Player::RestoreState(const PlayerState& state) {
     if(!state.valid||!std::isfinite(state.position.x)||!std::isfinite(state.position.y)||
        !std::isfinite(state.position.z)||!std::isfinite(state.yaw)||!std::isfinite(state.pitch)||
        !std::isfinite(state.velocityY)||std::abs(state.pitch)>1.55f) return false;
     position=state.position;yaw=state.yaw;pitch=state.pitch;velocityY=state.velocityY;
+    flying=state.flying;jumpWasDown=false;jumpTapAge=1.f;
     return true;
 }
-void Player::Respawn() {position=Spawn(); velocityY=0; yaw=0; pitch=0;}
+void Player::Translate(Vector3 displacement) {position=Vector3Add(position,displacement);}
+void Player::Respawn() {position=Spawn(); velocityY=0; yaw=0; pitch=0;flying=false;jumpWasDown=false;jumpTapAge=1.f;}
 bool Player::Overlaps(int x,int y,int z) const {return Overlap(position,x,y,z);}
 Camera3D Player::Camera() const {
     Camera3D c{}; c.position={position.x,position.y+EyeHeight,position.z};
@@ -67,14 +69,22 @@ Camera3D Player::Camera() const {
     c.target=Vector3Add(c.position,d); c.up={0,1,0}; c.fovy=70; c.projection=CAMERA_PERSPECTIVE; return c;
 }
 void Player::Update(const PlayerInput& input,float dt) {
+    jumpTapAge+=std::max(0.f,dt);
+    if(input.jump&&!jumpWasDown) {
+        if(jumpTapAge<=.28f) {flying=!flying;velocityY=0;jumpTapAge=1.f;}
+        else jumpTapAge=0;
+    }
+    jumpWasDown=input.jump;
     yaw=std::remainder(yaw+input.look.x*.0025f*Settings.mouseSensitivity,2.f*PI);
     pitch=std::clamp(pitch-input.look.y*.0025f*Settings.mouseSensitivity,-1.55f,1.55f);
     float f=input.forward,s=input.side,length=std::sqrt(f*f+s*s);
     if(length>1){f/=length;s/=length;}
-    bool swimming=InWater(position); float speed=swimming?2.7f:4.8f;
+    bool swimming=InWater(position); float speed=flying?(input.sprint?22.f:11.f):(swimming?2.7f:4.8f);
     float vx=(std::sin(yaw)*f+std::cos(yaw)*s)*speed;
     float vz=(-std::cos(yaw)*f+std::sin(yaw)*s)*speed;
-    if(swimming) {
+    if(flying) {
+        velocityY=(float(input.swimUp||input.jump)-float(input.swimDown))*(input.sprint?16.f:8.f);
+    } else if(swimming) {
         velocityY=std::max(velocityY-5.f*dt,-3.f);
         if(input.swimUp) velocityY=3.4f;
         if(input.swimDown) velocityY=-3.4f;

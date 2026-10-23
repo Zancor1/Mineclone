@@ -35,7 +35,11 @@ const Color Palette[]={{0,0,0,0},{100,153,56,255},{133,93,62,255},{134,134,131,2
     {130,122,111,255},{155,165,177,255},{239,246,248,255},{101,190,80,160},
     {237,92,22,220},{52,54,52,255},{79,142,47,255},{125,88,44,255},
     {49,120,62,255},{172,85,187,255},{115,162,221,255},{211,53,46,255},
-    {239,127,165,255},{190,34,49,255},{242,208,44,255}};
+    {239,127,165,255},{190,34,49,255},{242,208,44,255},
+    {234,126,40,255},{183,74,180,255},{101,175,215,255},{128,190,45,255},
+    {222,137,164,255},{72,76,79,255},{163,169,169,255},{32,143,154,255},
+    {124,60,174,255},{115,78,48,255},{30,30,35,255}};
+static_assert(sizeof(Palette)/sizeof(*Palette)==BlockCount,"Every block needs an atlas color");
 Color Shade(Color c,float light) {
     return {static_cast<unsigned char>(std::clamp(c.r*light,0.f,255.f)),
         static_cast<unsigned char>(std::clamp(c.g*light,0.f,255.f)),
@@ -70,7 +74,10 @@ Texture2D MakeAtlas() {
             if(mortar) {c={174,165,148,255};variation=1;}
         }
         if(tile==13 && Hash(x/2,y/2,133)%5==0) {c={38,37,35,255};variation=.8f;}
-        if(tile==14) variation=.92f+float(Hash(x,y,144)%9)*.01f;
+        if(Wool(type)) {
+            variation=.92f+float(Hash(x,y,144)%9)*.01f;
+            if((x+y)%4==0) variation*=.96f;
+        }
         if(tile==15) {
             bool seam=y%4==0 || (x+(y/4%2)*7)%16==0;
             if(seam) variation*=.62f;
@@ -111,10 +118,11 @@ const float Corners[6][4][3]={
 };
 }
 
-WaterFace BuildWaterFace(int x, int y, int z, int direction) {
+WaterFace BuildFluidFace(int x, int y, int z, int direction) {
     WaterFace face;
-    if (direction < 0 || direction >= 6 || At(x, y, z) != Water) return face;
-    const float height = WaterHeight(x, y, z);
+    if (direction < 0 || direction >= 6 || !Liquid(At(x,y,z))) return face;
+    const Block fluid=At(x,y,z);
+    const float height = FluidHeight(x, y, z);
     if (height <= 0.0f) return face;
     const int nx = x + Normals[direction][0];
     const int ny = y + Normals[direction][1];
@@ -123,14 +131,14 @@ WaterFace BuildWaterFace(int x, int y, int z, int direction) {
     float bottom = 0.0f;
 
     if (direction == 2) {
-        if (neighbor == Water || (Solid(neighbor) && height >= 1.0f)) return face;
+        if (neighbor == fluid || (Solid(neighbor) && height >= 1.0f)) return face;
     } else if (direction == 3) {
-        if (Solid(neighbor) || (neighbor == Water && WaterHeight(nx, ny, nz) >= 1.0f)) return face;
-    } else if (neighbor == Water) {
-        bottom = WaterHeight(nx, ny, nz);
+        if (Solid(neighbor) || (neighbor == fluid && FluidHeight(nx, ny, nz) >= 1.0f)) return face;
+    } else if (neighbor == fluid) {
+        bottom = FluidHeight(nx, ny, nz);
         if (bottom >= height) return face;
     } else if (neighbor != Air) {
-        return face;
+        if(!Liquid(neighbor)||fluid<neighbor) return face;
     }
 
     face.normal = {float(Normals[direction][0]), float(Normals[direction][1]), float(Normals[direction][2])};
@@ -142,11 +150,15 @@ WaterFace BuildWaterFace(int x, int y, int z, int direction) {
     return face;
 }
 
+WaterFace BuildWaterFace(int x,int y,int z,int direction) {
+    return At(x,y,z)==Water?BuildFluidFace(x,y,z,direction):WaterFace{};
+}
+
 namespace {
 struct Face { int x,y,z,direction; Block block; };
 Vector3 Center(const Face& f) {
-    if(f.block==Water) {
-        const WaterFace face=BuildWaterFace(f.x,f.y,f.z,f.direction);
+    if(Liquid(f.block)) {
+        const WaterFace face=BuildFluidFace(f.x,f.y,f.z,f.direction);
         Vector3 center{};
         for(Vector3 vertex:face.vertices) center=Vector3Add(center,vertex);
         return Vector3Scale(center,.25f);
@@ -163,8 +175,8 @@ struct Geometry {
     void Add(const Face& f) {
         int tile=BlockTile(f.block,f.direction);
         WaterFace water;
-        if(f.block==Water) {
-            water=BuildWaterFace(f.x,f.y,f.z,f.direction);
+        if(Liquid(f.block)) {
+            water=BuildFluidFace(f.x,f.y,f.z,f.direction);
             if(!water.visible) return;
         }
         Vector3 n{float(Normals[f.direction][0]),float(Normals[f.direction][1]),float(Normals[f.direction][2])};
@@ -177,7 +189,7 @@ struct Geometry {
             int sb=Corners[f.direction][i][tangentB]>.5f?1:-1;
             VertexLight light=SampleCornerLighting(lx,ly,lz,normalAxis,sa,sb);
             if(Emission(f.block)) {light.block=Emission(f.block)/24.f;light.ambient=1;}
-            if(f.block==Water||Plant(f.block)) light.ambient=1;
+            if(Liquid(f.block)||Plant(f.block)) light.ambient=1;
             auto channel=[](float value) {return static_cast<unsigned char>(std::clamp(value,0.f,1.f)*255+.5f);};
             vertexColors[i]={channel(light.ambient),channel(light.sky),channel(light.block),255};
         }
@@ -190,7 +202,7 @@ struct Geometry {
             float px=f.x+Corners[f.direction][index][0];
             float pz=f.z+Corners[f.direction][index][2];
             float py=Corners[f.direction][index][1];
-            Vector3 vertex=f.block==Water?water.vertices[index]:Vector3{px,f.y+py,pz};
+            Vector3 vertex=Liquid(f.block)?water.vertices[index]:Vector3{px,f.y+py,pz};
             if(Plant(f.block)) {
                 float t=Corners[f.direction][index][0];
                 // Two crossed planes, submitted on faces +Z and -Z.
@@ -243,7 +255,7 @@ void RebuildChunk(int cx,int cz) {
             for(int f=0;f<6;++f) {
                 Block neighbor=At(x+Normals[f][0],y+Normals[f][1],z+Normals[f][2]);
                 if(Plant(b)&&f!=4&&f!=5) continue;
-                bool exposed=Plant(b)|| (b==Water?BuildWaterFace(x,y,z,f).visible:Exposed(b,neighbor));
+                bool exposed=Plant(b)|| (Liquid(b)?BuildFluidFace(x,y,z,f).visible:Exposed(b,neighbor));
                 if(!exposed) continue;
                 Face face{x,y,z,f,b};
                 if(Transparent(b)) c.transparent.push_back(face); else geometry.Add(face);
@@ -281,6 +293,7 @@ uniform vec4 colDiffuse;
 uniform vec3 eyePosition;
 uniform vec3 fogColor;
 uniform float fogDensity;
+uniform float regionSize;
 uniform float daylight;
 uniform vec3 sunDirection;
 out vec4 finalColor;
@@ -294,6 +307,8 @@ void main() {
     if(color.a<0.01) discard;
     float d=length(worldPosition-eyePosition);
     float fog=1.0-exp(-pow(d*fogDensity,2.0));
+    float edge=min(min(worldPosition.x,worldPosition.z),min(regionSize-worldPosition.x,regionSize-worldPosition.z));
+    fog=max(fog,1.0-smoothstep(0.0,20.0,edge));
     finalColor=vec4(mix(color.rgb,fogColor,clamp(fog,0.0,1.0)),color.a);
 }
 )GLSL";
@@ -373,6 +388,8 @@ bool Renderer::Initialize() {
     impl->density=GetShaderLocation(impl->shader,"fogDensity");
     impl->day=GetShaderLocation(impl->shader,"daylight");
     impl->sun=GetShaderLocation(impl->shader,"sunDirection");
+    float regionSize=float(Width);
+    SetShaderValue(impl->shader,GetShaderLocation(impl->shader,"regionSize"),&regionSize,SHADER_UNIFORM_FLOAT);
     impl->ready=true; return true;
 }
 Texture2D Renderer::Atlas() const {return impl->atlas;}
