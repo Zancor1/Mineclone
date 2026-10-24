@@ -16,7 +16,8 @@ namespace {
 struct Projectile {Block type;Vector3 position,velocity;float life;float tick=0;bool embedded=false;Vector3 support{};float damage=4;bool critical=false;};
 std::vector<Projectile> projectiles;
 std::vector<DroppedItem> droppedItems;
-float cooldown=0,charge=0,eating=0;
+float cooldown=0,charge=0,eating=0,speedTime=0,jumpTime=0,invisibilityTime=0;
+bool blocking=false;
 Block lastItem=Air;bool bowHeld=false;
 bool Free(Vector3 feet) {
     if(!Inside(int(std::floor(feet.x)),int(std::floor(feet.y)),int(std::floor(feet.z))))return false;
@@ -63,9 +64,11 @@ bool DropItem(const Player& player,ItemStack& stack,bool all){
 }
 int ActiveProjectiles() {return int(projectiles.size());}
 float EatingTime(){return eating;}
+bool Blocking(){return blocking;}
+void ApplyItemEffects(PlayerInput& input){input.speedMultiplier=speedTime>0?1.4f:1.f;input.jumpMultiplier=jumpTime>0?1.45f:1.f;}
 float BowDrawTime(){return bowHeld?charge:-1.f;}
-void CancelItemUse() {charge=eating=0;bowHeld=false;}
-void ClearItems() {projectiles.clear();droppedItems.clear();cooldown=charge=eating=0;lastItem=Air;bowHeld=false;}
+void CancelItemUse() {charge=eating=0;bowHeld=blocking=false;}
+void ClearItems() {projectiles.clear();droppedItems.clear();speedTime=jumpTime=invisibilityTime=0;blocking=false;cooldown=charge=eating=0;lastItem=Air;bowHeld=false;}
 void TranslateItems(Vector3 displacement) {for(auto& item:droppedItems)item.position=Vector3Add(item.position,displacement);for(auto& p:projectiles){p.position=Vector3Add(p.position,displacement);p.support=Vector3Add(p.support,displacement);}}
 void PrimeTnt(Vector3 position,float fuse) {if(projectiles.size()<128)projectiles.push_back({Tnt,position,{},fuse});}
 void Explode(Player& player,Vector3 center,float radius,bool damage) {
@@ -96,7 +99,9 @@ void Explode(Player& player,Vector3 center,float radius,bool damage) {
 bool UseHeldItem(Player& player,ItemStack& stack,Vector3 direction,const UseInput& input) {
     Block item=stack.count?stack.block:Air;
     if(item!=lastItem) {charge=eating=0;lastItem=item;bowHeld=false;}
+    blocking=Sword(item)&&input.down;
     const Vector3 eye=player.Camera().position;
+    if(Sword(item))return input.down;
     if(item==Bow) {
         bool ammunition=Mode==GameMode::Creative;for(const auto& s:Hotbar)ammunition|=s.block==Arrow&&s.count;for(const auto& s:Backpack)ammunition|=s.block==Arrow&&s.count;
         if(input.pressed&&ammunition){bowHeld=true;charge=0;}
@@ -110,9 +115,9 @@ bool UseHeldItem(Player& player,ItemStack& stack,Vector3 direction,const UseInpu
         }
         return true;
     }
-    if(item==GoldenApple) {
+    if(TimedUseItem(item)) {
         eating=input.down?eating+input.dt:0;
-        if(eating>=1.6f&&Health>0) {EatGoldenApple();Consume(stack);eating=0;}
+        if(eating+1e-5f>=ItemUseDuration(item)&&Health>0) {if(item==GoldenApple)EatGoldenApple();else if(item==SpeedPotion)speedTime=45;else if(item==JumpPotion)jumpTime=45;else invisibilityTime=30;Consume(stack);eating=0;}
         return true;
     }
     if(!input.pressed||cooldown>0)return false;
@@ -148,7 +153,7 @@ bool UseHeldItem(Player& player,ItemStack& stack,Vector3 direction,const UseInpu
     return false;
 }
 void UpdateItems(Player& player,float dt) {
-    dt=std::clamp(dt,0.f,.05f);cooldown=std::max(0.f,cooldown-dt);
+    dt=std::clamp(dt,0.f,.05f);speedTime=std::max(0.f,speedTime-dt);jumpTime=std::max(0.f,jumpTime-dt);invisibilityTime=std::max(0.f,invisibilityTime-dt);cooldown=std::max(0.f,cooldown-dt);
     for(auto& item:droppedItems){StepDrop(item,dt);if(item.life>0&&CanPickUpDrop(item,player.CaptureState().position)){TransferStack(item.stack,Hotbar.data(),Hotbar.size());TransferStack(item.stack,Backpack.data(),Backpack.size());}}
     droppedItems.erase(std::remove_if(droppedItems.begin(),droppedItems.end(),[](const DroppedItem& item){return item.life<=0||!item.stack.count;}),droppedItems.end());
     // Explosions may append primed TNT; process only the entities present at tick start.

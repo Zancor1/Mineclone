@@ -232,7 +232,7 @@ Os textos dos geradores de diamante e esmeralda aparecem apenas a até
 
 ## Movimento e separação das ilhas
 
-O sprint local usa 5,2 blocos por segundo. Acertar um adversário interrompe o
+A caminhada usa 4,317 blocos por segundo e o sprint usa 5,612 (cerca de 30% a mais). Acertar um adversário interrompe o
 sprint do atacante por 0,1 segundo; Toggle Sprint retoma a corrida depois desse
 intervalo. O impulso vertical dos golpes foi ajustado para 6,5, com amortecimento exponencial, limite horizontal proporcional à força do golpe e gravidade de combate de 28 blocos/s². Golpes sucessivos no ar não
 reiniciam a subida.

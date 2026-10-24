@@ -407,15 +407,28 @@ o botão direito dropa uma unidade.
 
 ## Teclas e campo de visão
 
-Em **Opções → Keyboard**, clique numa ação e pressione a nova tecla ou botão
+Em **Opções → Controls → Keyboard**, clique numa ação e pressione a nova tecla ou botão
 do mouse. Use a roda para ver as demais ações. Backspace remove a bind durante
 a captura; ESC cancela. Teclas já usadas por outra ação são rejeitadas. **Reset**
 restaura os controles padrão. Navegação e edição de texto dos menus mantêm seus
 atalhos convencionais; ESC continua disponível para sair dos menus.
 
+As opções estão separadas em **Visuals**, **Controls** e **Extra**. Visuals reúne
+FOV, distância de visão, neblina e horário; Controls contém a sensibilidade do
+mouse, Toggle Sprint e as teclas. Extra oferece céu com gradiente, nuvens de dia
+e estrelas à noite, além de **Full Bright**, que ilumina a cena sem alterar o
+horário ou a simulação. Os dois recursos podem ser ligados ou desligados.
+
+**FOV ao correr**, em Visuals, aumenta suavemente o campo de visão em 8 graus
+durante a corrida e retorna ao valor normal ao parar. Pode ser desligado.
+A corrida também tem passos visuais mais rápidos, com um balanço leve da câmera
+e dos itens, sem alterar a velocidade física de 5,612 blocos/s.
+
 O slider **FOV** ajusta o campo de visão de 40 a 110 (padrão 70). FOV e binds
 são salvos em `settings.cfg`; configurações de versões anteriores são migradas
 preservando suas opções existentes.
+
+A caminhada usa **4,317 blocos/s** e a corrida **5,612 blocos/s**, cerca de 30% a mais.
 
 **Toggle Sprint**, ligado por padrão nas opções, permite tocar Ctrl uma vez
 para ativar a corrida e outra vez para desativar. Funciona com a tecla de correr

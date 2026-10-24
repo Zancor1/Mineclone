@@ -37,6 +37,7 @@ private:
     uint64_t selectedRoom=0;
     std::string roomSearch,mapSearch,pingSearch;
     bool onlyOpenRooms=false;
+    int optionsPage=0;
     int bindingScroll=0,capturingBinding=-1;
     std::string bindingMessage;
     std::array<RenderTexture2D,bw::MapCount> mapPreviews{};

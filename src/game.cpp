@@ -230,7 +230,8 @@ int RunGame() {
 
             float dt=std::min(GetFrameTime(),.05f);
             if(!online&&Mode==GameMode::Creative&&ActionPressed(BindingAction::SkipTime)&&!Settings.freezeTime) WorldTime=std::fmod(WorldTime+DayDuration*.25f,DayDuration);
-            if(bw::Ready())bw::ApplyEffects(input);
+            if(bw::Ready())bw::ApplyEffects(input);else if(!online)ApplyItemEffects(input);
+            Block used=ui.SelectedBlock();input.usingItem=!ui.chatOpen&&ActionDown(BindingAction::Use)&&(Sword(used)||TimedUseItem(used)||(used==Bow&&(bw::Ready()?bw::BowDrawTime():game::BowDrawTime())>=0));
             player.Update(input,dt);if(!online&&!bw::Active()){UpdateWorld(dt);UpdateItems(player,dt);}
             if(!bw::Active()&&Mode==GameMode::Survival&&Health<=0) {active=false;enter(GameState::Dead);if(!online)SaveWorld(activeSave,player.CaptureState());}
             PlayerState streamed=player.CaptureState();
@@ -273,7 +274,7 @@ int RunGame() {
                         if(ui.miningProgress>=1){bw::Dig(hit,2,ui.selected);ui.miningProgress=0;miningTarget={};}
                     }else if(miningTarget.found){bw::Dig(miningTarget,1,ui.selected);miningTarget={};ui.miningProgress=0;}
                     bw::BowInput(ui.selected,ActionDown(BindingAction::Use),usePressed,ActionReleased(BindingAction::Use),std::min(GetFrameTime(),.05f),&player);
-                    if(placeNow&&ui.SelectedBlock()!=Bow&&ui.SelectedBlock()!=GoldenApple){
+                    if(placeNow&&ui.SelectedBlock()!=Bow&&!Sword(ui.SelectedBlock())&&!TimedUseItem(ui.SelectedBlock())){
                         if(usePressed&&bw::NearChest(player)&&hit.found&&(At(hit.x,hit.y,hit.z)==Chest||(MapStateAt(hit.x,hit.y,hit.z).shape==MapShape::Cube&&MapStateAt(hit.x,hit.y,hit.z).block==MapDecoration&&MapStateAt(hit.x,hit.y,hit.z).material==Obsidian)))enter(GameState::BedwarsChest);
                         else if(usePressed&&bw::AimedShop(player))enter(GameState::BedwarsShop);
                         else if(hit.found&&Placeable(ui.SelectedBlock()))bw::Place(hit.x+hit.nx,hit.y+hit.ny,hit.z+hit.nz,ui.selected,&player);
@@ -350,8 +351,8 @@ int RunGame() {
         if(hasWorld&&bw::Ready())bw::DrawWorld(camera,renderer.Atlas());
         if(hasWorld&&state==GameState::Playing) {
             bool moving=active&&(ActionDown(BindingAction::Forward)||ActionDown(BindingAction::Left)||ActionDown(BindingAction::Backward)||ActionDown(BindingAction::Right));
-            bool usingItem=active&&(ActionDown(BindingAction::Attack)||ActionPressed(BindingAction::Use));
-            renderer.DrawFirstPerson(camera,ui.SelectedBlock(),moving,usingItem,std::min(GetFrameTime(),.05f));
+            bool usingItem=active&&(ActionDown(BindingAction::Attack)||(ActionPressed(BindingAction::Use)&&!Sword(ui.SelectedBlock())&&ui.SelectedBlock()!=Bow&&!TimedUseItem(ui.SelectedBlock())));
+            renderer.DrawFirstPerson(camera,ui.SelectedBlock(),moving,usingItem,std::min(GetFrameTime(),.05f),player.IsSprinting());
         }
         ui.Draw(renderer.Atlas(),state);
         if(bw::Ready()&&state==GameState::Playing)bw::DrawHud();

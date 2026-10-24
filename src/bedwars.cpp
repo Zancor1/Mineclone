@@ -1,4 +1,5 @@
 #include "projectile_models.h"
+#include "item_use.h"
 #include "external_arenas.h"
 #include "projectile_physics.h"
 #include "arrow_model.h"
@@ -56,7 +57,7 @@ void SetLayout(int gap){islandGap=gap;auto positions=ArenaBases(gap,mapId);std::
 constexpr Color colors[8]={RED,BLUE,GREEN,YELLOW,{55,215,215,255},RAYWHITE,PINK,GRAY};
 constexpr Block wool[8]={RedWool,BlueWool,GreenWool,YellowWool,CyanWool,WhiteWool,PinkWool,GrayWool};
 const char* teamNames[]={"Vermelho","Azul","Verde","Amarelo","Ciano","Branco","Rosa","Cinza"};
-enum Message {Hello=1,Welcome,Snapshot,Edit,Position,DigRequest,PlaceRequest,AttackRequest,BuyRequest,UseRequest,SwapRequest,StartRequest,RestartRequest,Force,Error,ChatMessage,ChooseTeam,SprintPause,HoldUseRequest,SwingAnimation,CraftRequest,InventoryClickRequest,CosmeticRequest,CosmeticResult,BowRequest,HitEffect,PenguinUpdate,TntTimers,DropRequest,DropUpdate};
+enum Message {Hello=1,Welcome,Snapshot,Edit,Position,DigRequest,PlaceRequest,AttackRequest,BuyRequest,UseRequest,SwapRequest,StartRequest,RestartRequest,Force,Error,ChatMessage,ChooseTeam,SprintPause,HoldUseRequest,SwingAnimation,CraftRequest,InventoryClickRequest,CosmeticRequest,CosmeticResult,BowRequest,HitEffect,PenguinUpdate,TntTimers,DropRequest,DropUpdate,UseStates};
 struct Buffer {
     Bytes bytes;size_t offset=0;
     void Byte(int n){bytes.push_back(static_cast<unsigned char>(n));}
@@ -75,6 +76,7 @@ struct Fighter {
     progression::Profile profile;
     bool connected=false,bed=true,eliminated=false,sneaking=false;int team=0,peer=-1,lastAttacker=-1,selected=0,revision=1,teleport=0,kills=0,finals=0,beds=0,armor=0,pick=0,axe=0,sharp=0,protection=0,forge=0;
     std::string name;Vector3 p{},display{};float knockSpeed=0,knockUntil=0,yaw=0,pitch=0,hp=20,respawn=0,hurtClock=0,regen=0,absorption=0,lastPosition=0,lastAction=-10,lastChat=-10,lastHurt=-100,absorbTime=0,digStart=-10,speedTime=0,jumpTime=0,invisTime=0,healClock=0,regenClock=0,eating=0,eatHeartbeat=-10,fallDistance=0,swingAge=.35f;int eatSlot=-1;
+    bool blocking=false;
     float hitFlash=0,meleeImmuneUntil=0;
     float bowStart=-1,bowHeartbeat=-10,lastBowShot=-10;int bowSlot=-1;
     Hit digging{};std::array<ItemStack,36> inventory{};std::array<ItemStack,4> crafting{};ItemStack cursor{};
@@ -171,7 +173,7 @@ void ReadPenguins(Buffer& b){
 }
 void DrawPenguins(){
     for(const auto& p:penguins)if(p.active){
-        float beat=std::sin(p.age*19.f),light=std::clamp(Daylight(),.35f,1.f);
+        float beat=std::sin(p.age*19.f),light=Settings.fullBright?1.f:std::clamp(Daylight(),.35f,1.f);
         auto color=[&](Color c){return Color{static_cast<unsigned char>(c.r*light),static_cast<unsigned char>(c.g*light),static_cast<unsigned char>(c.b*light),255};};
         auto cube=[&](Vector3 pos,Vector3 size,Color c){DrawCubeV(pos,size,color(c));};
         rlPushMatrix();rlTranslatef(p.display.x,p.display.y,p.display.z);rlRotatef(std::atan2(-p.direction.x,-p.direction.z)*RAD2DEG,0,1,0);
@@ -253,7 +255,7 @@ void GiveTesterItems(Fighter& f){
     f.inventory={};f.crafting={};f.cursor={};
     for(auto item:{IronSword,Stick,Bow,Arrow,WhiteWool,IronPickaxe,IronAxe,Tnt,Fireball,WoodenSword,StoneSword,DiamondSword,WoodenPickaxe,StonePickaxe,DiamondPickaxe,WoodenAxe,StoneAxe,DiamondAxe,Planks,EndStone,Obsidian,GoldenApple,EnderPearl,SpeedPotion,JumpPotion,InvisibilityPotion})Give(f,item,item==Arrow||Placeable(item)||item==Fireball||item==EnderPearl||item==GoldenApple?64:1,item==Stick?1:0);
 }
-void Loadout(int id){auto& f=fighters[id];f.inventory={};f.crafting={};f.cursor={};Give(f,WoodenSword,1);if(f.pick)Give(f,PickItem(f.pick),1);if(f.axe)Give(f,AxeItem(f.axe),1);f.hp=20;f.absorption=f.regen=f.speedTime=f.jumpTime=f.invisTime=0;f.healClock=f.regenClock=f.eating=f.fallDistance=0;f.eatSlot=-1;f.bowStart=-1;f.bowSlot=-1;f.sneaking=false;f.digging={};if(tester&&id==0)GiveTesterItems(f);++f.revision;}
+void Loadout(int id){auto& f=fighters[id];f.inventory={};f.crafting={};f.cursor={};Give(f,WoodenSword,1);if(f.pick)Give(f,PickItem(f.pick),1);if(f.axe)Give(f,AxeItem(f.axe),1);f.blocking=false;f.hp=20;f.absorption=f.regen=f.speedTime=f.jumpTime=f.invisTime=0;f.healClock=f.regenClock=f.eating=f.fallDistance=0;f.eatSlot=-1;f.bowStart=-1;f.bowSlot=-1;f.sneaking=false;f.digging={};if(tester&&id==0)GiveTesterItems(f);++f.revision;}
 void Write(int x,int y,int z,Block b){if(Inside(x,y,z)){if(Liquid(b))SetRemoteBlock(x,y,z,b);else World[x][y][z]=b;}}
 Vector3 OriginalForge(Vector3 expected){
     std::set<int> visited;Vector3 best=expected;float bestScore=-1e9f;
@@ -352,7 +354,7 @@ void ClaimProfile(int id){if(tester&&id>0)return;auto next=fighters[id].profile;
 void AwardXP(int id,int amount){if(tester)return;auto& f=fighters[id];int before=f.profile.Level();f.profile.Award(amount);SaveProfile(id);if(f.profile.Level()>before)Tell(id,"Nivel "+std::to_string(f.profile.Level())+"! Sua caixa sera entregue ao voltar ao lobby.");}
 void Kill(int id,int killer){auto& f=fighters[id];if(tester){if(f.respawn>0)return;f.hp=0;f.respawn=id==0?2.f:1.f;f.eliminated=false;f.bed=true;if(id>0&&id<=2)trainingBots[id-1].awake=false;return;}if(f.respawn>0||f.eliminated)return;if(killer==id)killer=-1;if(killer<0&&f.lastAttacker!=id&&clock-f.lastHurt<10)killer=f.lastAttacker;if(killer>=0&&killer<MaxPlayers){++fighters[killer].kills;AwardXP(killer,f.bed?5:15);if(!f.bed)++fighters[killer].finals;for(Block item:{IronIngot,GoldIngot,Diamond,Emerald}){int remaining=Count(f,item);while(remaining>0){int count=std::min(64,remaining);if(!Give(fighters[killer],item,count))break;remaining-=count;}}}
     f.hp=0;f.inventory={};f.crafting={};f.cursor={};++f.revision;if(f.bed){f.respawn=5;if(f.pick>1)--f.pick;if(f.axe>1)--f.axe;}else f.eliminated=true;Teleport(id,LobbyPosition(id));}
-bool Damage(int id,float damage,int attacker,Vector3 force={},bool melee=false,bool applyArmor=true){auto& f=fighters[id];if(!Live(id)||(attacker>=0&&attacker!=id&&TeamOf(attacker)==TeamOf(id))||(attacker>=0&&attacker!=id&&clock<f.meleeImmuneUntil)||(!melee&&f.hurtClock>0))return false;if(tester&&id==2&&attacker==0)trainingBots[1].awake=true;f.hurtClock=.5f;f.invisTime=0;f.lastAttacker=attacker;f.lastHurt=clock;f.healClock=0;float armor=f.armor==2?.68f:f.armor==1?.8f:f.armor==3?.86f:.92f;if(applyArmor)damage*=armor*(1.f-std::min(4,f.protection)*.04f);float absorbed=std::min(f.absorption,damage);f.absorption-=absorbed;f.hp-=damage-absorbed;if(attacker>=0&&attacker!=id)BroadcastHit(id,attacker);if(Vector3Length(force)>.001f)Knock(id,force,melee);if(f.hp<=0)Kill(id,attacker);return true;}
+bool Damage(int id,float damage,int attacker,Vector3 force={},bool melee=false,bool applyArmor=true){auto& f=fighters[id];if(!Live(id)||(attacker>=0&&attacker!=id&&TeamOf(attacker)==TeamOf(id))||(attacker>=0&&attacker!=id&&clock<f.meleeImmuneUntil)||(!melee&&f.hurtClock>0))return false;if(tester&&id==2&&attacker==0)trainingBots[1].awake=true;f.hurtClock=.5f;f.invisTime=0;f.lastAttacker=attacker;f.lastHurt=clock;f.healClock=0;if(f.blocking&&attacker>=0&&attacker!=id)damage*=.5f;float armor=f.armor==2?.68f:f.armor==1?.8f:f.armor==3?.86f:.92f;if(applyArmor)damage*=armor*(1.f-std::min(4,f.protection)*.04f);float absorbed=std::min(f.absorption,damage);f.absorption-=absorbed;f.hp-=damage-absorbed;if(attacker>=0&&attacker!=id)BroadcastHit(id,attacker);if(Vector3Length(force)>.001f)Knock(id,force,melee);if(f.hp<=0)Kill(id,attacker);return true;}
 bool CanReach(int id,int x,int y,int z){return Live(id)&&Vector3Distance(Vector3Add(fighters[id].p,{0,fighters[id].sneaking?1.54f:1.62f,0}),{std::clamp(fighters[id].p.x,float(x),x+1.f),std::clamp(fighters[id].p.y+1.62f,float(y),y+1.f),std::clamp(fighters[id].p.z,float(z),z+1.f)})<=4.f;}
 int BedTeam(int x,int y,int z){for(int t=0;t<TeamLimit();++t)for(auto p:MapBeds(mapId,t,bases[t]))if(x==int(p.x)&&y==int(p.y)&&z==int(p.z))return t;return -1;}
 bool Breakable(int id,int x,int y,int z){if(!CanReach(id,x,y,z)||At(x,y,z)==Air||Liquid(At(x,y,z)))return false;int bed=BedTeam(x,y,z);return (bed>=0&&bed!=TeamOf(id)&&TeamBed(bed))||placed.count(Cell(x,y,z));}
@@ -465,7 +467,14 @@ void Process(int id,Buffer& b){int kind=b.Byte();auto& f=fighters[id];
         static std::mt19937 rng(std::random_device{}());float damage=BowDamage(held,rng());
         Consume(f,Arrow,1);Shot arrow{Vector3Add(eye,Vector3Scale(direction,.7f)),Vector3Scale(direction,ArrowSpeed*BowPower(held)),id,Arrow,10};arrow.damage=damage;arrow.critical=damage>4;shots.push_back(arrow);f.lastBowShot=clock;return;
     }
-    if(kind==HoldUseRequest){int slot=b.Byte(),held=b.Byte();if(slot>8||held>1)return;if(held&&f.inventory[slot].block==GoldenApple&&f.inventory[slot].count){if(f.eatSlot!=slot){f.eating=0;f.eatSlot=slot;}f.selected=slot;f.eatHeartbeat=clock;}else{f.eating=0;f.eatSlot=-1;}return;}
+    if(kind==HoldUseRequest){int slot=b.Byte(),held=b.Byte();if(slot>8||held>1)return;Block item=f.inventory[slot].block;
+        f.blocking=held&&Sword(item)&&f.inventory[slot].count;
+        if(held&&f.inventory[slot].count&&(TimedUseItem(item)||f.blocking)){
+            f.selected=slot;f.eatHeartbeat=clock;
+            if(TimedUseItem(item)){if(f.eatSlot!=slot){f.eating=0;f.eatSlot=slot;}}else{f.eating=0;f.eatSlot=-1;}
+        }else{f.eating=0;f.eatSlot=-1;}
+        return;
+    }
     if(kind==BuyRequest){int index=b.Byte();if(index>=int(std::size(offers))||offers[index].special==7)return;const auto& offer=offers[index];bool upgrade=offer.special>=3&&offer.special<=5;if(!ShopReach(f.p,upgrade))return;
         int level=ToolLevel(offer.item);int current=IsAxe(offer.item)?f.axe:f.pick;if(level&&level!=current+1){Tell(id,"Compre a proxima melhoria da ferramenta");return;}
         if(Count(f,offer.currency)<offer.cost){Tell(id,"Recursos insuficientes");return;}
@@ -508,7 +517,7 @@ void Process(int id,Buffer& b){int kind=b.Byte();auto& f=fighters[id];
         for(int i=0;i<MaxPlayers;++i)if(i!=id&&TeamOf(i)!=TeamOf(id)&&Live(i)){auto p=fighters[i].p;auto hit=GetRayCollisionBox({eye,direction},{{p.x-.3f,p.y,p.z-.3f},{p.x+.3f,p.y+1.8f,p.z+.3f}});if(hit.hit&&hit.distance<=3.3f&&hit.distance<closest){victim=i;closest=hit.distance;}}
         if(victim>=0){Block sword=f.inventory[slot].block;float damage=sword==DiamondSword?5:sword==IronSword?4:sword==StoneSword?3:sword==WoodenSword||sword==GoldenSword?2:1;Vector3 delta=Vector3Subtract(fighters[victim].p,f.p);Vector3 d=Vector3Normalize({delta.x,0,delta.z});float horizontal=sword==Stick&&f.inventory[slot].damage==1?28.6f:11.05f;if(Damage(victim,damage+f.sharp,id,{d.x*horizontal,6.5f,d.z*horizontal},true)){if(id==0)localSprintPause=true;else if(tester&&id<=2)trainingBots[id-1].player.SuspendSprint(.1f);else wire.Send(f.peer,Packet(SprintPause).bytes);}SendState();}return;}
     if(kind==UseRequest){int slot=b.Byte();if(slot>8)return;auto& stack=f.inventory[slot];if(clock-f.lastAction<(stack.block==Bow?.15f:.3f))return;if(!stack.count)return;Block item=stack.block;if((item==Bow||item==Fireball||item==EnderPearl||item==Tnt)&&shots.size()>=192){auto old=std::find_if(shots.begin(),shots.end(),[](const Shot& shot){return shot.embedded;});if(old!=shots.end())shots.erase(old);else return;}Vector3 eye=Vector3Add(f.p,{0,1.4f,0}),direction{std::sin(f.yaw)*std::cos(f.pitch),std::sin(f.pitch),-std::cos(f.yaw)*std::cos(f.pitch)};
-        if(item>=SpeedPotion&&item<=InvisibilityPotion){Consume(f,item,1);if(item==SpeedPotion)f.speedTime=45;if(item==JumpPotion)f.jumpTime=45;if(item==InvisibilityPotion)f.invisTime=30;}
+        if(PotionItem(item)||Sword(item)){return;}
         else if(item==GoldenApple){return;}
         else if(item==Tnt){auto hit=Trace(eye,direction);if(hit.found){auto place=Packet(PlaceRequest);place.Int(hit.x+hit.nx);place.Int(hit.y+hit.ny);place.Int(hit.z+hit.nz);place.Byte(slot);Process(id,place);}return;}
         else if(item==Fireball||item==EnderPearl){Consume(f,item,1);shots.push_back({Vector3Add(eye,Vector3Scale(direction,.7f)),Vector3Scale(direction,item==EnderPearl?32.f:FireballSpeed),id,item,8.f});}
@@ -522,6 +531,7 @@ void SendState(){auto b=Packet(Snapshot);b.Int(epoch);b.Byte(phase);b.Float(phas
     b.Byte(int(generators.size()));for(auto& g:generators){b.Int(g.stock);b.Float(g.clock);}
     b.Byte(int(shots.size()));for(auto& s:shots){b.Vec(s.p);b.Byte(s.kind);b.Vec(s.v);b.Byte(s.embedded);b.Byte(s.critical);}
     wire.Broadcast(b.bytes);SendPenguins();
+    auto uses=Packet(UseStates);for(const auto& f:fighters)uses.Byte(f.blocking);wire.Broadcast(uses.bytes);
     auto drops=Packet(DropUpdate);drops.Byte(int(droppedItems.size()));
     for(const auto& item:droppedItems){Stack(drops,item.stack);drops.Vec(item.position);drops.Float(item.age);}
     wire.Broadcast(drops.bytes);
@@ -537,8 +547,10 @@ void Simulate(float dt){clock+=dt;
     }
     droppedItems.erase(std::remove_if(droppedItems.begin(),droppedItems.end(),[](const DroppedItem& item){return item.life<=0||!item.stack.count;}),droppedItems.end());
     phaseClock+=dt;if(tester)UpdateTrainingBots(dt);if(phase==2){if(phaseClock>10)ResetMatch();return;}
-    for(int i=0;i<MaxPlayers;++i){auto& f=fighters[i];if(f.bowStart>=0&&(f.bowSlot!=f.selected||f.bowSlot<0||f.inventory[f.bowSlot].block!=Bow||clock-f.bowHeartbeat>.4f||!Live(i))){f.bowStart=-1;f.bowSlot=-1;}f.hurtClock=std::max(0.f,f.hurtClock-dt);f.speedTime=std::max(0.f,f.speedTime-dt);f.jumpTime=std::max(0.f,f.jumpTime-dt);f.invisTime=std::max(0.f,f.invisTime-dt);f.absorbTime=std::max(0.f,f.absorbTime-dt);if(f.absorbTime==0)f.absorption=0;if(Live(i)){
-            if(f.eatSlot>=0){auto& food=f.inventory[f.eatSlot];if(clock-f.eatHeartbeat>.3f||f.selected!=f.eatSlot||food.block!=GoldenApple||!food.count){f.eating=0;f.eatSlot=-1;}else{f.eating+=dt;if(f.eating+1e-5f>=1.61f){if(!--food.count)food={};++f.revision;f.absorption=4;f.absorbTime=120;f.regen=5;f.regenClock=f.healClock=f.eating=0;f.eatSlot=-1;}}}
+    for(int i=0;i<MaxPlayers;++i){auto& f=fighters[i];if(f.blocking&&(!Live(i)||!Sword(f.inventory[f.selected].block)||!f.inventory[f.selected].count||clock-f.eatHeartbeat>.3f))f.blocking=false;if(f.bowStart>=0&&(f.bowSlot!=f.selected||f.bowSlot<0||f.inventory[f.bowSlot].block!=Bow||clock-f.bowHeartbeat>.4f||!Live(i))){f.bowStart=-1;f.bowSlot=-1;}f.hurtClock=std::max(0.f,f.hurtClock-dt);f.speedTime=std::max(0.f,f.speedTime-dt);f.jumpTime=std::max(0.f,f.jumpTime-dt);f.invisTime=std::max(0.f,f.invisTime-dt);f.absorbTime=std::max(0.f,f.absorbTime-dt);if(f.absorbTime==0)f.absorption=0;if(Live(i)){
+            if(f.eatSlot>=0){auto& food=f.inventory[f.eatSlot];if(clock-f.eatHeartbeat>.3f||f.selected!=f.eatSlot||!TimedUseItem(food.block)||!food.count){f.eating=0;f.eatSlot=-1;}else{f.eating+=dt;if(f.eating+1e-5f>=ItemUseDuration(food.block)){Block consumed=food.block;if(!--food.count)food={};++f.revision;
+                if(consumed==GoldenApple){f.absorption=4;f.absorbTime=120;f.regen=5;f.regenClock=f.healClock=0;}else if(consumed==SpeedPotion)f.speedTime=45;else if(consumed==JumpPotion)f.jumpTime=45;else f.invisTime=30;
+                f.eating=0;f.eatSlot=-1;}}}
             if(f.regen>0){float elapsed=std::min(dt,f.regen);f.regen=std::max(0.f,f.regen-dt);f.regenClock+=elapsed;while(f.regenClock>=.5f-1e-5f){f.regenClock=std::max(0.f,f.regenClock-.5f);f.hp=std::min(20.f,f.hp+1);}f.healClock=0;}
             else if(f.hp<20){f.healClock+=dt;while(f.healClock>=4){f.healClock-=4;f.hp=std::min(20.f,f.hp+2);}}else f.healClock=0;
         }if(f.respawn>0){f.respawn=std::max(0.f,f.respawn-dt);if(f.respawn==0){Loadout(i);Teleport(i,TeamSpawn(i));}}else if(Live(i)&&f.p.y< -6)Kill(i,-1);}
@@ -568,7 +580,7 @@ void Simulate(float dt){clock+=dt;
         if((s.kind==Tnt?expired:collision||victim>=0||expired)||s.p.y< -10){
             if(s.kind==Tnt){if(expired)Explosion(s.p,s.owner,s.kind);}
             else if(s.kind==Fireball)Explosion(s.p,s.owner,s.kind);
-            else if(s.kind==Arrow&&victim>=0)Damage(victim,s.damage,s.owner,Vector3Scale(Vector3Normalize(s.v),3));
+            else if(s.kind==Arrow&&victim>=0){auto direction=Vector3Normalize(Vector3{s.v.x,0,s.v.z});Damage(victim,s.damage,s.owner,{direction.x*6.5f,4.f,direction.z*6.5f});}
             else if(s.kind==EnderPearl&&(collision||victim>=0)&&Live(s.owner)){
                 float impactY=victim>=0&&!collision?fighters[victim].p.y:std::ceil(s.p.y);
                 if(victim>=0&&!collision){auto horizontal=Vector3Normalize(Vector3{s.v.x,0,s.v.z});Damage(victim,1.f,s.owner,{horizontal.x*6.f,3.6f,horizontal.z*6.f},false,false);}
@@ -595,6 +607,7 @@ void Receive(int peer,Buffer& b){if(host){int kind=b.bytes.empty()?0:b.bytes[0];
     int kind=b.Byte();if(kind==Welcome){ConnectionTrace("welcome received; awaiting world snapshot");if(b.Int()!=Version)throw std::runtime_error("Versao BedWars diferente do host");me=b.Byte();if(me>=MaxPlayers)throw std::runtime_error("Equipe invalida");status="Conectado ao BedWars LAN";return;}
     if(kind==Snapshot){int nextEpoch=b.Int();epoch=nextEpoch;phase=b.Byte();phaseClock=b.Float();winner=b.Int();clock=b.Float();int gap=b.Byte();int nextMap=b.Byte();teamCapacity=b.Byte();if(teamCapacity!=1&&teamCapacity!=2)throw std::runtime_error("Modo invalido");if(nextMap>=MapCount)throw std::runtime_error("Mapa invalido");if(gap!=16&&gap!=32&&gap!=64)throw std::runtime_error("Distancia Rush invalida");if(nextEpoch!=seenEpoch){ClearPenguins();mapId=nextMap;ConnectionTrace("generating map "+std::to_string(mapId)+" epoch "+std::to_string(nextEpoch));SetLayout(gap);GenerateArena();ConnectionTrace("map block data ready");seenEpoch=nextEpoch;seenTeleport=seenRevision=-1;}for(auto& f:fighters){f.connected=b.Byte()!=0;f.team=b.Byte();if(f.team>=TeamLimit())throw std::runtime_error("Time invalido");f.name=b.Text();f.profile.xp=b.Int();f.profile.crates=b.Int();f.profile.pending=b.Int();for(int i=0;i<3;++i){f.profile.unlocked[i]=uint32_t(b.Int());f.profile.skins[i]=b.Byte();}if(!progression::Valid(f.profile))throw std::runtime_error("Perfil invalido no pacote");f.p=b.Vec();f.yaw=b.Float();f.pitch=b.Float();f.hp=b.Float();f.respawn=b.Float();f.bed=b.Byte()!=0;f.eliminated=b.Byte()!=0;f.teleport=b.Int();f.revision=b.Int();f.kills=b.Int();f.finals=b.Int();f.beds=b.Int();f.armor=b.Byte();f.sharp=b.Byte();f.protection=b.Byte();f.forge=b.Byte();f.selected=b.Byte();if(f.selected>8)throw std::runtime_error("Slot BedWars invalido");f.sneaking=b.Byte()!=0;f.pick=b.Byte();f.axe=b.Byte();f.speedTime=b.Float();f.jumpTime=b.Float();f.invisTime=b.Float();f.absorption=b.Float();f.regen=b.Float();f.eating=b.Float();f.bowStart=b.Float();for(auto& s:f.inventory)s=Stack(b);for(auto& s:f.crafting)s=Stack(b);f.cursor=Stack(b);}for(auto& chest:chests)for(auto& s:chest)s=Stack(b);int count=b.Byte();if(count!=int(generators.size()))throw std::runtime_error("Geradores inconsistentes");for(auto& g:generators){g.stock=b.Int();g.clock=b.Float();}int n=b.Byte();shots.clear();for(int i=0;i<n;++i){auto p=b.Vec();int block=b.Byte();if(block>=BlockCount)throw std::runtime_error("Projetil invalido");auto velocity=b.Vec();bool embedded=b.Byte()!=0;bool critical=b.Byte()!=0;Shot shot{p,velocity,0,Block(block),0,0,embedded};shot.critical=critical;if(shot.kind==Tnt)shot.life=TntFuse;shots.push_back(shot);}if(!ready)ConnectionTrace("first world snapshot ready");ready=true;PersistLocalProfile();return;}
     if(kind==DropUpdate){int count=b.Byte();if(count>192)throw std::runtime_error("Drops invalidos");std::vector<DroppedItem> next;for(int i=0;i<count;++i){auto stack=Stack(b);auto position=b.Vec();float age=b.Float();if(!stack.count||stack.block==Air||age<0)throw std::runtime_error("Drop invalido");next.push_back({stack,position,{},age});}droppedItems=std::move(next);return;}
+    if(kind==UseStates){for(auto& f:fighters){int value=b.Byte();if(value>1)throw std::runtime_error("Defesa invalida");f.blocking=value;}return;}
     if(kind==TntTimers){int count=b.Byte();if(count>int(shots.size()))throw std::runtime_error("Timers TNT invalidos");for(int i=0;i<count;++i){int index=b.Byte();float remaining=b.Float();if(index>=int(shots.size())||shots[index].kind!=Tnt||remaining<0||remaining>TntFuse+.01f)throw std::runtime_error("Timer TNT invalido");shots[index].life=remaining;}return;}
     if(kind==PenguinUpdate){ReadPenguins(b);return;}
     if(kind==HitEffect){int victim=b.Byte(),attacker=b.Byte();if(victim>=MaxPlayers||attacker>=MaxPlayers)throw std::runtime_error("Hit invalido");ShowHit(victim,attacker);return;}
@@ -708,6 +721,7 @@ void Place(int x,int y,int z,int selected,const Player* player){if(player){auto 
 void Attack(int selected,const Player* player){if(player){auto pose=player->CaptureState();auto position=Packet(Position);position.Vec(pose.position);position.Float(pose.yaw);position.Float(pose.pitch);position.Byte(selected);position.Byte(player->IsSneaking());Request(std::move(position));}auto b=Packet(AttackRequest);b.Byte(selected);Request(std::move(b));}
 namespace {bool localBowHeld=false;float localBowAge=0,localBowHeartbeat=0;int localBowSlot=-1;}
 float EatingTime(){return Ready()?fighters[me].eating:0.f;}
+bool Blocking(){return Ready()&&fighters[me].blocking;}
 float BowDrawTime(){return localBowHeld?localBowAge:-1.f;}
 void CancelBow(){if(localBowHeld&&Ready()){auto b=Packet(BowRequest);b.Byte(localBowSlot);b.Byte(2);Request(std::move(b));}localBowHeld=false;localBowAge=localBowHeartbeat=0;localBowSlot=-1;}
 void BowInput(int selected,bool held,bool pressed,bool released,float dt,const Player* player){
@@ -718,7 +732,7 @@ void BowInput(int selected,bool held,bool pressed,bool released,float dt,const P
     if(localBowHeld&&held){localBowAge=std::min(1.5f,localBowAge+dt);localBowHeartbeat+=dt;if(localBowHeartbeat>=.1f){localBowHeartbeat=0;auto b=Packet(BowRequest);b.Byte(selected);b.Byte(3);Request(std::move(b));}}
     if(localBowHeld&&released){if(player){auto pose=player->CaptureState();auto b=Packet(Position);b.Vec(pose.position);b.Float(pose.yaw);b.Float(pose.pitch);b.Byte(selected);b.Byte(player->IsSneaking());Request(std::move(b));}auto b=Packet(BowRequest);b.Byte(selected);b.Byte(1);Request(std::move(b));localBowHeld=false;localBowSlot=-1;localBowAge=0;}
 }
-void HoldUse(int selected,bool held){static double sent=-1;static bool previous=false;static int slot=-1;if(!Ready())return;held=held&&selected>=0&&selected<9&&Hotbar[selected].block==GoldenApple&&Hotbar[selected].count;if(held!=previous||selected!=slot||(held&&(clock-sent>=.1||clock<sent))){auto b=Packet(HoldUseRequest);b.Byte(selected);b.Byte(held);Request(std::move(b));sent=clock;previous=held;slot=selected;}}
+void HoldUse(int selected,bool held){static double sent=-1;static bool previous=false;static int slot=-1;if(!Ready())return;held=held&&selected>=0&&selected<9&&(TimedUseItem(Hotbar[selected].block)||Sword(Hotbar[selected].block))&&Hotbar[selected].count;if(held!=previous||selected!=slot||(held&&(clock-sent>=.1||clock<sent))){auto b=Packet(HoldUseRequest);b.Byte(selected);b.Byte(held);Request(std::move(b));sent=clock;previous=held;slot=selected;}}
 const std::vector<DroppedItem>& DroppedItems(){return droppedItems;}
 void DropCursor(bool all){if(!Ready())return;auto b=Packet(DropRequest);b.Byte(255);b.Byte(all);Request(std::move(b));}
 void Drop(int selected,bool all,const Player* player){
@@ -775,7 +789,7 @@ void DrawWorld(const Camera3D& camera,Texture2D atlas){
             if(sprite){rlRotatef(-25,1,0,0);rlTranslatef(0,.24f,-.08f);rlRotatef(90,0,1,0);}else rlTranslatef(0,.02f,-.17f);
             float size=sprite?(Tool(held)||held==Stick?.65f:.45f):.32f;rlScalef(size,size,size);
             Matrix transform=rlGetMatrixTransform();rlPopMatrix();
-            float brightness=std::clamp(std::max(SkyLightAt(int(p.x),int(p.y+1),int(p.z))/24.f*Daylight(),BlockLightAt(int(p.x),int(p.y+1),int(p.z))/24.f),.28f,1.f);
+            float brightness=Settings.fullBright?1.f:std::clamp(std::max(SkyLightAt(int(p.x),int(p.y+1),int(p.z))/24.f*Daylight(),BlockLightAt(int(p.x),int(p.y+1),int(p.z))/24.f),.28f,1.f);
             unsigned char light=static_cast<unsigned char>(brightness*255);DrawHeldItem3D(atlas,held,transform,{light,light,light,255},ItemSkin(held,i),f.bowStart>=0?clock-f.bowStart:-1.f);
         }
     }}

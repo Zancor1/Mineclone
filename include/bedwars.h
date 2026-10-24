@@ -71,6 +71,9 @@ void BowInput(int selected,bool held,bool pressed,bool released,float dt,const P
 void CancelBow();
 float BowDrawTime();
 float EatingTime();
+bool Blocking();
+struct AnimationDemo {std::string name;Vector3 position;};
+std::vector<AnimationDemo> AnimationDummies();
 void Buy(int offer);
 void SwapSlots(int from,int to,bool chest,bool exact=false);
 bool NearShop(const Player& player);

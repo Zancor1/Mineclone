@@ -16,7 +16,7 @@ bool LoadSettings(const std::string& path) {
     std::string magic;int version=0,frozen=0;
     GameSettings loaded;
     if(!(in>>magic>>version>>frozen>>loaded.mouseSensitivity>>loaded.newWorldMinute)||
-       magic!="MINECLONE_SETTINGS"||(version<1||version>5)||(frozen!=0&&frozen!=1)||
+       magic!="MINECLONE_SETTINGS"||(version<1||version>6)||(frozen!=0&&frozen!=1)||
        !std::isfinite(loaded.mouseSensitivity)||loaded.mouseSensitivity<.1f||loaded.mouseSensitivity>3.f||
        loaded.newWorldMinute<0||loaded.newWorldMinute>1439) return false;
     if(version>=2) {
@@ -32,6 +32,7 @@ bool LoadSettings(const std::string& path) {
     if(version>=4){int count=0;if(!(in>>loaded.fov>>count)||!std::isfinite(loaded.fov)||loaded.fov<40||loaded.fov>110||(count!=BindingCount&&count!=BindingCount-1))return false;
         for(int i=0;i<count;++i){int key;if(!(in>>key)||!((key>=32&&key<=348)||(key>=-7&&key<=0)))return false;for(int j=0;j<i;++j)if(key&&loaded.bindings[j]==key)return false;loaded.bindings[i]=key;}if(count<BindingCount){for(int i=0;i<count;++i)if(loaded.bindings[i]==KEY_Q)loaded.bindings[int(BindingAction::Drop)]=0;}}
     if(version>=5){int toggle=0;if(!(in>>toggle)||(toggle!=0&&toggle!=1))return false;loaded.toggleSprint=toggle!=0;}
+    if(version>=6){int sprint,sky,bright;if(!(in>>sprint>>sky>>bright)||sprint<0||sprint>1||sky<0||sky>1||bright<0||bright>1)return false;loaded.sprintFov=sprint;loaded.beautifulSky=sky;loaded.fullBright=bright;}
     in>>std::ws;if(in.peek()!=std::char_traits<char>::eof()) return false;
     loaded.freezeTime=frozen!=0;Settings=loaded;return true;
 }
@@ -39,12 +40,13 @@ bool SaveSettings(const std::string& path) {
     const std::string temporary=path+".tmp";
     std::ofstream out(temporary,std::ios::trunc);
     if(!out) return false;
-    out<<"MINECLONE_SETTINGS 5\n"<<int(Settings.freezeTime)<<' '<<std::setprecision(9)
+    out<<"MINECLONE_SETTINGS 6\n"<<int(Settings.freezeTime)<<' '<<std::setprecision(9)
        <<Settings.mouseSensitivity<<' '<<Settings.newWorldMinute<<'\n'
        <<int(Settings.fogEnabled)<<' '<<Settings.renderChunks<<' '<<Settings.fogDistance<<'\n'
        <<std::quoted(Settings.playerName)<<' '<<std::quoted(Settings.serverAddress)<<'\n';
     out<<Settings.fov<<' '<<BindingCount<<'\n';for(int key:Settings.bindings)out<<key<<' ';out<<'\n';
     out<<int(Settings.toggleSprint)<<'\n';
+    out<<int(Settings.sprintFov)<<' '<<int(Settings.beautifulSky)<<' '<<int(Settings.fullBright)<<'\n';
     out.flush();bool ok=bool(out);out.close();ok=ok&&!out.fail();
     std::error_code error;
     if(ok) {ReplaceSaveFile(temporary,path,error);ok=!error;}

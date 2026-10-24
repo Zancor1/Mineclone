@@ -17,6 +17,7 @@ struct GameSettings {
     bool freezeTime=false;
     bool toggleSprint=true;
     bool fogEnabled=true;
+    bool sprintFov=true,beautifulSky=true,fullBright=false;
     int renderChunks=3;
     float fogDistance=40.f;
     float mouseSensitivity=1.f;

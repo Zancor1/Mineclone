@@ -87,6 +87,18 @@ int main() {
             DrawDroppedItem3D(renderer.Atlas(),IronSword,{6,6.3f,7},.5f);DrawDroppedItem3D(renderer.Atlas(),GoldenApple,{7,6.3f,7},.5f);DrawDroppedItem3D(renderer.Atlas(),RedWool,{8,6.3f,7},.5f);
             EndMode3D();rlDrawRenderBatchActive();Image dropped=LoadImageFromScreen();ExportImage(dropped,"build/dropped-items.png");UnloadImage(dropped);EndDrawing();
             BeginDrawing();renderer.Draw(camera,{});BeginMode3D(camera);DrawThrownItem(EnderPearl,{6,6.5f,8},{0,0,-32});DrawThrownItem(Fireball,{7.5f,6.5f,8},{0,0,-30});EndMode3D();rlDrawRenderBatchActive();Image projectiles=LoadImageFromScreen();ExportImage(projectiles,"build/thrown-items.png");UnloadImage(projectiles);EndDrawing();
+            for(int x=18;x<=22;++x)for(int y=5;y<=11;++y)Change(x,y,10,Stone);
+            Camera3D brightCamera{{20.5f,8,14},{20.5f,8,10},{0,1,0},70,CAMERA_PERSPECTIVE};WorldTime=DayDuration*.75f;
+            double totals[2]{};
+            for(int bright=0;bright<2;++bright){Settings.fullBright=bright;
+                BeginDrawing();renderer.Draw(brightCamera,{});rlDrawRenderBatchActive();Image image=LoadImageFromScreen();
+                for(int x=330;x<390;++x)for(int y=210;y<270;++y){auto c=GetImageColor(image,x,y);totals[bright]+=c.r+c.g+c.b;}
+                ExportImage(image,bright?"build/full-bright-on.png":"build/full-bright-off.png");UnloadImage(image);EndDrawing();
+            }
+            if(totals[1]<totals[0]*1.5){std::fprintf(stderr,"FAIL: Full Bright does not illuminate nighttime terrain\n");result=1;}Settings.fullBright=false;
+            Camera3D skyCamera{{9,9,12},{9,40,-40},{0,1,0},70,CAMERA_PERSPECTIVE};
+            for(int night=0;night<2;++night){WorldTime=night?DayDuration*.75f:DayDuration*.25f;BeginDrawing();renderer.Draw(skyCamera,{});rlDrawRenderBatchActive();Image image=LoadImageFromScreen();ExportImage(image,night?"build/sky-night.png":"build/sky-day.png");UnloadImage(image);EndDrawing();}
+            WorldTime=DayDuration*.25f;
             const bool fogBefore=Settings.fogEnabled;
             Settings.fogEnabled=false;Settings.renderChunks=6;
             BeginDrawing();renderer.Draw(camera,{});EndDrawing();
@@ -100,6 +112,14 @@ int main() {
             BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Keyboard);rlDrawRenderBatchActive();Image keyboard=LoadImageFromScreen();ExportImage(keyboard,"build/keyboard-options.png");UnloadImage(keyboard);EndDrawing();
             BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Options);
             rlDrawRenderBatchActive();Image options=LoadImageFromScreen();ExportImage(options,"build/options-preview.png");UnloadImage(options);EndDrawing();
+            for(int tab=0;tab<3;++tab){
+                // Mouse automation IDs from raylib's AutomationEventType.
+                PlayAutomationEvent({0,5,{MOUSE_BUTTON_LEFT,0,0,0}});BeginDrawing();EndDrawing();
+                PlayAutomationEvent({0,7,{int(GetScreenWidth()/2.f-320+20+tab*202+98),int(GetScreenHeight()/2.f-224+65),0,0}});
+                PlayAutomationEvent({0,6,{MOUSE_BUTTON_LEFT,0,0,0}});ui.Update(GameState::Options);
+                BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Options);rlDrawRenderBatchActive();Image image=LoadImageFromScreen();ExportImage(image,TextFormat("build/options-tab-%d.png",tab));UnloadImage(image);EndDrawing();
+            }
+            PlayAutomationEvent({0,5,{MOUSE_BUTTON_LEFT,0,0,0}});BeginDrawing();EndDrawing();
             ui.Update(GameState::Minigames);
             BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Minigames);
             rlDrawRenderBatchActive();Image multiplayer=LoadImageFromScreen();ExportImage(multiplayer,"build/minigames-preview.png");UnloadImage(multiplayer);EndDrawing();

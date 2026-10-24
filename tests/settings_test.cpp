@@ -58,11 +58,30 @@ int main() {
     for(int i=0;i<19;++i)smooth.Update(walking,.05f);
     auto slowFrames=smooth.CaptureState();float beforeStop=slowFrames.position.z;smooth.Update({},.05f);Check(smooth.CaptureState().position.z<beforeStop,"movement decelerates instead of stopping instantly");
     smooth.RestoreState(start);for(int i=0;i<100;++i)smooth.Update(walking,.01f);Check(std::abs(smooth.CaptureState().position.z-slowFrames.position.z)<.002f,"acceleration is consistent across frame rates");
+    for(bool sprint:{false,true}){
+        smooth.RestoreState(start);PlayerInput move;move.forward=1;move.sprint=sprint;Settings.toggleSprint=false;
+        for(int frame=0;frame<15;++frame)smooth.Update(move,.05f);
+        float before=smooth.CaptureState().position.z;smooth.Update(move,.05f);
+        Check(std::abs((before-smooth.CaptureState().position.z)/.05f-(sprint?5.612f:4.317f))<.01f,"local movement matches classic walking and sprinting speeds");
+    }
     Player blast;PlayerState blastStart;blastStart.valid=true;blastStart.position={140,50,140};
     blast.RestoreState(blastStart);blast.Knockback({120,12,0});for(int i=0;i<40;++i)blast.Update({},.05f);
     Check(std::abs(blast.CaptureState().position.x-160.f)<.02f,"maximum fireball impulse travels twenty unobstructed blocks");
     blast.RestoreState(blastStart);blast.Knockback({120,12,0});for(int i=0;i<200;++i)blast.Update({},.01f);
     Check(std::abs(blast.CaptureState().position.x-160.f)<.02f,"fireball range stays consistent across frame rates");
+    {
+        Player view;view.RestoreState(start);Settings.sprintFov=true;Settings.toggleSprint=false;Settings.fov=70;
+        PlayerInput running;running.forward=1;running.sprint=true;view.Update(running,.05f);
+        Check(view.Camera().fovy>70&&view.Camera().fovy<78,"sprint FOV begins with a smooth transition");
+        for(int i=0;i<20;++i)view.Update(running,.05f);
+        Check(std::abs(view.Camera().fovy-78)<.01f,"running widens FOV by eight degrees");
+        auto runningCamera=view.Camera();auto runningFeet=view.CaptureState().position;
+        float bob=std::abs(runningCamera.position.y-runningFeet.y-EyeHeight)+std::hypot(runningCamera.position.x-runningFeet.x,runningCamera.position.z-runningFeet.z);
+        Check(bob>.001f&&bob<.05f,"running adds a small bounded camera step without moving the player");
+
+        Settings.sprintFov=false;Check(view.Camera().fovy==70,"disabling sprint FOV immediately restores configured field of view");
+        Settings.sprintFov=true;view.Update({},.05f);Check(view.Camera().fovy>70&&view.Camera().fovy<78,"stopping smoothly restores FOV");
+    }
     auto path=std::filesystem::temp_directory_path()/
         ("mineclone-settings-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count())+".cfg");
     Settings.freezeTime=true;Settings.mouseSensitivity=1.75f;Settings.newWorldMinute=1439;
@@ -71,11 +90,13 @@ int main() {
     Check(RenderDistance()==96,"render distance is measured in chunks");
     Settings.fov=96;Check(SetBinding(BindingAction::Forward,KEY_UP),"remap movement");Check(!SetBinding(BindingAction::Backward,KEY_UP),"reject duplicate bindings");Check(SetBinding(BindingAction::Use,-3)&&SetBinding(BindingAction::Attack,-2),"remap mouse actions");Check(!SetBinding(BindingAction::Use,-99),"reject invalid mouse button");
     Check(player.Camera().fovy==96,"FOV setting updates camera");
+    Settings.sprintFov=false;Settings.beautifulSky=false;Settings.fullBright=true;
     Check(SaveSettings(path.string()),"save options");
     Settings=GameSettings{};
     Check(LoadSettings(path.string())&&Settings.freezeTime&&Settings.mouseSensitivity==1.75f&&
           Settings.newWorldMinute==1439&&!Settings.fogEnabled&&Settings.renderChunks==6&&Settings.fogDistance==137.f,"options survive reload");
     Check(!Settings.toggleSprint&&Settings.fov==96&&Settings.bindings[int(BindingAction::Forward)]==KEY_UP&&Settings.bindings[int(BindingAction::Use)]==-3&&Settings.bindings[int(BindingAction::Attack)]==-2,"FOV and keyboard/mouse bindings survive reload");
+    Check(!Settings.sprintFov&&!Settings.beautifulSky&&Settings.fullBright,"visual extras survive saving and reloading");
     Check(Settings.playerName=="Zancor_1"&&Settings.serverAddress=="127.0.0.1:25566","multiplayer nickname and address persist");
     {std::ofstream out(path);out<<"MINECLONE_SETTINGS 1\n1 999 2500\n";}
     Check(!LoadSettings(path.string())&&Settings.mouseSensitivity==1.75f,"invalid config preserves current settings");
@@ -87,6 +108,7 @@ int main() {
         std::ofstream out(path);out<<"MINECLONE_SETTINGS 5\n0 1 720\n1 3 40\n\"Tester\" \"127.0.0.1\"\n70 "<<BindingCount-1<<'\n';
         for(int i=0;i<BindingCount-1;++i){out<<(i==0&&customQ?KEY_Q:DefaultBindings[i])<<' ';}out<<"\n1\n";out.close();
         Check(LoadSettings(path.string()),"previous binding count migrates without discarding settings");
+        Check(Settings.sprintFov&&Settings.beautifulSky&&!Settings.fullBright,"old settings receive defaults for new visual extras");
         Check(Settings.bindings[int(BindingAction::Drop)]==(customQ?0:KEY_Q),"migration adds Q unless an existing custom binding already uses it");
     }
     std::filesystem::remove(path);

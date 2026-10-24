@@ -491,6 +491,7 @@ uniform vec3 fogColor;
 uniform float fogDensity;
 uniform float regionSize;
 uniform float daylight;
+uniform float fullBright;
 uniform vec3 sunDirection;
 out vec4 finalColor;
 void main() {
@@ -499,7 +500,7 @@ void main() {
     float facing=0.35+0.65*max(dot(normalize(normal),normalize(sunDirection)),0.0);
     vec3 sunlight=mix(vec3(0.025,0.035,0.075),vec3(1.0,0.98,0.92)*facing,daylight)*pow(tint.g,2.2);
     vec3 lamplight=vec3(1.0,0.86,0.64)*pow(tint.b,1.45);
-    color.rgb*=max(vec3(0.025,0.028,0.035),sunlight+lamplight*(1.0-0.35*daylight))*tint.r;
+    color.rgb*=mix(max(vec3(0.025,0.028,0.035),sunlight+lamplight*(1.0-0.35*daylight)),vec3(1.0),fullBright)*tint.r;
     if(color.a<0.01) discard;
     float d=length(worldPosition-eyePosition);
     float fog=1.0-exp(-pow(d*fogDensity,2.0));
@@ -704,8 +705,8 @@ struct Renderer::Impl {
     RenderTexture2D handLayer{};
     Block held=Air;
     int heldFinish=0;
-    float handClock=0,swing=1,equip=0,walking=0;
-    int eye=-1,fog=-1,density=-1,day=-1,sun=-1;
+    float handClock=0,swing=1,equip=0,walking=0,running=0;
+    int eye=-1,fog=-1,density=-1,day=-1,sun=-1,fullBright=-1;
     bool ready=false,sceneReady=false,preparing=false;
     float loadProgress=0;int loadStage=0;
     struct CachedMap {Texture2D texture{};uint64_t revision=0;};
@@ -758,6 +759,7 @@ bool Renderer::Initialize() {
     impl->density=GetShaderLocation(impl->shader,"fogDensity");
     impl->day=GetShaderLocation(impl->shader,"daylight");
     impl->sun=GetShaderLocation(impl->shader,"sunDirection");
+    impl->fullBright=GetShaderLocation(impl->shader,"fullBright");
     float regionSize=float(Width);
     SetShaderValue(impl->shader,GetShaderLocation(impl->shader,"regionSize"),&regionSize,SHADER_UNIFORM_FLOAT);
     impl->ready=true; return true;
@@ -811,12 +813,27 @@ void Renderer::Draw(const Camera3D& camera,const Hit& hit,float miningProgress) 
     SetShaderValue(impl->shader,impl->eye,eye,SHADER_UNIFORM_VEC3);
     SetShaderValue(impl->shader,impl->fog,fog,SHADER_UNIFORM_VEC3);
     SetShaderValue(impl->shader,impl->density,&density,SHADER_UNIFORM_FLOAT);
+    float fullBright=Settings.fullBright?1.f:0.f;SetShaderValue(impl->shader,impl->fullBright,&fullBright,SHADER_UNIFORM_FLOAT);
     float daylight=Daylight();
     SetShaderValue(impl->shader,impl->day,&daylight,SHADER_UNIFORM_FLOAT);
     float angle=WorldTime/DayDuration*2*PI;
     float direction[3]={std::cos(angle),std::sin(angle),-.35f};
     SetShaderValue(impl->shader,impl->sun,direction,SHADER_UNIFORM_VEC3);
-    ClearBackground(sky); BeginMode3D(camera);
+    ClearBackground(sky);
+    if(Settings.beautifulSky&&!underwater){
+        auto mix=[](Color a,Color b,float t){return Color{static_cast<unsigned char>(Lerp(a.r,b.r,t)),static_cast<unsigned char>(Lerp(a.g,b.g,t)),static_cast<unsigned char>(Lerp(a.b,b.b,t)),255};};
+        Color zenith=mix({7,11,30,255},{48,128,209,255},daylight),horizon=mix({27,32,65,255},{176,217,240,255},daylight);
+        float dusk=std::max(0.f,1.f-std::abs(std::sin(angle))*4.f);horizon=mix(horizon,{236,146,115,255},dusk*.65f);
+        DrawRectangleGradientV(0,0,GetScreenWidth(),GetScreenHeight(),zenith,horizon);
+    }
+    BeginMode3D(camera);
+    if(Settings.beautifulSky&&!underwater){
+        rlDisableDepthMask();
+        float night=1-daylight;
+        if(night>.1f)for(int i=0;i<128;++i){float a=i*2.399963f,h=.12f+std::fmod(i*.618034f,.84f),r=std::sqrt(1-h*h);Vector3 p=Vector3Add(camera.position,{std::cos(a)*r*125,h*125,std::sin(a)*r*125});float twinkle=.75f+.25f*std::sin(float(GetTime())*.9f+i);DrawSphereEx(p,.14f+(i%3)*.045f,3,4,Fade(i%3?Color{218,231,255,255}:Color{255,239,209,255},night*twinkle));}
+        if(daylight>.05f)for(int i=0;i<12;++i){float x=std::fmod(i*47.f+float(GetTime())*.6f,180.f)-90,z=std::fmod(i*71.f,180.f)-90;Vector3 p=Vector3Add(camera.position,{x,32.f+(i%3)*5.f,z});Color cloud=Fade(Color{238,242,249,255},.65f*daylight);DrawCube(p,14,1.3f,8,cloud);DrawCube(Vector3Add(p,{4,1,1}),8,1.4f,6,cloud);}
+        rlEnableDepthMask();
+    }
     Vector3 sun=Vector3Add(camera.position,{std::cos(angle)*85,std::sin(angle)*85,-30});
     Vector3 moon=Vector3Add(camera.position,{-std::cos(angle)*85,-std::sin(angle)*85,30});
     if(!underwater) {
@@ -849,7 +866,7 @@ void Renderer::Draw(const Camera3D& camera,const Hit& hit,float miningProgress) 
     EndMode3D();
     DrawItemLabels(camera);
 }
-void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,bool usingItem,float dt) {
+void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,bool usingItem,float dt,bool sprinting) {
     if(!impl->ready) return;
     if(net::Active()&&net::HeldMapId()>=0) {
         int mapId=net::HeldMapId();Texture2D texture=impl->MapTexture(mapId);
@@ -870,7 +887,8 @@ void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,boo
     }
     impl->equip=std::max(0.f,impl->equip-dt*5);
     impl->walking=Lerp(impl->walking,moving?1.f:0.f,std::min(1.f,dt*10));
-    impl->handClock+=dt*(2+impl->walking*8);
+    impl->running=Lerp(impl->running,moving&&sprinting?1.f:0.f,1-std::exp(-10.f*dt));
+    impl->handClock+=dt*(2+impl->walking*8+impl->running*4);
     const float bowDraw=item==Bow?(bw::Ready()?bw::BowDrawTime():game::BowDrawTime()):-1.f;
     const float eating=item==GoldenApple?(bw::Ready()?bw::EatingTime():game::EatingTime()):0.f;
     if(item==Bow||eating>0)usingItem=false;
@@ -880,9 +898,9 @@ void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,boo
     int x=int(std::floor(camera.position.x)),y=int(std::floor(camera.position.y)),z=int(std::floor(camera.position.z));
     float sky=SkyLightAt(x,y,z)/24.f*(.06f+.94f*Daylight());
     float torch=(.72f*DirectBlockLightAt(x,y,z)+.28f*BlockLightAt(x,y,z))/24.f;
-    float brightness=.16f+.84f*std::clamp(std::max(sky,torch),0.f,1.f);
+    float brightness=Settings.fullBright?1.f:.16f+.84f*std::clamp(std::max(sky,torch),0.f,1.f);
     Color tint=Shade(WHITE,brightness);
-    if(torch>sky) {tint.g=static_cast<unsigned char>(tint.g*.93f);tint.b=static_cast<unsigned char>(tint.b*.8f);}
+    if(!Settings.fullBright&&torch>sky) {tint.g=static_cast<unsigned char>(tint.g*.93f);tint.b=static_cast<unsigned char>(tint.b*.8f);}
     Camera3D handCamera{{0,0,0},{0,0,-1},{0,1,0},70,CAMERA_PERSPECTIVE};
     int width=GetScreenWidth(),height=GetScreenHeight();
     if(width<1||height<1)return;
@@ -899,8 +917,8 @@ void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,boo
     float rightEdge=float(width)/height*std::tan(handCamera.fovy*.5f*DEG2RAD);
     float heldX=item==Bow?rightEdge*.9f-.27f:rightEdge*1.13f-.24f;
     if(Sword(item))heldX-=.08f*(1.f-swing);
-    rlTranslatef(heldX+std::sin(float(GetTime())*45)*bowShake+std::sin(impl->handClock)*.022f*impl->walking-.055f*swing,
-                 (item==Bow?-.59f:-.77f)+std::cos(float(GetTime())*39)*bowShake+std::abs(std::sin(impl->handClock))*.025f*impl->walking-.035f*swing-.25f*impl->equip,
+    rlTranslatef(heldX+std::sin(float(GetTime())*45)*bowShake+std::sin(impl->handClock)*(.022f+.016f*impl->running)*impl->walking-.055f*swing,
+                 (item==Bow?-.59f:-.77f)+std::cos(float(GetTime())*39)*bowShake+std::abs(std::sin(impl->handClock))*(.025f+.018f*impl->running)*impl->walking-.035f*swing-.25f*impl->equip,
                  (item==Bow?-1.25f:-1.f)-.16f*swing);
     if(eating>0){
         float lift=std::min(1.f,eating/.22f),bite=std::abs(std::sin(eating*PI*5.f));

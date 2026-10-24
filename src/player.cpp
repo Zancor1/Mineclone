@@ -70,7 +70,7 @@ bool Player::RestoreState(const PlayerState& state) {
     if(!state.valid||!std::isfinite(state.position.x)||!std::isfinite(state.position.y)||
        !std::isfinite(state.position.z)||!std::isfinite(state.yaw)||!std::isfinite(state.pitch)||
        !std::isfinite(state.velocityY)||std::abs(state.pitch)>1.55f) return false;
-    sprintLock=0;sprintLatched=false;meleeMotion=false;motionX=motionZ=0;impulse={};pendingExplosion={};explosionRamp=explosionDrag=0;if(!net::Active())networkAccumulator=0;previousPosition=state.position;position=state.position;yaw=state.yaw;pitch=state.pitch;velocityY=state.velocityY;
+    sprintView=sprintBob=sprintStep=0;sprintLock=0;sprintLatched=false;meleeMotion=false;motionX=motionZ=0;impulse={};pendingExplosion={};explosionRamp=explosionDrag=0;if(!net::Active())networkAccumulator=0;previousPosition=state.position;position=state.position;yaw=state.yaw;pitch=state.pitch;velocityY=state.velocityY;
     flying=state.flying&&Mode==GameMode::Creative;jumpWasDown=false;jumpTapAge=1.f;
     return true;
 }
@@ -88,13 +88,15 @@ void Player::MeleeKnockback(Vector3 push){
 }
 void Player::ExplosionKnockback(Vector3 push){pendingExplosion=Vector3Add(pendingExplosion,{push.x,0,push.z});explosionRamp=.16f;explosionDrag=2.f;meleeMotion=false;velocityY=std::max(velocityY,push.y);FallDistance=0;}
 void Player::Knockback(Vector3 push) {meleeMotion=false;impulse=Vector3Add(impulse,push);velocityY=std::max(velocityY,push.y);FallDistance=0;}
-void Player::Respawn() {sprintLock=0;sprintLatched=false;meleeMotion=false;motionX=motionZ=0;sneaking=sprinting=false;impulse={};pendingExplosion={};explosionRamp=explosionDrag=0;position=Spawn(); velocityY=0; yaw=0; pitch=0;flying=false;jumpWasDown=false;jumpTapAge=1.f;previousPosition=position;networkAccumulator=0;}
+void Player::Respawn() {sprintView=sprintBob=sprintStep=0;sprintLock=0;sprintLatched=false;meleeMotion=false;motionX=motionZ=0;sneaking=sprinting=false;impulse={};pendingExplosion={};explosionRamp=explosionDrag=0;position=Spawn(); velocityY=0; yaw=0; pitch=0;flying=false;jumpWasDown=false;jumpTapAge=1.f;previousPosition=position;networkAccumulator=0;}
 bool Player::Overlaps(int x,int y,int z) const {return Overlap(position,x,y,z);}
 Camera3D Player::Camera() const {
     Vector3 view=net::Active()?Vector3Lerp(previousPosition,position,std::clamp(networkAccumulator/.05f,0.f,1.f)):position;
     Camera3D c{}; c.position={view.x,view.y+EyeHeight-(sneaking?.08f:0.f),view.z};
+    float side=std::sin(sprintStep)*.018f*sprintBob,step=std::cos(sprintStep*2)*.025f*sprintBob;
+    c.position=Vector3Add(c.position,{std::cos(yaw)*side,step,std::sin(yaw)*side});
     Vector3 d{std::sin(yaw)*std::cos(pitch),std::sin(pitch),-std::cos(yaw)*std::cos(pitch)};
-    c.target=Vector3Add(c.position,d); c.up={0,1,0}; c.fovy=Settings.fov; c.projection=CAMERA_PERSPECTIVE; return c;
+    c.target=Vector3Add(c.position,d); c.up={0,1,0}; c.fovy=Settings.fov+(Settings.sprintFov?8.f*sprintView:0.f); c.projection=CAMERA_PERSPECTIVE; return c;
 }
 void Player::Update(const PlayerInput& input,float dt,bool affectVitals) {
     float savedFallDistance=FallDistance;
@@ -116,14 +118,17 @@ void Player::Update(const PlayerInput& input,float dt,bool affectVitals) {
     bool swimming=InWater(position);
     if(swimming||flying)meleeMotion=false;
     sneaking=input.swimDown&&!flying&&!swimming;
-    sprinting=sprintRequested&&input.forward>=.8f&&!sneaking;
-    float inputScale=net::Active()?.98f:1.f;
+    sprinting=sprintRequested&&input.forward>=.8f&&!sneaking&&!input.usingItem;
+    sprintView+=((sprinting?1.f:0.f)-sprintView)*(1.f-std::exp(-10.f*std::max(0.f,dt)));
+    float inputScale=(net::Active()?.98f:1.f)*(input.usingItem?.2f:1.f);
     float f=input.forward*inputScale,s=input.side*inputScale;
     if(sneaking){f*=.3f;s*=.3f;}
     float length=std::sqrt(f*f+s*s);if(length>1){f/=length;s/=length;}
     const bool grounded=velocityY<=0&&Supported(position);
+    sprintBob+=((sprinting&&grounded&&!swimming&&!flying&&std::hypot(motionX,motionZ)>1.f?1.f:0.f)-sprintBob)*(1.f-std::exp(-12.f*std::max(0.f,dt)));
+    sprintStep=std::fmod(sprintStep+std::max(0.f,dt)*14.f,2*PI);
     float friction=grounded?.546f:.91f;
-    float speed=flying?(sprintRequested?22.f:11.f):(swimming?2.7f:(sprinting?5.2f:4.317f));
+    float speed=flying?(sprintRequested?22.f:11.f):(swimming?2.7f:(sprinting?5.612f:4.317f));
     if(!net::Active())speed*=std::clamp(input.speedMultiplier,1.f,1.5f);
     float vx,vz;
     if(net::Active()&&!flying&&!swimming){

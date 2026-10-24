@@ -27,7 +27,7 @@ public:
     float WorldLoadProgress() const;
     const char* WorldLoadStage() const;
     void Draw(const Camera3D& camera,const Hit& hit,float miningProgress=0);
-    void DrawFirstPerson(const Camera3D& camera,Block item,bool moving,bool usingItem,float dt);
+    void DrawFirstPerson(const Camera3D& camera,Block item,bool moving,bool usingItem,float dt,bool sprinting=false);
     Texture2D Atlas() const;
 private:
     struct Impl;

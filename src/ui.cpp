@@ -120,7 +120,15 @@ Rectangle PauseButton(int i) {
     return {GetScreenWidth()/2.f-210,GetScreenHeight()/2.f-60+i*64.f,420,48};
 }
 Rectangle OptionsPanel() {return {GetScreenWidth()/2.f-320,GetScreenHeight()/2.f-224,640,448};}
-Rectangle OptionControl(int i){auto p=OptionsPanel();if(i==0)return {p.x+20,p.y+48,292,36};if(i==4)return {p.x+328,p.y+48,292,36};if(i==1)return {p.x+20,p.y+122,292,24};if(i==2)return {p.x+328,p.y+122,292,24};if(i==7)return {p.x+20,p.y+205,292,24};if(i==6)return {p.x+328,p.y+205,292,24};if(i==5)return {p.x+20,p.y+288,600,24};if(i==9)return {p.x+20,p.y+321,600,32};if(i==8)return {p.x+20,p.y+365,292,40};return {p.x+328,p.y+365,292,40};}
+Rectangle OptionsTab(int i){auto p=OptionsPanel();return {p.x+20+i*202,p.y+48,196,34};}
+Rectangle OptionControl(int i){auto p=OptionsPanel();switch(i){
+case 0:return {p.x+20,p.y+96,292,34};case 4:return {p.x+328,p.y+96,292,34};
+case 1:return {p.x+20,p.y+172,600,24};case 7:return {p.x+20,p.y+247,292,24};case 6:return {p.x+328,p.y+247,292,24};
+case 5:return {p.x+20,p.y+322,600,24};case 2:return {p.x+20,p.y+151,600,24};
+case 9:return {p.x+20,p.y+205,600,36};case 8:return {p.x+20,p.y+278,600,40};
+case 10:return {p.x+20,p.y+388,292,36};case 11:return {p.x+20,p.y+112,600,40};case 12:return {p.x+20,p.y+177,600,40};
+default:return {p.x+328,p.y+388,292,36};}}
+
 Rectangle BindingRow(int i){return {GetScreenWidth()/2.f-300,90.f+i*38,600,34};}
 void Slider(Rectangle r,float value) {
     DrawRectangleRec(r,{29,29,29,255});DrawRectangleLinesEx(r,2,{105,105,105,255});
@@ -363,16 +371,21 @@ UiAction UI::Update(GameState state) {
     }
     if(state==GameState::Options) {
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            if(Hover(OptionControl(0))) Settings.freezeTime=!Settings.freezeTime;
-            else if(Hover(OptionControl(1))) draggingSlider=1;
-            else if(Hover(OptionControl(2))) draggingSlider=2;
-            else if(Hover(OptionControl(4))) Settings.fogEnabled=!Settings.fogEnabled;
-            else if(Hover(OptionControl(5))) draggingSlider=5;
-            else if(Hover(OptionControl(6))) draggingSlider=6;
-            else if(Hover(OptionControl(7))) draggingSlider=7;
-            else if(Hover(OptionControl(9))) Settings.toggleSprint=!Settings.toggleSprint;
-            else if(Hover(OptionControl(8))) return UiAction::OpenKeyboard;
-            else if(Hover(OptionControl(3))) return UiAction::CloseOptions;
+            for(int i=0;i<3;++i)if(Hover(OptionsTab(i))){optionsPage=i;draggingSlider=0;return UiAction::None;}
+            if(Hover(OptionControl(3)))return UiAction::CloseOptions;
+            if(optionsPage==0){
+                if(Hover(OptionControl(0)))Settings.freezeTime=!Settings.freezeTime;
+                else if(Hover(OptionControl(4)))Settings.fogEnabled=!Settings.fogEnabled;
+                else if(Hover(OptionControl(10)))Settings.sprintFov=!Settings.sprintFov;
+                else for(int i:{1,5,6,7})if(Hover(OptionControl(i)))draggingSlider=i;
+            }else if(optionsPage==1){
+                if(Hover(OptionControl(2)))draggingSlider=2;
+                else if(Hover(OptionControl(9)))Settings.toggleSprint=!Settings.toggleSprint;
+                else if(Hover(OptionControl(8)))return UiAction::OpenKeyboard;
+            }else{
+                if(Hover(OptionControl(11)))Settings.beautifulSky=!Settings.beautifulSky;
+                else if(Hover(OptionControl(12)))Settings.fullBright=!Settings.fullBright;
+            }
         }
         if(!IsMouseButtonDown(MOUSE_BUTTON_LEFT)) draggingSlider=0;
         if(draggingSlider) {
@@ -688,15 +701,27 @@ void UI::Draw(Texture2D atlas,GameState state) const {
         DrawRectangle(0,0,w,h,Fade(BLACK,.55f));
         DrawRectangleRec(p,{48,46,42,255});DrawRectangleLinesEx(p,3,{155,151,138,255});
         DrawText("OPCOES",int(p.x+(p.width-MeasureText("OPCOES",26))/2),int(p.y+14),26,RAYWHITE);
-        ClassicButton(OptionControl(0),Settings.freezeTime?"Horario: travado":"Horario: livre",true);ClassicButton(OptionControl(4),Settings.fogEnabled?"Neblina: ligada":"Neblina: desligada",true);
-        int minute=ClockMinute();DrawText(TextFormat("Horario: %02d:%02d",minute/60,minute%60),int(p.x+20),int(p.y+97),17,WHITE);Slider(OptionControl(1),minute/1439.f);
-        DrawText(TextFormat("Sensibilidade: %.0f%%",Settings.mouseSensitivity*100),int(p.x+328),int(p.y+97),17,WHITE);Slider(OptionControl(2),(Settings.mouseSensitivity-.1f)/2.9f);
-        DrawText(TextFormat("FOV: %.0f",Settings.fov),int(p.x+20),int(p.y+180),17,WHITE);Slider(OptionControl(7),(Settings.fov-40)/70.f);
-        DrawText(TextFormat("Visao: %d chunks (%d blocos)",Settings.renderChunks,Settings.renderChunks*16),int(p.x+328),int(p.y+180),17,WHITE);Slider(OptionControl(6),float(Settings.renderChunks-MinRenderChunks)/(MaxRenderChunks-MinRenderChunks));
-        DrawText(TextFormat("Distancia da neblina: %.0f blocos",Settings.fogDistance),int(p.x+20),int(p.y+263),17,WHITE);Slider(OptionControl(5),(Settings.fogDistance-8)/184.f);
-        ClassicButton(OptionControl(9),Settings.toggleSprint?"Toggle Sprint: LIGADO":"Toggle Sprint: DESLIGADO",true);
-        ClassicButton(OptionControl(8),"Keyboard",true);ClassicButton(OptionControl(3),"Concluido",true);
-        if(!message.empty())DrawText(message.c_str(),int(p.x+12),int(p.y+423),12,GOLD);
+        const char* tabs[]={"Visuals","Controls","Extra"};
+        for(int i=0;i<3;++i){ClassicButton(OptionsTab(i),tabs[i],true);if(optionsPage==i)DrawRectangleLinesEx(OptionsTab(i),2,GOLD);}
+        if(optionsPage==0){
+            ClassicButton(OptionControl(0),Settings.freezeTime?"Horario: travado":"Horario: livre",true);ClassicButton(OptionControl(4),Settings.fogEnabled?"Neblina: ligada":"Neblina: desligada",true);
+            int minute=ClockMinute();DrawText(TextFormat("Horario: %02d:%02d",minute/60,minute%60),int(p.x+20),int(p.y+147),17,WHITE);Slider(OptionControl(1),minute/1439.f);
+            DrawText(TextFormat("FOV: %.0f",Settings.fov),int(p.x+20),int(p.y+222),17,WHITE);Slider(OptionControl(7),(Settings.fov-40)/70.f);
+            DrawText(TextFormat("Visao: %d chunks",Settings.renderChunks),int(p.x+328),int(p.y+222),17,WHITE);Slider(OptionControl(6),float(Settings.renderChunks-MinRenderChunks)/(MaxRenderChunks-MinRenderChunks));
+            DrawText(TextFormat("Distancia da neblina: %.0f blocos",Settings.fogDistance),int(p.x+20),int(p.y+297),17,WHITE);Slider(OptionControl(5),(Settings.fogDistance-8)/184.f);
+            ClassicButton(OptionControl(10),Settings.sprintFov?"FOV ao correr: LIGADO":"FOV ao correr: DESLIGADO",true);
+        }else if(optionsPage==1){
+            DrawText(TextFormat("Sensibilidade do mouse: %.0f%%",Settings.mouseSensitivity*100),int(p.x+20),int(p.y+121),17,WHITE);Slider(OptionControl(2),(Settings.mouseSensitivity-.1f)/2.9f);
+            ClassicButton(OptionControl(9),Settings.toggleSprint?"Toggle Sprint: LIGADO":"Toggle Sprint: DESLIGADO",true);
+            ClassicButton(OptionControl(8),"Keyboard: configurar teclas e mouse",true);
+        }else{
+            ClassicButton(OptionControl(11),Settings.beautifulSky?"Ceu melhorado: LIGADO":"Ceu melhorado: DESLIGADO",true);
+            ClassicButton(OptionControl(12),Settings.fullBright?"Full Bright: LIGADO":"Full Bright: DESLIGADO",true);
+            DrawText("Ceu com gradiente, nuvens e estrelas durante a noite.",int(p.x+20),int(p.y+247),16,WHITE);
+            DrawText("Full Bright clareia a cena sem alterar o horario.",int(p.x+20),int(p.y+281),16,WHITE);
+        }
+        ClassicButton(OptionControl(3),"Concluido",true);
+        if(!message.empty())DrawText(message.c_str(),int(p.x+12),int(p.y+430),10,GOLD);
         return;
     }
     const bool paused=state==GameState::Paused;

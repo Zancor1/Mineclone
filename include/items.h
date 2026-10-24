@@ -1,5 +1,6 @@
 #pragma once
 #include "projectile_physics.h"
+#include "item_use.h"
 #include "dropped_items.h"
 #include <vector>
 #include "player.h"
@@ -17,6 +18,8 @@ void ClearItems();
 void CancelItemUse();
 float BowDrawTime();
 float EatingTime();
+bool Blocking();
+void ApplyItemEffects(PlayerInput& input);
 void PrimeTnt(Vector3 position,float fuse=TntFuse);
 void Explode(Player& player,Vector3 position,float radius=3.5f,bool damage=true);
 int ActiveProjectiles();
