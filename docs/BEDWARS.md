@@ -96,7 +96,7 @@ pelos jogadores e camas adversárias podem ser destruídos.
 O item selecionado e a armadura de cada jogador são exibidos aos adversários.
 Bolas de fogo aplicam impulso reforçado e permitem saltos com explosão sem
 dano ao lançador; adversários recebem dano e empurrão. Todos devem usar a
-mesma versão do MineClone (protocolo BedWars LAN 19).
+mesma versão do MineClone (protocolo BedWars LAN 20).
 
 Golpes corpo a corpo têm alcance máximo de 3,3 blocos, medidos dos olhos até
 a caixa de colisão do adversário, e são bloqueados pelo terreno. O impulso
@@ -166,7 +166,7 @@ Os efeitos somem ao morrer e seus tempos são sincronizados pelo host. O
 agachamento também é sincronizado: o modelo se abaixa e inclina o corpo, e o
 nome fica oculto enquanto o jogador está agachado.
 
-Estas mudanças usam o protocolo BedWars LAN **19**. Todos os participantes
+Estas mudanças usam o protocolo BedWars LAN **20**. Todos os participantes
 precisam atualizar o jogo, tanto no Linux quanto no Windows.
 
 ## Resposta dos ataques
@@ -174,8 +174,11 @@ precisam atualizar o jogo, tanto no Linux quanto no Windows.
 O alcance corpo a corpo é de até **3,3 blocos** dos olhos até a caixa de colisão
 do adversário. O clique envia a posição e direção atuais antes do ataque.
 Pacotes prontos tentam sair imediatamente pelo socket não bloqueante e os
-acertos são confirmados pelo host sem esperar o snapshot periódico. Não há cooldown artificial entre cliques válidos de corpo a corpo nem bloqueio
-de novos acertos pela imunidade de dano. Latência da rede ainda influencia a resposta.
+acertos são confirmados pelo host sem esperar o snapshot periódico. Durante a
+recuperação do knockback, o jogador fica imune a novos ataques de jogadores.
+Golpes bloqueados não reaplicam dano, impulso, som ou flash vermelho. A proteção
+dura cerca de 0,54 s em golpes normais e 0,75 s com o graveto. Latência da rede
+ainda influencia a resposta.
 
 ## Toggle Sprint e impulso dos golpes
 
@@ -185,10 +188,11 @@ suspende a corrida e soltá-lo permite retomá-la. Desligar a opção restaura o
 comportamento de segurar a tecla de corrida. A opção respeita a bind escolhida
 em Keyboard e é salva em `settings.cfg`.
 
-Golpes corpo a corpo usam impulso horizontal e vertical menor, amortecem o
+Golpes corpo a corpo usam impulso horizontal de 8,5 blocos/s e vertical de
+6 blocos/s, amortecem o
 movimento anterior e limitam a soma de impactos sucessivos. Explosões mantêm
 seu impulso próprio. Cada clique que passa pelas verificações de alcance de
-3,3 blocos, direção e paredes pode causar dano imediatamente.
+3,3 blocos, direção, paredes e imunidade pode causar dano imediatamente.
 
 ## Ritmo dos geradores
 
@@ -262,7 +266,7 @@ python3 tools/import_nc_map.py 'NC Bedwars 1v1'
 make -j"$(nproc)"
 ```
 
-Todos os participantes precisam usar o protocolo BedWars LAN **19**.
+Todos os participantes precisam usar o protocolo BedWars LAN **20**.
 
 A compra de espada substitui a espada segurada; se outra categoria estiver
 selecionada, substitui a primeira espada do inventário. A loja indica recursos
@@ -314,7 +318,7 @@ python3 tools/import_nc_map.py "mapas externos/Airshow" --airshow --output inclu
 
 A altura ativa passou para 192 blocos para preservar o Airshow completo.
 Saves e arquivos de chunks antigos com altura 80 ou 128 são migrados ao carregar.
-Todos na sala precisam usar esta mesma versão do protocolo LAN (19).
+Todos na sala precisam usar esta mesma versão do protocolo LAN (20).
 
 ### Escolha do layout na criação
 
@@ -407,7 +411,7 @@ Os vendedores de itens e melhorias ficam nos dois nichos laterais da base,
 voltados para a área central. Os nichos têm passagem aberta, teto e iluminação
 no piso, com espaço para o modelo inteiro do villager. As posições usadas para
 interação e validação das compras são as mesmas do desenho, em todos os oito times.
-Esta revisão usa o protocolo LAN 19; host e convidados devem atualizar o jogo.
+Esta revisão usa o protocolo LAN 20; host e convidados devem atualizar o jogo.
 
 A busca local também detecta salas com protocolos antigos e mostra “Versao
 diferente: atualize os dois”. Isso não permite misturar builds incompatíveis:
@@ -422,8 +426,7 @@ O endereço `127.0.0.1` acessa somente uma sala no próprio computador; para
 jogar em outro computador, informe o IP local ou o IP da VPN do host.
 
 As bolas de fogo aplicam o impulso horizontal gradualmente durante 0,16 segundo,
-com desaceleração prolongada. Flechas causam quatro pontos de dano base
-(dois corações), antes da redução por armadura e proteção.
+com desaceleração prolongada. O dano das flechas depende da puxada, antes da redução por armadura e proteção.
 
 Nos mapas básicos, os aldeões ficam em barracas com toldos nas cores da equipe.
 Nos mapas básicos, os geradores usam uma plataforma 3×3 de slabs inferiores.
@@ -436,12 +439,29 @@ Cliques separados para construir não usam intervalo artificial. Segurar o
 botão repete a colocação a cada 0,2 segundo. O dano base das espadas no BedWars
 é 2 (madeira/ouro), 3 (pedra), 4 (ferro) e 5 (diamante) pontos, antes de armadura.
 
-A bola de fogo voa a 24 blocos/s. A flecha parte a 60 blocos/s no BedWars,
-com arrasto de 0,99 e gravidade por ticks de 20 Hz; no single-player, a força
-depende da carga do arco. A trajetória foi ajustada com base no código
-[EntityArrow da 1.8.9](https://github.com/Marcelektro/MavenMCP-1.8.9/blob/master/src/main/java/net/minecraft/entity/projectile/EntityArrow.java).
-O intervalo entre disparos do arco no BedWars é 0,15 segundo; o dano base
-continua sendo de dois corações.
+A bola de fogo voa a 24 blocos/s. A flecha alcança 60 blocos/s na carga máxima,
+com arrasto de 0,99 e gravidade em ticks de 20 Hz. O comportamento de puxar e
+soltar segue a apresentação do [arco](https://pt.minecraft.wiki/w/Arco), com o
+balanceamento específico do MineClone abaixo.
+
+### Puxada do arco
+
+O botão direito inicia a puxada; soltar dispara. Um toque rápido também dispara,
+sem exigir segurar por 0,1 s. Abrir menus, perder foco ou trocar de slot cancela
+a puxada sem consumir flechas. O intervalo mínimo entre disparos é 0,3 s.
+
+| Nível | Tempo segurando | Dano base | Velocidade |
+| --- | --- | --- | --- |
+| Curta | Até 0,1 s | 0,5 coração | 8,4 blocos/s |
+| Média | Mais de 0,1 s até antes de 0,9 s | 1 coração | Cresce de 18 até 48 blocos/s |
+| Máxima | A partir de 0,9 s | 2 corações | 60 blocos/s |
+
+Após 1 s, o arco treme e cada disparo tem 10% de chance de causar um crítico
+com 3 corações de dano base e partículas de brilho na flecha. Sem crítico,
+o disparo máximo continua causando 2 corações. Armadura e proteção reduzem o
+dano recebido. Há tremor leve na puxada curta; a corda acompanha os níveis.
+No BedWars, o host mede a carga e sorteia o crítico; o cliente prevê apenas a
+animação. A munição é consumida somente num disparo válido ao soltar.
 
 Flechas têm haste, ponta e penas em 3D. Ao atingir um bloco, ficam fincadas
 na superfície por até 60 segundos. Remover o bloco de apoio também remove

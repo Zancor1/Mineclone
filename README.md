@@ -22,7 +22,7 @@ criados no código, sem pacotes de assets externos.
   nos vértices, oclusão ambiente e neblina.
 - **Dia e noite:** ciclo de 20 minutos, ajuste de horário entre 00:00 e 23:59 e
   opção de manter o relógio travado.
-- **Primeira pessoa:** braço visível, blocos em 3D e itens com espessura na mão,
+- **Primeira pessoa:** mão visível apenas com o slot vazio; itens e blocos em 3D,
   acompanhando a seleção da hotbar, com animações de movimento e uso.
 - **Movimentação:** câmera em primeira pessoa, colisão AABB, deslizamento nas
   paredes, pulo contínuo, natação e voo criativo.
@@ -74,7 +74,7 @@ Copie a pasta `dist/windows/` para um computador com **Windows 10/11 x64** e
 OpenGL 3.3. Não é necessário instalar Raylib, zlib ou DLLs do MinGW. Saves e
 configurações são criados no diretório de trabalho; use uma pasta com permissão
 de escrita. Perfis e skins são salvos em `%APPDATA%\MineClone`, separados
-do executável. Linux e Windows usam o protocolo **BedWars LAN 19** e devem estar
+do executável. Linux e Windows usam o protocolo **BedWars LAN 20** e devem estar
 na mesma versão do jogo. A porta TCP 25566 precisa estar liberada no host.
 
 Veja [build e validação Windows](docs/WINDOWS.md) para detalhes e testes.
@@ -284,7 +284,7 @@ Veja [compatibilidade, controles e teste manual](docs/MULTIPLAYER.md).
 
 ### BedWars LAN
 
-**Protocolo atual: 19.** Host e convidados precisam atualizar juntos,
+**Protocolo atual: 20.** Host e convidados precisam atualizar juntos,
 inclusive em partidas entre Linux e Windows. Salas incompatíveis aparecem
 na busca com aviso de versão diferente.
 
@@ -311,18 +311,28 @@ transfere a pilha entre inventário e hotbar, ou entre jogador e baú aberto.
 As teclas da hotbar trocam o item com o slot sob o cursor. Cliques separados
 colocam blocos sem intervalo artificial; segurar o botão repete a cada 0,2 s.
 
+Ao destruir uma cama, o pinguim acorda e foge com os braços levantados até cair
+no void. A animação é sincronizada pelo host, e `sounds/ahh.mp3` toca por
+proximidade enquanto ele corre e cai.
+
+Durante a recuperação do knockback, novos ataques de jogadores não causam
+dano nem reiniciam o empurrão. Acertos confirmados deixam o jogador vermelho
+por 0,2 s e reproduzem `sounds/Hit.mp3`.
+
 A bola de fogo voa a 24 blocos/s e aplica seu impulso horizontal gradualmente.
 O graveto de knockback arremessa aproximadamente cinco blocos em espaço livre;
 obstáculos e movimento alteram a distância final. Flechas têm haste, ponta e
 penas em 3D, acompanham a direção do voo e ficam fincadas no chão ou em paredes
 por até 60 segundos. Remover o bloco de apoio remove a flecha. Esse estado é
-sincronizado entre os jogadores. A velocidade inicial da flecha no BedWars é
-60 blocos/s, com arrasto e gravidade por ticks de 20 Hz; o intervalo do arco
-é 0,15 s.
+sincronizado entre os jogadores. O arco dispara ao soltar o botão, com três níveis de puxada: curta
+(até 0,1 s), média (até antes de 0,9 s) e máxima (a partir de 0,9 s). O intervalo
+entre disparos é 0,3 s. A velocidade máxima da flecha é 60 blocos/s, com arrasto
+e gravidade por ticks de 20 Hz.
 
 O dano base é de **1 coração** para espada de madeira/ouro, **1,5** para pedra,
-**2** para ferro e **2,5** para diamante. Flechas causam **2 corações** de dano
-base. Armadura e proteção reduzem esses valores.
+**2** para ferro e **2,5** para diamante. Flechas causam **0,5**, **1** ou **2 corações** de dano base conforme a puxada.
+Após 1 s, há **10% de chance** de um crítico de **3 corações**, com partículas
+de brilho. Armadura e proteção reduzem esses valores.
 
 O terreno da arena é protegido; blocos colocados pelos jogadores e camas
 adversárias podem ser quebrados.

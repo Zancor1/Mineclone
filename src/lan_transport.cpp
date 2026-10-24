@@ -48,7 +48,7 @@ namespace game {
 namespace {
 constexpr unsigned short DiscoveryPort=25567;
 constexpr uint32_t MulticastAddress=0xefff4d43; // 239.255.77.67
-constexpr char ReplyMagic[]="MCLAN19!";
+constexpr char ReplyMagic[]="MCLAN20!";
 int DiscoveryVersion(const unsigned char* data,char suffix){
     if(std::memcmp(data,"MCLAN",5)||data[7]!=suffix||data[5]<'0'||data[5]>'9'||data[6]<'0'||data[6]>'9')return -1;
     return (data[5]-'0')*10+data[6]-'0';

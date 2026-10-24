@@ -15,4 +15,9 @@ inline void DrawArrowModel(Vector3 tip,Vector3 direction){
         DrawTriangle3D(a,b,c,RAYWHITE);DrawTriangle3D(c,b,a,RAYWHITE);
     }
 }
+inline void DrawArrowSparkles(Vector3 tip,Vector3 direction,float time){
+    direction=Vector3Normalize(direction);
+    for(int i=0;i<5;++i){float phase=time*8+i*1.7f;auto p=Vector3Add(tip,Vector3Scale(direction,-.2f-i*.18f));p.x+=std::sin(phase)*.08f;p.y+=std::cos(phase*1.3f)*.08f;float r=.018f+.008f*std::sin(phase);DrawCube(p,r,r,r,{255,230,145,230});}
+}
+
 }

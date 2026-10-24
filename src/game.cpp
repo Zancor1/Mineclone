@@ -30,7 +30,7 @@ int RunGame() {
     GameState state=GameState::MainMenu;
     GameState optionsParent=GameState::MainMenu;
     bool hasWorld=false,quit=false,online=false,worldPrimed=false;
-    int lastSelected=0;PlacementRepeat placementRepeat;
+    int lastSelected=0,singleUseSlot=-1;PlacementRepeat placementRepeat;
     std::string activeSave;
     Hit miningTarget;Block miningTool=Air;
     EnableCursor();
@@ -199,6 +199,7 @@ int RunGame() {
         }
         if(bw::Active()){
             if(hasWorld&&state!=GameState::Playing&&state!=GameState::BedwarsMenu)player.Update({},std::min(GetFrameTime(),.05f));
+            if(state!=GameState::Playing||!IsWindowFocused()||ui.chatOpen)bw::CancelBow();
             bw::HoldUse(ui.selected,state==GameState::Playing&&IsWindowFocused()&&!ui.chatOpen&&ActionDown(BindingAction::Use));
             bw::Update(player,std::min(GetFrameTime(),.05f),state==GameState::Playing,ui.selected);
             if(!bw::Active()){const auto reason=bw::Status();hasWorld=worldPrimed=false;renderer.CancelWorldLoad();enter(GameState::BedwarsMenu);ui.Notify(reason,15.f);}
@@ -262,7 +263,8 @@ int RunGame() {
                         ui.miningProgress+=std::min(GetFrameTime(),.05f)/MiningTime(At(hit.x,hit.y,hit.z),ui.SelectedBlock());
                         if(ui.miningProgress>=1){bw::Dig(hit,2,ui.selected);ui.miningProgress=0;miningTarget={};}
                     }else if(miningTarget.found){bw::Dig(miningTarget,1,ui.selected);miningTarget={};}
-                    if(placeNow){
+                    bw::BowInput(ui.selected,ActionDown(BindingAction::Use),usePressed,ActionReleased(BindingAction::Use),std::min(GetFrameTime(),.05f),&player);
+                    if(placeNow&&ui.SelectedBlock()!=Bow){
                         if(usePressed&&bw::NearChest(player)&&hit.found&&(At(hit.x,hit.y,hit.z)==Chest||(MapStateAt(hit.x,hit.y,hit.z).shape==MapShape::Cube&&MapStateAt(hit.x,hit.y,hit.z).block==MapDecoration&&MapStateAt(hit.x,hit.y,hit.z).material==Obsidian)))enter(GameState::BedwarsChest);
                         else if(usePressed&&bw::AimedShop(player))enter(GameState::BedwarsShop);
                         else if(usePressed&&ui.SelectedBlock()==Tnt)bw::Use(ui.selected);
@@ -280,6 +282,7 @@ int RunGame() {
                         if(Mode==GameMode::Creative||ui.miningProgress>=1){net::Dig(hit,2);ui.miningProgress=0;miningTarget={};}
                     }else if(miningTarget.found){net::Dig(miningTarget,1);miningTarget={};}
                 }else {
+                if(singleUseSlot!=ui.selected){CancelItemUse();singleUseSlot=ui.selected;}
                 bool usedItem=UseHeldItem(player,Hotbar[ui.selected],direction,{ActionPressed(BindingAction::Use),ActionDown(BindingAction::Use),ActionReleased(BindingAction::Use),std::min(GetFrameTime(),.05f)});
                 hit=Trace(camera.position,direction,targetLiquids);
                 if(hit.found) {

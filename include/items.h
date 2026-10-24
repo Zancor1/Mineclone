@@ -12,6 +12,7 @@ void DrawItems();
 void TranslateItems(Vector3 displacement);
 void ClearItems();
 void CancelItemUse();
+float BowDrawTime();
 void PrimeTnt(Vector3 position,float fuse=4.f);
 void Explode(Player& player,Vector3 position,float radius=3.5f);
 int ActiveProjectiles();

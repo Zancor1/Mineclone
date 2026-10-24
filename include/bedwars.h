@@ -8,6 +8,8 @@
 #include <string>
 namespace game::bw {
 std::vector<ArrowState> ArrowStates();
+struct PenguinState {int team;Vector3 position,direction;float age;};
+std::vector<PenguinState> PenguinStates();
 bool Host(const std::string& name,unsigned short port=25566,int gap=64,int map=0,int capacity=1,const std::string& serverName="");
 struct GeneratorInfo {Vector3 position;Block item;int stock,level;float interval,remaining;};
 int ResourceLevel(Block item,float elapsed);
@@ -56,6 +58,9 @@ void Place(int x,int y,int z,int selected,const Player* player=nullptr);
 void Attack(int selected,const Player* player=nullptr);
 void Use(int selected);
 void HoldUse(int selected,bool held);
+void BowInput(int selected,bool held,bool pressed,bool released,float dt,const Player* player=nullptr);
+void CancelBow();
+float BowDrawTime();
 void Buy(int offer);
 void SwapSlots(int from,int to,bool chest,bool exact=false);
 bool NearShop(const Player& player);

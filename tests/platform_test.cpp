@@ -61,7 +61,7 @@ int main(){
         unsigned char query[12]{};std::memcpy(query,magic,8);query[8]=42;
         sendto(udp,reinterpret_cast<const char*>(query),12,0,reinterpret_cast<sockaddr*>(&discoveryAddress),sizeof(discoveryAddress));
         bool replied=false;until=std::chrono::steady_clock::now()+std::chrono::seconds(2);
-        while(!replied&&std::chrono::steady_clock::now()<until){advertiser.Poll();unsigned char reply[512];int n=recvfrom(udp,reinterpret_cast<char*>(reply),sizeof(reply),0,nullptr,nullptr);if(n>=27){Check(!std::memcmp(reply,"MCLAN19!",8)&&reply[8]==42,"stable and legacy queries report actual host protocol");replied=true;}std::this_thread::sleep_for(std::chrono::milliseconds(1));}
+        while(!replied&&std::chrono::steady_clock::now()<until){advertiser.Poll();unsigned char reply[512];int n=recvfrom(udp,reinterpret_cast<char*>(reply),sizeof(reply),0,nullptr,nullptr);if(n>=27){Check(!std::memcmp(reply,"MCLAN20!",8)&&reply[8]==42,"stable and legacy queries report actual host protocol");replied=true;}std::this_thread::sleep_for(std::chrono::milliseconds(1));}
         Check(replied,"version-independent discovery response");
     }
     netio::Close(udp);advertiser.StopHosting();

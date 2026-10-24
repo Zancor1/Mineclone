@@ -5,7 +5,7 @@
 namespace game {
 constexpr int TileSize=16,BaseTileCount=16+(BlockCount-14)+2,TileCount=BaseTileCount+13;
 int BlockTile(Block block,int direction=2);
-void DrawHeldItem3D(Texture2D atlas,Block item,Matrix transform,Color tint=WHITE,int finish=0);
+void DrawHeldItem3D(Texture2D atlas,Block item,Matrix transform,Color tint=WHITE,int finish=0,float bowDraw=-1.f);
 struct WaterFace {
     std::array<Vector3,4> vertices{};
     Vector3 normal{};

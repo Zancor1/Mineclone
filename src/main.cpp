@@ -9,7 +9,9 @@ int game::Run() {
     SetWindowMinSize(720,480);
     SetExitKey(KEY_NULL);
     SetTargetFPS(120);
+    InitAudioDevice();
     const int result=RunGame();
+    if(IsAudioDeviceReady())CloseAudioDevice();
     CloseWindow();
     return result;
 }

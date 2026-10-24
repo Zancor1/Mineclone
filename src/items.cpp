@@ -8,12 +8,13 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#include <random>
 namespace game {
 namespace {
-struct Projectile {Block type;Vector3 position,velocity;float life;float tick=0;bool embedded=false;Vector3 support{};};
+struct Projectile {Block type;Vector3 position,velocity;float life;float tick=0;bool embedded=false;Vector3 support{};float damage=4;bool critical=false;};
 std::vector<Projectile> projectiles;
 float cooldown=0,charge=0,eating=0;
-Block lastItem=Air;
+Block lastItem=Air;bool bowHeld=false;
 bool Free(Vector3 feet) {
     if(!Inside(int(std::floor(feet.x)),int(std::floor(feet.y)),int(std::floor(feet.z))))return false;
     for(int x=int(std::floor(feet.x-Radius));x<=int(std::floor(feet.x+Radius));++x)
@@ -51,8 +52,9 @@ void PearlHit(Player& player,Vector3 position,Vector3 direction) {
 }
 }
 int ActiveProjectiles() {return int(projectiles.size());}
-void CancelItemUse() {charge=eating=0;}
-void ClearItems() {projectiles.clear();cooldown=charge=eating=0;lastItem=Air;}
+float BowDrawTime(){return bowHeld?charge:-1.f;}
+void CancelItemUse() {charge=eating=0;bowHeld=false;}
+void ClearItems() {projectiles.clear();cooldown=charge=eating=0;lastItem=Air;bowHeld=false;}
 void TranslateItems(Vector3 displacement) {for(auto& p:projectiles){p.position=Vector3Add(p.position,displacement);p.support=Vector3Add(p.support,displacement);}}
 void PrimeTnt(Vector3 position,float fuse) {if(projectiles.size()<128)projectiles.push_back({Tnt,position,{0,2,0},fuse});}
 void Explode(Player& player,Vector3 center,float radius) {
@@ -81,11 +83,19 @@ void Explode(Player& player,Vector3 center,float radius) {
 }
 bool UseHeldItem(Player& player,ItemStack& stack,Vector3 direction,const UseInput& input) {
     Block item=stack.count?stack.block:Air;
-    if(item!=lastItem) {charge=eating=0;lastItem=item;}
+    if(item!=lastItem) {charge=eating=0;lastItem=item;bowHeld=false;}
     const Vector3 eye=player.Camera().position;
     if(item==Bow) {
-        if(input.down)charge=std::min(1.f,charge+input.dt);
-        if(input.released) {if(charge>=.15f&&cooldown<=0&&projectiles.size()<128&&Ammo()){Shoot(Arrow,eye,direction,ArrowSpeed*BowPower(charge));Wear(stack);cooldown=.15f;}charge=0;}
+        bool ammunition=Mode==GameMode::Creative;for(const auto& s:Hotbar)ammunition|=s.block==Arrow&&s.count;for(const auto& s:Backpack)ammunition|=s.block==Arrow&&s.count;
+        if(input.pressed&&ammunition){bowHeld=true;charge=0;}
+        if(bowHeld&&input.down)charge=std::min(1.5f,charge+input.dt);
+        if(input.released){
+            if(bowHeld&&cooldown<=0&&projectiles.size()<128&&Ammo()){
+                static std::mt19937 rng(std::random_device{}());float damage=BowDamage(charge,rng());
+                Shoot(Arrow,eye,direction,ArrowSpeed*BowPower(charge));projectiles.back().damage=damage;projectiles.back().critical=damage>4;Wear(stack);cooldown=BowShotDelay;
+            }
+            bowHeld=false;charge=0;
+        }
         return true;
     }
     if(item==GoldenApple) {
@@ -159,11 +169,11 @@ void UpdateItems(Player& player,float dt) {
     }
     projectiles.erase(std::remove_if(projectiles.begin(),projectiles.end(),[](const Projectile& p){return p.life<=0;}),projectiles.end());
 }
-std::vector<ArrowState> ArrowStates(){std::vector<ArrowState> result;for(const auto& p:projectiles)if(p.type==Arrow)result.push_back({p.position,Vector3Normalize(p.velocity),p.embedded});return result;}
+std::vector<ArrowState> ArrowStates(){std::vector<ArrowState> result;for(const auto& p:projectiles)if(p.type==Arrow)result.push_back({p.position,Vector3Normalize(p.velocity),p.embedded,p.damage,p.critical});return result;}
 void DrawItems() {
     for(const auto& p:projectiles) {
         if(p.type==Tnt){DrawCube(p.position,.9f,.9f,.9f,int(p.life*5)%2?Color{195,56,41,255}:RAYWHITE);DrawCubeWires(p.position,.91f,.91f,.91f,DARKBROWN);}
-        else if(p.type==Arrow)DrawArrowModel(p.position,p.velocity);
+        else if(p.type==Arrow){DrawArrowModel(p.position,p.velocity);if(p.critical&&!p.embedded)DrawArrowSparkles(p.position,p.velocity,float(GetTime()));}
         else {Color c=p.type==Fireball?ORANGE:(p.type==EnderPearl?Color{39,155,142,255}:(p.type==Egg?BEIGE:RAYWHITE));DrawSphere(p.position,p.type==Fireball?.18f:.12f,c);}
     }
 }

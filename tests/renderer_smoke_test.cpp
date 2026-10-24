@@ -3,6 +3,8 @@
 #include "ui.h"
 #include "chest.h"
 #include "crafting.h"
+#include "items.h"
+#include "survival.h"
 #include "settings.h"
 #include <rlgl.h>
 #include <cstdio>
@@ -42,6 +44,14 @@ int main() {
                 BeginDrawing();renderer.Draw(camera,{});EndDrawing();
             }
             WorldTime=DayDuration*.25f;
+            // A bed against full-height terrain must retain the surrounding walls and floor.
+            for(int x=13;x<=16;++x)for(int z=6;z<=10;++z)Change(x,4,z,Grass);
+            Change(14,5,7,Bed);Change(14,5,8,BedHead);
+            Change(15,5,7,Grass);Change(15,5,8,Grass);
+            Camera3D bedCamera{{12,8,5},{14.5f,5.4f,8},{0,1,0},55,CAMERA_PERSPECTIVE};
+            BeginDrawing();renderer.Draw(bedCamera,{});rlDrawRenderBatchActive();
+            Image bedCapture=LoadImageFromScreen();ExportImage(bedCapture,"build/bed-penguin.png");UnloadImage(bedCapture);EndDrawing();
+
             const Block heldItems[]={Air,Grass,IronSword,IronPickaxe};
             const char* handFiles[]={"build/hand-empty.png","build/hand-block.png","build/hand-sword.png","build/hand-pickaxe.png"};
             for(int i=0;i<4;++i) for(int frame=0;frame<8;++frame) {
@@ -55,6 +65,8 @@ int main() {
                 if(frame==2) {rlDrawRenderBatchActive();Image capture=LoadImageFromScreen();ExportImage(capture,"build/hand-sword-attack.png");UnloadImage(capture);}
                 EndDrawing();
             }
+            Player bowPlayer;PlayerState bowPose;bowPose.valid=true;bowPose.position=camera.position;bowPlayer.RestoreState(bowPose);Mode=GameMode::Creative;ItemStack displayBow{Bow,1};
+            for(int stage=0;stage<4;++stage){CancelItemUse();float seconds=stage==0?-1.f:stage==1?.05f:stage==2?.5f:1.1f;if(stage){UseHeldItem(bowPlayer,displayBow,{0,0,-1},{true,true,false,0});for(int frame=0;frame<int(seconds*100);++frame)UseHeldItem(bowPlayer,displayBow,{0,0,-1},{false,true,false,.01f});}for(int frame=0;frame<8;++frame){BeginDrawing();renderer.Draw(camera,{});renderer.DrawFirstPerson(camera,Bow,false,false,.05f);if(frame==7){rlDrawRenderBatchActive();Image image=LoadImageFromScreen();ExportImage(image,TextFormat("build/hand-bow-%d.png",stage));UnloadImage(image);}EndDrawing();}}CancelItemUse();
             const bool fogBefore=Settings.fogEnabled;
             Settings.fogEnabled=false;Settings.renderChunks=6;
             BeginDrawing();renderer.Draw(camera,{});EndDrawing();

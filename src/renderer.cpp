@@ -5,6 +5,7 @@
 #include "lighting.h"
 #include "settings.h"
 #include "items.h"
+#include "bow_model.h"
 #include "network.h"
 #include <raymath.h>
 #include <rlgl.h>
@@ -138,12 +139,18 @@ Texture2D MakeAtlas() {
             if(handle) c={114,76,35,255};else if(!head)c=BLANK;
         }
         if(Sword(type)) {
-            bool blade=x>=7&&x<=9&&y>=2&&y<=8;
-            bool tip=x==8&&y==1;
-            if(blade||tip) variation=x==7?1.18f:.80f;
-            else if(x>=4&&x<=12&&y>=9&&y<=10) c={79,59,32,255};
-            else if(x>=7&&x<=9&&y>=11&&y<=14) c={114,76,35,255};
-            else c=BLANK;
+            // Mirror both edges around the blade's center line.
+            Color metal=Palette[type];variation=1.f;c=BLANK;
+            int edge=std::min(x,15-x);
+            if(y==0&&edge==7)c=Shade(metal,.3f);
+            else if(y>=1&&y<=9&&edge>=6){
+                if(edge==6)c=Shade(metal,.48f);
+                else c=Shade(metal,y==1?.8f:1.12f);
+            }else if((y==10||y==11)&&edge>=4){
+                c=Shade(metal,(edge==4||(y==11&&edge<6))?.28f:.65f);
+            }else if(y>=12&&y<=14&&edge>=6){
+                c=edge==6?Color{62,44,25,255}:(y==13?Color{105,72,34,255}:Color{159,116,60,255});
+            }else if(y==15&&edge>=5)c=Shade(metal,edge==5?.28f:.65f);
         }
         if(Pickaxe(type)) {
             bool handle=std::abs(x+y-16)<=1&&x>=3&&x<=10&&y>=6;
@@ -194,8 +201,10 @@ Texture2D MakeAtlas() {
             }
             if(type==FilledMap){c=(x<2||x>13||y<2||y>13)?BROWN:BEIGE;if(x>=4&&x<=10&&y>=4&&y<=10)c=(x+y)%5<2?BLUE:GREEN;}
             if(type==Bow) {
-                bool arc=(x>=3&&x<=5&&y>=5&&y<=10)||(x>=5&&x<=7&&(y==3||y==12))||(x>=7&&x<=10&&(y==2||y==13));
-                c=arc?BROWN:((x==10&&y>=2&&y<=13)?BEIGE:BLANK);
+                int edge=y<=3?9:y<=5?6:y<=10?4:y<=12?6:9;
+                bool arc=y>=2&&y<=13&&x>=edge&&x<=edge+1;
+                c=arc?(x==edge?Color{101,66,32,255}:Color{191,142,77,255}):((x==11&&y>=2&&y<=13)?Color{222,212,184,255}:BLANK);
+                if(arc&&y>=7&&y<=9)c={91,67,44,255};
             }
             if(type==Arrow) {c=std::abs(x+y-15)<=1&&x>=2&&x<=13?BROWN:BLANK;if(x>=10&&x<=13&&y>=1&&y<=4)c=LIGHTGRAY;}
             if(type==FlintAndSteel)c=(x>=3&&x<=11&&y>=4&&y<=12&&(x<6||y>9))?GRAY:((x>=9&&x<=13&&y>=2&&y<=6)?DARKGRAY:BLANK);
@@ -312,7 +321,7 @@ struct Geometry {
     std::vector<unsigned char> colors;
     void Clear() { positions.clear(); uvs.clear(); normals.clear(); colors.clear(); }
     int Count() const {return int(positions.size()/3);}
-    void Add(const Face& f) {
+    void Add(const Face& f,const BoundingBox* customBox=nullptr) {
         int tile=f.box>=0?MapFaceTile(f):BlockTile(f.block,f.direction);
         WaterFace water;
         if(Liquid(f.block)) {
@@ -346,6 +355,7 @@ struct Geometry {
             float py=Corners[f.direction][index][1];
             Vector3 vertex=Liquid(f.block)?water.vertices[index]:Vector3{px,f.y+py*CollisionHeight(f.block),pz};
             if(f.box>=0){const auto& box=shapeBox;vertex={Lerp(box.min.x,box.max.x,Corners[f.direction][index][0]),Lerp(box.min.y,box.max.y,Corners[f.direction][index][1]),Lerp(box.min.z,box.max.z,Corners[f.direction][index][2])};}
+            if(customBox){const auto& box=*customBox;vertex={Lerp(box.min.x,box.max.x,Corners[f.direction][index][0]),Lerp(box.min.y,box.max.y,Corners[f.direction][index][1]),Lerp(box.min.z,box.max.z,Corners[f.direction][index][2])};}
             if(f.block==Ladder)vertex.z=f.z+.97f;
             if(Plant(f.block)) {
                 float t=Corners[f.direction][index][0];
@@ -362,6 +372,39 @@ struct Geometry {
         }
     }
 };
+// Bed details are baked into the chunk mesh, including the sleeping penguin.
+void AddBed(Geometry& geometry,int x,int y,int z,Block bed){
+    int dx=0,dz=1;bool paired=false;
+    const int neighbors[4][2]={{0,1},{0,-1},{1,0},{-1,0}};
+    for(const auto& offset:neighbors)if(At(x+offset[0],y,z+offset[1])==(bed==Bed?BedHead:Bed)){
+        int sign=bed==Bed?1:-1;dx=offset[0]*sign;dz=offset[1]*sign;paired=true;break;
+    }
+    auto point=[&](Vector3 p){return Vector3{x+.5f+dz*(p.x-.5f)+dx*(p.z-.5f),y+p.y,z+.5f-dx*(p.x-.5f)+dz*(p.z-.5f)};};
+    auto box=[&](Vector3 low,Vector3 high,Block material){
+        auto a=point(low),b=point(high);
+        BoundingBox bounds{Vector3Min(a,b),Vector3Max(a,b)};
+        for(int face=0;face<6;++face)geometry.Add({x,y,z,face,material},&bounds);
+    };
+    box({.03f,.19f,0},{.97f,.31f,1},Planks);
+    float end=bed==Bed?.04f:.83f;
+    for(float side:{.07f,.79f})box({side,0,end},{side+.14f,.26f,end+.13f},Wood);
+    box({.04f,.31f,.01f},{.96f,.39f,.99f},WhiteWool);
+    box({.04f,.39f,0},{.96f,.55f,1},RedWool);
+    // A stitched seam on each side of the blanket.
+    for(float side:{.07f,.90f})box({side,.55f,.03f},{side+.025f,.556f,.97f},RedWool);
+    if(bed!=BedHead)return;
+    box({.14f,.55f,.51f},{.86f,.62f,.92f},WhiteWool);
+    if(!paired)return;
+    box({.27f,.55f,-.54f},{.73f,.78f,.22f},GrayWool);
+    box({.34f,.78f,-.43f},{.66f,.805f,.13f},WhiteWool);
+    for(float side:{.19f,.73f})box({side,.57f,-.40f},{side+.08f,.68f,.08f},GrayWool);
+    for(float side:{.32f,.55f})box({side,.56f,-.66f},{side+.13f,.64f,-.52f},OrangeWool);
+    box({.30f,.62f,.19f},{.70f,.89f,.60f},BlackWool);
+    box({.35f,.89f,.25f},{.65f,.905f,.55f},WhiteWool);
+    // Closed eyes and a small beak, facing upward on the pillow.
+    for(float side:{.38f,.55f})box({side,.905f,.44f},{side+.07f,.914f,.46f},BlackWool);
+    box({.465f,.905f,.30f},{.535f,.95f,.37f},OrangeWool);
+}
 void AllocateMesh(Mesh& mesh,int capacity,bool dynamic) {
     mesh={}; mesh.vertexCount=capacity; mesh.triangleCount=capacity/3;
     mesh.vertices=static_cast<float*>(MemAlloc(capacity*3*sizeof(float)));
@@ -385,7 +428,7 @@ void UploadGeometry(Mesh& mesh,const Geometry& g) {
 struct Chunk {int capacity=0;Mesh opaque{}; std::vector<Face> transparent; uint64_t version=~uint64_t(0);};
 std::array<Chunk,ChunkCount*ChunkCount> Chunks;
 bool Exposed(Block b,Block neighbor) {
-    if(neighbor==Air) return true;
+    if(neighbor==Air||CollisionHeight(neighbor)<1.f) return true;
     if(!Transparent(b)) return Transparent(neighbor);
     if(!Transparent(neighbor)||b==neighbor) return false;
     return b>neighbor;
@@ -396,6 +439,7 @@ void RebuildChunk(int cx,int cz) {
     for(int x=cx*ChunkSize;x<(cx+1)*ChunkSize;++x)
         for(int z=cz*ChunkSize;z<(cz+1)*ChunkSize;++z) for(int y=0;y<Height;++y) {
             Block b=At(x,y,z); if(b==Air) continue;
+            if(b==Bed||b==BedHead){AddBed(geometry,x,y,z,b);continue;}
             if(HasMapShape(x,y,z)){if(MapStateAt(x,y,z).shape==MapShape::Barrier)continue;auto boxes=MapShapeBoxes(x,y,z);auto state=MapStateAt(x,y,z);for(int box=0;box<boxes.count;++box)for(int f=0;f<6;++f){Face face{x,y,z,f,b,box};if(Transparent(state.material)||state.shape==MapShape::Portal||state.shape==MapShape::Beacon)c.transparent.push_back(face);else geometry.Add(face);}continue;}
             for(int f=0;f<6;++f) {
                 Block neighbor=At(x+Normals[f][0],y+Normals[f][1],z+Normals[f][2]);
@@ -531,9 +575,14 @@ Mesh HeldMesh(Block item,const Image& atlas,int finish=0) {
         if(finish&&sprite){Color original=GetImageColor(atlas,tile*16+pixelX,pixelY);bool handle=Sword(item)?pixelY>=9:(std::abs(pixelX+pixelY-16)<=1&&pixelX>=3&&pixelX<=10&&pixelY>=6);Color paint=handle?original:cosmetics::ColorFor(finish);float texture=.5f+.5f*std::max({original.r,original.g,original.b})/255.f;color=Shade(paint,shading[face]*(handle?1.f:texture));}
         for(int index:order) {
             Vector3 vertex;
-            if(sprite) vertex={(pixelX-8+Corners[face][index][0])/16.f,
-                               (7-pixelY+Corners[face][index][1])/16.f,
-                               (Corners[face][index][2]-.5f)*(Sword(item)?.095f:.045f)};
+            if(sprite) {
+                float pixelEdge=pixelX+Corners[face][index][0];
+                // A raised central ridge and thinner edges give swords a beveled section.
+                float thickness=Sword(item)?.05f+.07f*(1.f-std::min(1.f,std::abs(pixelEdge-8.f)/2.f)):.045f;
+                vertex={(pixelEdge-8)/16.f,
+                        (7-pixelY+Corners[face][index][1])/16.f,
+                        (Corners[face][index][2]-.5f)*thickness};
+            }
             else vertex={Corners[face][index][0]-.5f,Corners[face][index][1]-.5f,Corners[face][index][2]-.5f};
             geometry.positions.insert(geometry.positions.end(),{vertex.x,vertex.y,vertex.z});
             geometry.normals.insert(geometry.normals.end(),{float(Normals[face][0]),float(Normals[face][1]),float(Normals[face][2])});
@@ -566,7 +615,8 @@ struct RemoteItemCache {
 RemoteItemCache remoteItems;
 
 }
-void DrawHeldItem3D(Texture2D atlas,Block item,Matrix transform,Color tint,int finish){
+void DrawHeldItem3D(Texture2D atlas,Block item,Matrix transform,Color tint,int finish,float bowDraw){
+    if(item==Bow){rlPushMatrix();rlMultMatrixf(MatrixToFloat(transform));DrawBowModel(bowDraw,tint,atlas,BlockTile(Planks));rlPopMatrix();return;}
     if(cosmetics::Category(item)<0)finish=0;
     finish=std::clamp(finish,0,progression::SkinCount);
     if(!atlas.id||item==Air||!ValidBlock(item))return;
@@ -745,14 +795,16 @@ void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,boo
     if(item!=impl->held||finish!=impl->heldFinish) {
         if(impl->heldMesh.vaoId) UnloadMesh(impl->heldMesh);
         impl->heldMesh={};impl->held=item;impl->heldFinish=finish;impl->equip=1;
-        if(item!=Air) impl->heldMesh=HeldMesh(item,impl->atlasPixels,finish);
+        if(item!=Air&&item!=Bow) impl->heldMesh=HeldMesh(item,impl->atlasPixels,finish);
     }
     impl->equip=std::max(0.f,impl->equip-dt*5);
     impl->walking=Lerp(impl->walking,moving?1.f:0.f,std::min(1.f,dt*10));
     impl->handClock+=dt*(2+impl->walking*8);
+    const float bowDraw=item==Bow?(bw::Ready()?bw::BowDrawTime():game::BowDrawTime()):-1.f;
+    if(item==Bow)usingItem=false;
     if(usingItem&&impl->swing>=1) impl->swing=0;
     impl->swing=std::min(1.f,impl->swing+dt*3.6f);
-    float swing=std::sin(impl->swing*PI);
+    float swing=item==Bow?0.f:std::sin(impl->swing*PI);
     int x=int(std::floor(camera.position.x)),y=int(std::floor(camera.position.y)),z=int(std::floor(camera.position.z));
     float sky=SkyLightAt(x,y,z)/24.f*(.06f+.94f*Daylight());
     float torch=(.72f*DirectBlockLightAt(x,y,z)+.28f*BlockLightAt(x,y,z))/24.f;
@@ -770,26 +822,33 @@ void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,boo
     rlDrawRenderBatchActive();BeginTextureMode(impl->handLayer);ClearBackground(BLANK);BeginMode3D(handCamera);
     rlEnableDepthTest();rlEnableDepthMask();
     rlPushMatrix();
-    rlTranslatef(.70f+std::sin(impl->handClock)*.022f*impl->walking-.055f*swing,
-                 -.77f+std::abs(std::sin(impl->handClock))*.025f*impl->walking-.035f*swing-.25f*impl->equip,
-                 -1.f-.16f*swing);
-    // Pitch the wrist into the scene; keep screen-plane roll nearly constant.
-    rlRotatef(5-7*swing,0,0,1);
-    rlRotatef(-16-34*swing,1,0,0);
-    auto lit=[&](Color c) {return Color{static_cast<unsigned char>(c.r*tint.r/255),
-        static_cast<unsigned char>(c.g*tint.g/255),static_cast<unsigned char>(c.b*tint.b/255),255};};
-    DrawCube({0,-.15f,0},.23f,.64f,.24f,lit({32,126,144,255}));
-    DrawCube({0,.22f,0},.23f,.12f,.24f,lit({180,125,87,255}));
-    DrawCube({0,.36f,0},.24f,.23f,.25f,lit({199,146,105,255}));
-    DrawCube({.116f,.36f,.035f},.015f,.16f,.07f,lit({175,118,80,255}));
+    float bowShake=bowDraw>=1.f?.0045f:bowDraw>=0&&bowDraw<=.1f?.0015f:0.f;
+    // Anchor to the viewport edge instead of a fixed world-space X coordinate.
+    float rightEdge=float(width)/height*std::tan(handCamera.fovy*.5f*DEG2RAD);
+    float heldX=item==Bow?rightEdge*.9f-.27f:rightEdge*1.13f-.24f;
+    if(Sword(item))heldX-=.08f*(1.f-swing);
+    rlTranslatef(heldX+std::sin(float(GetTime())*45)*bowShake+std::sin(impl->handClock)*.022f*impl->walking-.055f*swing,
+                 (item==Bow?-.59f:-.77f)+std::cos(float(GetTime())*39)*bowShake+std::abs(std::sin(impl->handClock))*.025f*impl->walking-.035f*swing-.25f*impl->equip,
+                 (item==Bow?-1.25f:-1.f)-.16f*swing);
+    // Swing swords left around the wrist while pitching the blade forward.
+    rlRotatef(item==Bow?-12.f:Sword(item)?-8.f*(1.f-swing)+90.f*swing:5-7*swing,0,0,1);
+    rlRotatef(item==Bow?-5.f:Sword(item)?-5-34*swing:-16-34*swing,1,0,0);
+    if(item==Air){
+        auto lit=[&](Color c){return Color{static_cast<unsigned char>(c.r*tint.r/255),static_cast<unsigned char>(c.g*tint.g/255),static_cast<unsigned char>(c.b*tint.b/255),255};};
+        DrawCube({0,-.15f,0},.23f,.64f,.24f,lit({32,126,144,255}));
+        DrawCube({0,.22f,0},.23f,.12f,.24f,lit({180,125,87,255}));
+        DrawCube({0,.36f,0},.24f,.23f,.25f,lit({199,146,105,255}));
+        DrawCube({.116f,.36f,.035f},.015f,.16f,.07f,lit({175,118,80,255}));
+    }
+    if(item==Bow){rlPushMatrix();rlTranslatef(0,.36f,-.17f);rlRotatef(-40-8*std::clamp(bowDraw/.9f,0.f,1.f),0,1,0);rlScalef(.7f,.7f,.7f);DrawBowModel(bowDraw,tint,impl->atlas,BlockTile(Planks));rlPopMatrix();}
     Matrix itemTransform=MatrixIdentity();
     const bool drawItem=item!=Air&&impl->heldMesh.vertexCount;
     if(drawItem) {
         rlPushMatrix();
         bool sprite=!Placeable(item)||Plant(item);
-        if(sprite) {rlTranslatef(Tool(item)||item==Stick?.065f:.08f,Sword(item)?.57f:Tool(item)||item==Stick?.54f:.49f,-.13f);rlRotatef(Sword(item)?-42.f:-12.f,0,1,0);}
-        else {rlTranslatef(-.025f,.60f,-.10f);rlRotatef(-25,0,1,0);}
-        float scale=sprite?(Sword(item)?.72f:Tool(item)||item==Stick?.66f:.53f):.40f;
+        if(sprite) {rlTranslatef(Tool(item)||item==Stick?.065f:.08f,Sword(item)?.42f:Tool(item)||item==Stick?.54f:.49f,-.13f);rlRotatef(Sword(item)?-60.f+30.f*swing:-12.f,0,1,0);}
+        else {rlTranslatef(-.025f,.28f,-.10f);rlRotatef(38,1,0,0);rlRotatef(-35,0,1,0);}
+        float scale=sprite?(Sword(item)?.94f:Tool(item)||item==Stick?.66f:.53f):.50f;
         rlScalef(scale,scale,scale);
         impl->heldMaterial.maps[MATERIAL_MAP_DIFFUSE].texture=finish?Texture2D{rlGetTextureIdDefault(),1,1,1,PIXELFORMAT_UNCOMPRESSED_R8G8B8A8}:impl->atlas;
         impl->heldMaterial.maps[MATERIAL_MAP_DIFFUSE].color=Emission(item)?WHITE:tint;
