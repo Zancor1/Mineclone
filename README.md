@@ -26,15 +26,19 @@ criados no código, sem pacotes de assets externos.
   acompanhando a seleção da hotbar, com animações de movimento e uso.
 - **Movimentação:** câmera em primeira pessoa, colisão AABB, deslizamento nas
   paredes, pulo contínuo, natação e voo criativo.
+- **Crafting e fornalhas:** fabricação 2 × 2 no inventário e 3 × 3 na mesa,
+  consumo de ingredientes, ferramentas, equipamentos e fundição de minérios.
+- **Multiplayer:** BedWars LAN entre clientes MineClone e cliente experimental
+  para servidores Minecraft Java 1.8–1.8.9 (protocolo 47).
 - **Mundos persistentes:** criação, seleção e exclusão de saves, com restauração
   da posição, orientação e horário.
 
 ## Conteúdo da versão 1.8.9
 
 A seleção com ícones em **E → Todos os itens** permite pegar itens no criativo e
-depositá-los no inventário ou na hotbar. O botão Minigames foi removido.
-O registro do jogo contém **246 blocos e itens**, incluindo conteúdo próprio e novas variantes de
-construção, ferramentas e materiais. **Não há paridade completa com a 1.8.9**;
+depositá-los no inventário ou na hotbar. O registro inclui blocos e itens de
+construção, ferramentas, equipamentos, consumíveis e variantes de formas
+usadas no mapa NC. **Não há paridade completa com a 1.8.9**;
 redstone, entidades, dimensões e outros sistemas ainda estão ausentes.
 
 Veja a [tabela de cobertura](docs/MINECRAFT_1_8_9.md) para consultar cada registro,
@@ -260,7 +264,9 @@ preservam baús/fornalhas, obsidiana e rocha matriz. A cama tem orientação fix
 o retorno funciona apenas para camas na região ativa. Projéteis e TNT ativada
 não são persistidos ao sair do mundo.
 
-## Multiplayer experimental
+## Multiplayer
+
+### Servidores Minecraft Java (experimental)
 
 O menu principal inclui **Multiplayer**. O cliente usa o protocolo Java 1.8
 (47), com conexão TCP, chunks comprimidos, outros jogadores, inventários, chat,
@@ -271,6 +277,45 @@ criptografia de sessão ainda não foram implementadas. Os testes de rede usam
 um servidor de teste local, não uma partida pública.
 
 Veja [compatibilidade, controles e teste manual](docs/MULTIPLAYER.md).
+
+### BedWars LAN
+
+O menu **BedWars LAN** permite escolher entre quatro mapas com prévias e lobby suspenso. Há Solo (até quatro jogadores) e Dupla (até oito),
+com seleção de time pela lã branca no lobby. Há camas, equipes, loja, geradores, PvP, placar,
+renascimento e vitória. O host abre a porta TCP **25566**; os amigos entram
+pelo seu IPv4. Com pelo menos dois jogadores, o host pressiona **P** para
+iniciar a contagem de cinco segundos na tela de todos. **F8** volta ao lobby.
+O botão **Procurar na rede local** lista salas em Wi-Fi, cabo e interfaces VPN
+quando a rede permite descoberta; também é possível entrar pelo IP manual.
+Autorize UDP **25567** para busca e TCP **25566** para jogo.
+As lojas de itens e melhorias são aldeões acessados pelo botão direito. A loja
+de itens tem categorias com ícones, progressão de picaretas e machados,
+armaduras permanentes para calça/botas e poções temporárias.
+O terreno da arena é protegido; blocos colocados pelos jogadores e camas
+adversárias podem ser quebrados.
+
+Consulte [BedWars LAN](docs/BEDWARS.md) para controles, regras e limitações.
+As partidas são temporárias e separadas dos saves do single-player.
+
+O mapa **NC** inclui a arena importada para dois times, em Solo ou Dupla.
+As lajes, escadas, cercas, grades e carpetes preservam formas e materiais da
+construção. Consulte [BedWars LAN](docs/BEDWARS.md#mapa-nc) para detalhes.
+
+## Teclas e campo de visão
+
+Em **Opções → Keyboard**, clique numa ação e pressione a nova tecla ou botão
+do mouse. Use a roda para ver as demais ações. Backspace remove a bind durante
+a captura; ESC cancela. Teclas já usadas por outra ação são rejeitadas. **Reset**
+restaura os controles padrão. Navegação e edição de texto dos menus mantêm seus
+atalhos convencionais; ESC continua disponível para sair dos menus.
+
+O slider **FOV** ajusta o campo de visão de 40 a 110 (padrão 70). FOV e binds
+são salvos em `settings.cfg`; configurações de versões anteriores são migradas
+preservando suas opções existentes.
+
+**Toggle Sprint**, ligado por padrão nas opções, permite tocar Ctrl uma vez
+para ativar a corrida e outra vez para desativar. Funciona com a tecla de correr
+configurada em Keyboard. Desligue a opção para voltar a segurar a tecla.
 
 ## Salvamento
 
@@ -329,6 +374,10 @@ src/          Implementação dos módulos
   survival.cpp  Mineração, ferramentas, equipamento, vida e efeitos
   items.cpp     Projéteis, explosões, consumíveis e interação de itens
   network.cpp   Cliente experimental do protocolo Java 1.8
+  bedwars.cpp   Host LAN, equipes, lojas, combate e regras da partida
+  bedwars_maps.cpp Arenas procedurais e mapa NC incorporado
+  lan_transport.cpp Transporte TCP e descoberta de salas por UDP
+  map_blocks.cpp Estados, formas e colisão de blocos importados
 tests/        Testes de simulação, geometria, iluminação e opções
 LICENSES/     Licenças de código de terceiros
 Makefile      Build incremental e alvos de teste
@@ -401,12 +450,49 @@ oculta, execute em uma sessão gráfica:
 make test-renderer
 ```
 
+### Cobertura e evidências
+
+Os testes verificam cenários específicos; não comprovam ausência de bugs nem
+compatibilidade completa com servidores públicos. A suíte inclui crafting,
+consumo de ingredientes, fornalhas, inventários, saves e migrações. Os testes de
+BedWars exercitam host e clientes em loopback, seleção e equilíbrio de equipes,
+compras, construção protegida, dano, knockback, consumo de maçãs, regeneração,
+vitória e reinício. Também há conexão entre dois processos MineClone e
+verificação de envio da animação de ataque.
+
+`make test-renderer` verifica shaders e renderização em uma sessão gráfica,
+com capturas em `build/`. A versão Windows foi compilada com MinGW e sua
+abertura foi verificada pelo Wine. Isso não substitui uma partida prolongada
+entre computadores Linux e Windows em uma rede real.
+
+### Desempenho
+
+O projeto usa malhas por chunk, descarte de faces internas, frustum culling e
+atualização incremental das malhas. Essas são decisões de implementação;
+**não há benchmark padronizado publicado nem garantia de uma taxa de FPS**.
+O desempenho depende do hardware, resolução, distância de visão, quantidade de
+luzes e líquidos e estado da partida.
+
+Para publicar uma medição reproduzível, registre CPU, GPU, RAM, sistema,
+compilador, resolução, configurações, mapa, número de jogadores e duração do
+teste. Meça também as pausas ao editar blocos e carregar regiões, além do FPS.
+
 ## Limitações atuais
 
 A região ativa é limitada, mas a exploração horizontal carrega novos chunks.
-Os líquidos não conservam volume; água e lava não reagem ao
-se tocar e a lava causa dano no modo sobrevivência. Áudio e crescimento
-de plantas não estão implementados. O carregamento de regiões não é assíncrono.
+Água e lava usam propagação por níveis e fontes: são autômatos celulares,
+não uma simulação física com conservação de volume. Uma fonte pode criar
+novas células de líquido, e a secagem reduz níveis ao perder alimentação.
+Essa limitação continua presente. Água e lava ainda não reagem ao se tocar.
+A lava causa dano no modo sobrevivência.
+
+Crafting, fornalhas e multiplayer estão implementados, com a cobertura descrita
+nas seções acima. A compatibilidade Java é parcial; o BedWars LAN usa protocolo
+próprio e exige versões compatíveis do MineClone nos participantes. O NC usa
+as regras locais do BedWars, sem executar os command blocks do mundo Java.
+
+Áudio e crescimento de plantas não estão implementados. O carregamento de
+regiões não é assíncrono. Não há paridade completa com Minecraft 1.8.9.
 
 ## Créditos
 
@@ -417,42 +503,3 @@ As texturas utilizadas pelo executável são procedurais.
 
 MineClone é um projeto independente inspirado em Minecraft, sem afiliação com
 Mojang ou Microsoft.
-
-### BedWars LAN
-
-O menu **BedWars LAN** permite escolher entre quatro mapas com prévias e lobby suspenso. Há Solo (até quatro jogadores) e Dupla (até oito),
-com seleção de time pela lã branca no lobby. Há camas, equipes, loja, geradores, PvP, placar,
-renascimento e vitória. O host abre a porta TCP **25566**; os amigos entram
-pelo seu IPv4. Com pelo menos dois jogadores, o host pressiona **P** para
-iniciar a contagem de cinco segundos na tela de todos. **F8** volta ao lobby.
-O botão **Procurar na rede local** lista salas em Wi-Fi, cabo e interfaces VPN
-quando a rede permite descoberta; também é possível entrar pelo IP manual.
-Autorize UDP **25567** para busca e TCP **25566** para jogo.
-As lojas de itens e melhorias são aldeões acessados pelo botão direito. A loja
-de itens tem categorias com ícones, progressão de picaretas e machados,
-armaduras permanentes para calça/botas e poções temporárias.
-O terreno da arena é protegido; blocos colocados pelos jogadores e camas
-adversárias podem ser quebrados.
-
-Consulte [BedWars LAN](docs/BEDWARS.md) para controles, regras e limitações.
-As partidas são temporárias e separadas dos saves do single-player.
-
-### Teclas e campo de visão
-
-Em **Opções → Keyboard**, clique numa ação e pressione a nova tecla ou botão
-do mouse. Use a roda para ver as demais ações. Backspace remove a bind durante
-a captura; ESC cancela. Teclas já usadas por outra ação são rejeitadas. **Reset**
-restaura os controles padrão. Navegação e edição de texto dos menus mantêm seus
-atalhos convencionais; ESC continua disponível para sair dos menus.
-
-O slider **FOV** ajusta o campo de visão de 40 a 110 (padrão 70). FOV e binds
-são salvos em `settings.cfg`; configurações de versões anteriores são migradas
-preservando suas opções existentes.
-
-**Toggle Sprint**, ligado por padrão nas opções, permite tocar Ctrl uma vez
-para ativar a corrida e outra vez para desativar. Funciona com a tecla de correr
-configurada em Keyboard. Desligue a opção para voltar a segurar a tecla.
-
-O mapa **NC** inclui a arena importada para dois times, em Solo ou Dupla.
-As lajes, escadas, cercas, grades e carpetes preservam formas e materiais da
-construção. Consulte [BedWars LAN](docs/BEDWARS.md#mapa-nc) para detalhes.
