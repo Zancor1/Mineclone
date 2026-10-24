@@ -65,7 +65,12 @@ bool DropItem(const Player& player,ItemStack& stack,bool all){
 int ActiveProjectiles() {return int(projectiles.size());}
 float EatingTime(){return eating;}
 bool Blocking(){return blocking;}
-void ApplyItemEffects(PlayerInput& input){input.speedMultiplier=speedTime>0?1.4f:1.f;input.jumpMultiplier=jumpTime>0?1.45f:1.f;}
+void ApplyItemEffects(PlayerInput& input){
+    float slow=1.f;
+    if(blocking||bowHeld||eating>0) slow=0.2f;
+    input.speedMultiplier=(speedTime>0?1.4f:1.f)*slow;
+    input.jumpMultiplier=jumpTime>0?1.45f:1.f;
+}
 float BowDrawTime(){return bowHeld?charge:-1.f;}
 void CancelItemUse() {charge=eating=0;bowHeld=blocking=false;}
 void ClearItems() {projectiles.clear();droppedItems.clear();speedTime=jumpTime=invisibilityTime=0;blocking=false;cooldown=charge=eating=0;lastItem=Air;bowHeld=false;}
