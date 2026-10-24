@@ -1,5 +1,6 @@
 #include "survival.h"
 #include "world.h"
+#include "map_blocks.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -55,29 +56,61 @@ void UpdateHazards(Vector3 feet,float dt) {
 }
 int PickaxeTier(Block tool) {return Extended(tool)&&Pickaxe(tool)?Blocks[tool].tier:(tool==WoodenPickaxe?1:tool==StonePickaxe?2:tool==IronPickaxe?3:0);}
 namespace {
-bool Rock(Block b) {return (Extended(b)&&Blocks[b].material==1)||b==Stone||b==Cobblestone||b==CoalOre||b==IronOre||b==Bricks||b==StoneBricks||b==CarvedStone||b==Furnace;}
+struct MiningDefinition {float hardness=.5f;int material=0;unsigned tools=0;};
+constexpr auto MiningDefinitions=[](){
+    std::array<MiningDefinition,BlockCount> values{};
+#include "mining18_properties.inc"
+    return values;
+}();
+int ToolMaterialIndex(Block tool){
+    if(tool==GoldenPickaxe||tool==GoldenAxe||tool==GoldenShovel||tool==GoldenSword||tool==GoldenHoe)return 4;
+    int tier=Tool(tool)?(Extended(tool)?Blocks[tool].tier:PickaxeTier(tool)):0;
+    return std::clamp(tier-1,0,3);
+}
+unsigned HarvestBit(Block tool){
+    int offset=Pickaxe(tool)?0:(Extended(tool)&&Blocks[tool].toolKind==4)?5:Sword(tool)?10:-1;
+    return offset<0?0:1u<<(offset+ToolMaterialIndex(tool));
+}
+float ToolSpeed(Block block,Block tool,int material){
+    int kind=Pickaxe(tool)?2:Extended(tool)?Blocks[tool].toolKind:0;
+    bool effective=(kind==2&&material==1)||(kind==3&&(material==2||material==6))||(kind==4&&material==3);
+    if(effective){constexpr float speeds[]={2,4,6,8,12};return speeds[ToolMaterialIndex(tool)];}
+    if(Sword(tool)){if(material==7)return 15;if(material==5||material==6)return 1.5f;}
+    (void)block;return 1;
+}
+float MiningDuration(Block block,Block tool,MiningDefinition definition,bool onGround,bool underwater){
+    if(block==Bed||block==BedHead)return .15f;
+    if(block==Air||Liquid(block)||definition.hardness<0)return std::numeric_limits<float>::infinity();
+    float speed=ToolSpeed(block,tool,definition.material);
+    if(!onGround)speed/=5;
+    if(underwater)speed/=5;
+    bool harvest=definition.tools==0||(definition.tools&HarvestBit(tool));
+    double ticks=definition.hardness*(harvest?30.0:100.0)/speed;
+    return float(std::max(1.0,std::ceil(ticks-1e-5))*.05);
+}
 }
 bool CanHarvest(Block block,Block tool) {
-    if(block==Bedrock||Liquid(block)||block==Air) return false;
-    int required=block==IronOre?2:1;
-    if(block==GoldOre||block==DiamondOre||block==EmeraldOre||block==RedstoneOre) required=3;
-    if(block==Obsidian) required=4;
-    return Rock(block)?PickaxeTier(tool)>=required:true;
+    if(block==Air||Liquid(block)||MiningDefinitions[block].hardness<0)return false;
+    auto mask=MiningDefinitions[block].tools;return !mask||(mask&HarvestBit(tool));
 }
-float MiningTime(Block block,Block tool) {
-    if(block==Bedrock||Liquid(block)||block==Air) return std::numeric_limits<float>::infinity();
-    float hardness=Rock(block)?(block==IronOre||block==CoalOre?3.f:(block==Furnace?3.5f:1.5f)):
-        (block==Wood||block==Planks||block==CraftingTable||block==Chest?2.f:
-        (block==Leaves||Plant(block)? .2f:(Wool(block)?.8f:.5f)));
-    if(Extended(block)) hardness=Blocks[block].hardness;
-    float speed=Rock(block)&&PickaxeTier(tool)?float(PickaxeTier(tool)*2):1.f;
-    if(Extended(tool)&&Tool(tool)) {
-        bool effective=(Blocks[tool].toolKind==2&&Rock(block))||
-            (Blocks[tool].toolKind==3&&(block==Wood||block==Planks||block==Chest||block==CraftingTable||(Extended(block)&&Blocks[block].material==2)))||
-            (Blocks[tool].toolKind==4&&(block==Dirt||block==Grass||block==Sand||block==Gravel||block==Clay||block==Snow||(Extended(block)&&Blocks[block].material==3)));
-        if(effective) speed=(tool==GoldenPickaxe||(Blocks[tool].tier==1&&ToolDurability(tool)==32))?12.f:float(Blocks[tool].tier*2);
+float MiningTime(Block block,Block tool,bool onGround,bool underwater) {
+    return MiningDuration(block,tool,MiningDefinitions[block],onGround,underwater);
+}
+float MiningTimeAt(int x,int y,int z,Block tool,bool onGround,bool underwater){
+    Block block=At(x,y,z);if(!HasMapShape(x,y,z))return MiningTime(block,tool,onGround,underwater);
+    auto state=MapStateAt(x,y,z);auto definition=MiningDefinitions[state.material];
+    switch(state.shape){
+    case MapShape::Barrier:case MapShape::Portal:definition.hardness=-1;break;
+    case MapShape::Slab:definition.hardness=2;break;
+    case MapShape::Carpet:definition.hardness=.1f;definition.material=4;definition.tools=0;break;
+    case MapShape::Fence:case MapShape::Gate:definition.hardness=2;break;
+    case MapShape::Bars:definition.hardness=5;break;
+    case MapShape::Pane:definition.hardness=.3f;definition.tools=0;break;
+    case MapShape::Web:definition={4,7,0x7c00u};break;
+    case MapShape::Torch:case MapShape::Plant:case MapShape::Fire:definition.hardness=0;definition.tools=0;break;
+    default:break;
     }
-    return hardness*(CanHarvest(block,tool)?1.5f:5.f)/speed;
+    return MiningDuration(block,tool,definition,onGround,underwater);
 }
 bool MineBlock(int x,int y,int z,ItemStack& tool) {
     Block block=At(x,y,z);

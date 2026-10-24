@@ -1,3 +1,4 @@
+#include "projectile_models.h"
 #include "renderer.h"
 #include "map_blocks.h"
 #include "bedwars.h"
@@ -188,6 +189,7 @@ Texture2D MakeAtlas() {
                 if(type==Fireball&&circle<13)c=YELLOW;
             }
             if(type>=SpeedPotion&&type<=InvisibilityPotion){bool neck=x>=6&&x<=9&&y>=2&&y<=6;bool body=(x-8)*(x-8)+(y-10)*(y-10)<=25;c=neck||body?(y<5?BEIGE:y<8?Color{205,221,228,255}:Palette[type]):BLANK;}
+            if(type==EnderPearl||type==Fireball)c=ProjectilePixel(type,x,y);
             if(type==GoldenApple) {
                 bool body=((x-5)*(x-5)+(y-8)*(y-8)<23)||((x-10)*(x-10)+(y-8)*(y-8)<23);
                 if(!body)c=BLANK;
@@ -591,7 +593,30 @@ Mesh HeldMesh(Block item,const Image& atlas,int finish=0) {
             geometry.colors.insert(geometry.colors.end(),{color.r,color.g,color.b,255});
         }
     };
-    if(Placeable(item)&&!Plant(item)) {
+    if(item==GoldenApple){
+        // A closed voxel volume, including the stalk and leaf, rather than a thin sprite.
+        auto voxel=[](int x,int y,int z){
+            if(y>=5&&y<=7&&x==0&&z==0)return 2;
+            if(y==7&&x>=1&&x<=3&&z>=0&&z<=1)return 3;
+            float xx=x/5.5f,yy=(y+.5f)/5.f,zz=z/4.5f;
+            return xx*xx+yy*yy+zz*zz<1.f&&!(y>=4&&std::abs(x)<=1)?1:0;
+        };
+        for(int y=-5;y<=7;++y)for(int x=-6;x<=6;++x)for(int z=-5;z<=5;++z){
+            int kind=voxel(x,y,z);if(!kind)continue;
+            float grain=.88f+float((x*x+3*y*y+7*z*z)%7)*.018f;
+            Color base=kind==2?Color{109,66,22,255}:kind==3?Color{123,166,30,255}:Color{255,190,24,255};
+            if(kind==1&&x<=-2&&y>=1&&z<=-2)base={255,235,114,255};
+            for(int face=0;face<6;++face){
+                if(voxel(x+Normals[face][0],y+Normals[face][1],z+Normals[face][2]))continue;
+                Color color=Shade(base,shading[face]*grain);
+                for(int index:order){
+                    geometry.positions.insert(geometry.positions.end(),{(x+Corners[face][index][0]-.5f)*.073f,(y+Corners[face][index][1]-.5f)*.073f,(z+Corners[face][index][2]-.5f)*.073f});
+                    geometry.normals.insert(geometry.normals.end(),{float(Normals[face][0]),float(Normals[face][1]),float(Normals[face][2])});
+                    geometry.uvs.insert(geometry.uvs.end(),{.5f,.5f});geometry.colors.insert(geometry.colors.end(),{color.r,color.g,color.b,255});
+                }
+            }
+        }
+    }else if(Placeable(item)&&!Plant(item)) {
         for(int f=0;f<6;++f) add(f,0,0,false);
     } else {
         int tile=BlockTile(item);
@@ -615,7 +640,12 @@ struct RemoteItemCache {
 RemoteItemCache remoteItems;
 
 }
+void DrawDroppedItem3D(Texture2D atlas,Block item,Vector3 position,float age){
+    rlPushMatrix();rlTranslatef(position.x,position.y+.16f+.025f*std::sin(age*3),position.z);rlRotatef(age*55,0,1,0);rlScalef(.48f,.48f,.48f);
+    auto transform=rlGetMatrixTransform();rlPopMatrix();DrawHeldItem3D(atlas,item,transform,WHITE,0,-1);
+}
 void DrawHeldItem3D(Texture2D atlas,Block item,Matrix transform,Color tint,int finish,float bowDraw){
+    if(item==EnderPearl||item==Fireball){rlPushMatrix();rlMultMatrixf(MatrixToFloat(transform));DrawProjectileItemModel(item,tint);rlPopMatrix();return;}
     if(item==Bow){rlPushMatrix();rlMultMatrixf(MatrixToFloat(transform));DrawBowModel(bowDraw,tint,atlas,BlockTile(Planks));rlPopMatrix();return;}
     if(cosmetics::Category(item)<0)finish=0;
     finish=std::clamp(finish,0,progression::SkinCount);
@@ -623,11 +653,47 @@ void DrawHeldItem3D(Texture2D atlas,Block item,Matrix transform,Color tint,int f
     if(remoteItems.atlas!=atlas.id){remoteItems.Clear();remoteItems.atlas=atlas.id;remoteItems.pixels=LoadImageFromTexture(atlas);remoteItems.material=LoadMaterialDefault();remoteItems.material.maps[MATERIAL_MAP_DIFFUSE].texture=atlas;}
     if(!remoteItems.pixels.data)return;
     int key=int(item)+finish*BlockCount;auto found=remoteItems.meshes.find(key);if(found==remoteItems.meshes.end())found=remoteItems.meshes.emplace(key,HeldMesh(item,remoteItems.pixels,finish)).first;
-    remoteItems.material.maps[MATERIAL_MAP_DIFFUSE].texture=finish?Texture2D{rlGetTextureIdDefault(),1,1,1,PIXELFORMAT_UNCOMPRESSED_R8G8B8A8}:atlas;
+    remoteItems.material.maps[MATERIAL_MAP_DIFFUSE].texture=(finish||item==GoldenApple)?Texture2D{rlGetTextureIdDefault(),1,1,1,PIXELFORMAT_UNCOMPRESSED_R8G8B8A8}:atlas;
     remoteItems.material.maps[MATERIAL_MAP_DIFFUSE].color=Emission(item)?WHITE:tint;
     rlDrawRenderBatchActive();if(found->second.vertexCount)DrawMesh(found->second,remoteItems.material,transform);
 }
+static Texture2D MakeMiningCracks(int stage){
+    Image image=GenImageColor(32,32,BLANK);
+    static constexpr int paths[8][7][2]={
+        {{16,16},{13,13},{14,10},{10,8},{11,4},{7,2},{8,0}},
+        {{16,16},{19,13},{18,10},{22,9},{21,5},{25,3},{24,0}},
+        {{16,16},{20,16},{22,19},{26,17},{28,21},{31,20},{31,24}},
+        {{16,16},{18,20},{17,23},{21,25},{20,28},{23,30},{23,31}},
+        {{16,16},{13,19},{14,23},{10,24},{11,28},{7,30},{7,31}},
+        {{16,16},{12,16},{10,13},{7,15},{5,12},{2,14},{0,12}},
+        {{16,16},{17,12},{15,9},{17,6},{15,4},{17,1},{16,0}},
+        {{16,16},{12,20},{8,19},{6,23},{3,22},{1,26},{0,25}}};
+    for(int ray=0;ray<8;++ray){int count=std::clamp(stage+1-ray/2,0,6);
+        for(int i=0;i<count;++i){int x=paths[ray][i][0],y=paths[ray][i][1],nx=paths[ray][i+1][0],ny=paths[ray][i+1][1];
+            ImageDrawLine(&image,x,y,nx,ny,{15,12,10,225});
+            if(stage>=6)ImageDrawLine(&image,x+1,y,nx+1,ny,{15,12,10,190});
+            if(i>=2&&stage>=i+ray/2+2)ImageDrawLine(&image,nx,ny,nx+(ray%2?3:-3),ny+(ray<4?3:-3),{15,12,10,210});
+        }
+    }
+    Texture2D texture=LoadTextureFromImage(image);UnloadImage(image);SetTextureFilter(texture,TEXTURE_FILTER_POINT);return texture;
+}
+static void DrawMiningCracks(Texture2D texture,int x,int y,int z){
+    auto boxes=CollisionBoxesAt(x,y,z);
+    if(!boxes.count){boxes.boxes[0]={{float(x),float(y),float(z)},{x+1.f,y+CollisionHeight(At(x,y,z)),z+1.f}};boxes.count=1;}
+    rlDrawRenderBatchActive();rlDisableDepthMask();rlSetTexture(texture.id);rlBegin(RL_QUADS);rlColor4ub(255,255,255,255);
+    constexpr float uv[4][2]={{0,1},{1,1},{1,0},{0,0}};
+    for(int box=0;box<boxes.count;++box){auto bounds=boxes.boxes[box];
+        if(At(x,y,z)==Bed||At(x,y,z)==BedHead)bounds.max.y=y+.556f;
+        for(int face=0;face<6;++face)for(int i=0;i<4;++i){
+            Vector3 p{Lerp(bounds.min.x,bounds.max.x,Corners[face][i][0]),Lerp(bounds.min.y,bounds.max.y,Corners[face][i][1]),Lerp(bounds.min.z,bounds.max.z,Corners[face][i][2])};
+            p.x+=Normals[face][0]*.002f;p.y+=Normals[face][1]*.002f;p.z+=Normals[face][2]*.002f;
+            rlTexCoord2f(uv[i][0],uv[i][1]);rlVertex3f(p.x,p.y,p.z);
+        }
+    }
+    rlEnd();rlSetTexture(0);rlDrawRenderBatchActive();rlEnableDepthMask();
+}
 struct Renderer::Impl {
+    std::array<Texture2D,10> cracks{};
     Texture2D atlas{};
     Shader shader{};
     Material material{};
@@ -659,6 +725,7 @@ struct Renderer::Impl {
 };
 Renderer::Renderer():impl(std::make_unique<Impl>()) {}
 Renderer::~Renderer() {
+    for(auto texture:impl->cracks)if(texture.id)UnloadTexture(texture);
     impl->alpha.Release();
     for(auto& entry:impl->mapTextures)if(entry.second.texture.id)UnloadTexture(entry.second.texture);
     remoteItems.Clear();
@@ -680,6 +747,7 @@ Renderer::~Renderer() {
 bool Renderer::Initialize() {
     impl->atlas=MakeAtlas(); impl->shader=LoadShaderFromMemory(VertexShader,FragmentShader);
     if(!impl->atlas.id||!impl->shader.id||impl->shader.id==rlGetShaderIdDefault()) return false;
+    for(int i=0;i<10;++i)impl->cracks[i]=MakeMiningCracks(i);
     impl->atlasPixels=LoadImageFromTexture(impl->atlas);
     impl->heldMaterial=LoadMaterialDefault();
     impl->heldMaterial.maps[MATERIAL_MAP_DIFFUSE].texture=impl->atlas;
@@ -722,7 +790,7 @@ bool Renderer::PrepareWorld(const Camera3D& camera,float budgetMilliseconds){
     if(prepared<visible.size())return false;
     impl->preparing=false;impl->sceneReady=true;impl->loadStage=2;impl->loadProgress=1;return true;
 }
-void Renderer::Draw(const Camera3D& camera,const Hit& hit) {
+void Renderer::Draw(const Camera3D& camera,const Hit& hit,float miningProgress) {
     if(!impl->ready) return;
     UpdateLighting(impl->sceneReady&&!LightingRequiresFullUpdate()?2.f:0.f);
     View view(camera);auto visible=VisibleChunks(camera);
@@ -756,7 +824,8 @@ void Renderer::Draw(const Camera3D& camera,const Hit& hit) {
     }
     for(int i:visible) if(Chunks[i].opaque.vertexCount) DrawMesh(Chunks[i].opaque,impl->material,MatrixIdentity());
     impl->alpha.Draw(view,impl->material,visible);
-    DrawItems();
+    DrawItems(impl->atlas,BlockTile(Tnt));
+    for(const auto& item:DroppedItems())DrawDroppedItem3D(impl->atlas,item.stack.block,item.position,item.age);
     if(net::Joined()) {
         net::DrawPlayers();
         for(const auto& frame:net::MapFrames()) {
@@ -775,8 +844,10 @@ void Renderer::Draw(const Camera3D& camera,const Hit& hit) {
         }
     }
     if(net::Joined())net::DrawHolograms(camera);
+    if(hit.found&&miningProgress>0&&At(hit.x,hit.y,hit.z)!=Air)DrawMiningCracks(impl->cracks[std::clamp(int(miningProgress*10),0,9)],hit.x,hit.y,hit.z);
     if(hit.found) DrawCubeWires({hit.x+.5f,hit.y+.5f,hit.z+.5f},1.006f,1.006f,1.006f,{25,29,24,255});
     EndMode3D();
+    DrawItemLabels(camera);
 }
 void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,bool usingItem,float dt) {
     if(!impl->ready) return;
@@ -801,10 +872,11 @@ void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,boo
     impl->walking=Lerp(impl->walking,moving?1.f:0.f,std::min(1.f,dt*10));
     impl->handClock+=dt*(2+impl->walking*8);
     const float bowDraw=item==Bow?(bw::Ready()?bw::BowDrawTime():game::BowDrawTime()):-1.f;
-    if(item==Bow)usingItem=false;
+    const float eating=item==GoldenApple?(bw::Ready()?bw::EatingTime():game::EatingTime()):0.f;
+    if(item==Bow||eating>0)usingItem=false;
     if(usingItem&&impl->swing>=1) impl->swing=0;
     impl->swing=std::min(1.f,impl->swing+dt*3.6f);
-    float swing=item==Bow?0.f:std::sin(impl->swing*PI);
+    float swing=item==Bow||eating>0?0.f:std::sin(impl->swing*PI);
     int x=int(std::floor(camera.position.x)),y=int(std::floor(camera.position.y)),z=int(std::floor(camera.position.z));
     float sky=SkyLightAt(x,y,z)/24.f*(.06f+.94f*Daylight());
     float torch=(.72f*DirectBlockLightAt(x,y,z)+.28f*BlockLightAt(x,y,z))/24.f;
@@ -830,6 +902,11 @@ void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,boo
     rlTranslatef(heldX+std::sin(float(GetTime())*45)*bowShake+std::sin(impl->handClock)*.022f*impl->walking-.055f*swing,
                  (item==Bow?-.59f:-.77f)+std::cos(float(GetTime())*39)*bowShake+std::abs(std::sin(impl->handClock))*.025f*impl->walking-.035f*swing-.25f*impl->equip,
                  (item==Bow?-1.25f:-1.f)-.16f*swing);
+    if(eating>0){
+        float lift=std::min(1.f,eating/.22f),bite=std::abs(std::sin(eating*PI*5.f));
+        rlTranslatef(-heldX*.64f*lift,(.30f+.045f*bite)*lift,(.18f+.025f*bite)*lift);
+        rlRotatef(-18*lift+7*bite,0,0,1);rlRotatef(-18*lift,1,0,0);
+    }
     // Swing swords left around the wrist while pitching the blade forward.
     rlRotatef(item==Bow?-12.f:Sword(item)?-8.f*(1.f-swing)+90.f*swing:5-7*swing,0,0,1);
     rlRotatef(item==Bow?-5.f:Sword(item)?-5-34*swing:-16-34*swing,1,0,0);
@@ -850,13 +927,20 @@ void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,boo
         else {rlTranslatef(-.025f,.28f,-.10f);rlRotatef(38,1,0,0);rlRotatef(-35,0,1,0);}
         float scale=sprite?(Sword(item)?.94f:Tool(item)||item==Stick?.66f:.53f):.50f;
         rlScalef(scale,scale,scale);
-        impl->heldMaterial.maps[MATERIAL_MAP_DIFFUSE].texture=finish?Texture2D{rlGetTextureIdDefault(),1,1,1,PIXELFORMAT_UNCOMPRESSED_R8G8B8A8}:impl->atlas;
+        impl->heldMaterial.maps[MATERIAL_MAP_DIFFUSE].texture=(finish||item==GoldenApple)?Texture2D{rlGetTextureIdDefault(),1,1,1,PIXELFORMAT_UNCOMPRESSED_R8G8B8A8}:impl->atlas;
         impl->heldMaterial.maps[MATERIAL_MAP_DIFFUSE].color=Emission(item)?WHITE:tint;
         itemTransform=rlGetMatrixTransform();
         rlPopMatrix();
     }
     rlPopMatrix();rlDrawRenderBatchActive();
-    if(drawItem) DrawMesh(impl->heldMesh,impl->heldMaterial,itemTransform);
+    if(drawItem){if(item==EnderPearl||item==Fireball){rlPushMatrix();rlMultMatrixf(MatrixToFloat(itemTransform));DrawProjectileItemModel(item,tint);rlPopMatrix();}else DrawMesh(impl->heldMesh,impl->heldMaterial,itemTransform);}
+    if(eating>.22f){
+        for(int chip=0;chip<5;++chip){
+            float age=std::fmod(eating*5.f+chip*.19f,1.f);
+            Vector3 p{.16f+(chip-2)*.038f+age*(chip%2?.10f:-.10f),-.08f-age*.24f,-.68f-age*.06f};
+            DrawCube(p,.014f,.012f,.012f,Shade(chip%2?Color{255,220,75,255}:Color{222,150,13,255},brightness));
+        }
+    }
     EndMode3D();EndTextureMode();
     DrawTexturePro(impl->handLayer.texture,{0,0,float(width),-float(height)},{0,0,float(width),float(height)},{0,0},0,WHITE);
 }

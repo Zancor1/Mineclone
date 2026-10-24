@@ -1,8 +1,10 @@
+#include "projectile_models.h"
 #include "external_arenas.h"
 #include "projectile_physics.h"
 #include "arrow_model.h"
 #include "arrow_collision.h"
 #include "bow_model.h"
+#include "tnt_model.h"
 #include "progression.h"
 #include "cosmetics.h"
 #include <random>
@@ -54,7 +56,7 @@ void SetLayout(int gap){islandGap=gap;auto positions=ArenaBases(gap,mapId);std::
 constexpr Color colors[8]={RED,BLUE,GREEN,YELLOW,{55,215,215,255},RAYWHITE,PINK,GRAY};
 constexpr Block wool[8]={RedWool,BlueWool,GreenWool,YellowWool,CyanWool,WhiteWool,PinkWool,GrayWool};
 const char* teamNames[]={"Vermelho","Azul","Verde","Amarelo","Ciano","Branco","Rosa","Cinza"};
-enum Message {Hello=1,Welcome,Snapshot,Edit,Position,DigRequest,PlaceRequest,AttackRequest,BuyRequest,UseRequest,SwapRequest,StartRequest,RestartRequest,Force,Error,ChatMessage,ChooseTeam,SprintPause,HoldUseRequest,SwingAnimation,CraftRequest,InventoryClickRequest,CosmeticRequest,CosmeticResult,BowRequest,HitEffect,PenguinUpdate};
+enum Message {Hello=1,Welcome,Snapshot,Edit,Position,DigRequest,PlaceRequest,AttackRequest,BuyRequest,UseRequest,SwapRequest,StartRequest,RestartRequest,Force,Error,ChatMessage,ChooseTeam,SprintPause,HoldUseRequest,SwingAnimation,CraftRequest,InventoryClickRequest,CosmeticRequest,CosmeticResult,BowRequest,HitEffect,PenguinUpdate,TntTimers,DropRequest,DropUpdate};
 struct Buffer {
     Bytes bytes;size_t offset=0;
     void Byte(int n){bytes.push_back(static_cast<unsigned char>(n));}
@@ -94,7 +96,7 @@ constexpr Offer offers[]={
  {Air,IronIngot,1,40,"Armadura de malha",6},
  {SpeedPotion,Emerald,1,1,"Velocidade II - 45s"},{JumpPotion,Emerald,1,1,"Salto II - 45s"},{InvisibilityPotion,Emerald,1,2,"Invisibilidade - 30s"}};
 std::string serverTitle;
-LanTransport wire;LanDiscovery discovery;unsigned short roomPort=25566;std::array<Fighter,MaxPlayers> fighters;std::array<ChestInventory,Teams> chests;std::vector<Generator> generators;std::vector<Shot> shots;
+LanTransport wire;LanDiscovery discovery;unsigned short roomPort=25566;std::array<Fighter,MaxPlayers> fighters;std::array<ChestInventory,Teams> chests;std::vector<Generator> generators;std::vector<Shot> shots;std::vector<DroppedItem> droppedItems;
 std::map<int,int> peerTeam;std::set<int> placed;bool active=false,ready=false,host=false;int me=0,phase=0,winner=-1,participants=0,epoch=0,seenEpoch=-1,seenTeleport=-1,seenRevision=-1,shopKind=0,shopCategory=0;float clock=0,phaseClock=0,snapshotClock=0,positionClock=0;std::string status;std::vector<std::string> chatMessages;
 Sound hitSound{};
 bool hitSoundChecked=false;
@@ -187,11 +189,17 @@ void DrawPenguins(){
         rlPopMatrix();
     }
 }
+bool tester=false;
+struct TrainingBot {Player player;bool awake=false;int teleport=-1;float nextHit=0;};
+std::array<TrainingBot,2> trainingBots;
+Vector3 TesterSpawn(int id){return id==0?Vector3{128.5f,26.001f,103.5f}:Vector3{id==1?121.5f:135.5f,26.001f,119.5f};}
+void ResetTester();
+void UpdateTrainingBots(float dt);
 int PlayerCount(){return int(std::count_if(fighters.begin(),fighters.end(),[](const Fighter& f){return f.connected;}));}
-int TeamLimit(){return MapTeams(mapId);}
+int TeamLimit(){return tester?5:MapTeams(mapId);}
 int TeamOf(int id){return fighters[id].team;}
 int TeamCount(int team){return int(std::count_if(fighters.begin(),fighters.end(),[&](const Fighter& f){return f.connected&&f.team==team;}));}
-bool TeamBed(int team){for(const auto& f:fighters)if(f.connected&&f.team==team&&f.bed)return true;return false;}
+bool TeamBed(int team){if(tester){auto beds=MapBeds(mapId,team,bases[team]);return At(int(beds[0].x),int(beds[0].y),int(beds[0].z))==Bed;}for(const auto& f:fighters)if(f.connected&&f.team==team&&f.bed)return true;return false;}
 void SetTeamBed(int team,bool bed){for(auto& f:fighters)if(f.team==team)f.bed=bed;}
 int TeamForge(int team){for(const auto& f:fighters)if(f.connected&&f.team==team)return f.forge;return 0;}
 bool Balanced(const std::array<int,Teams>& counts){
@@ -215,12 +223,12 @@ void BalanceTeams(){
 int AvailableTeam(){int team=0;for(int t=1;t<TeamLimit();++t)if(TeamCount(t)<TeamCount(team))team=t;return team;}
 bool ClearBody(Vector3 p){BoundingBox body{{p.x-.29f,p.y+.001f,p.z-.29f},{p.x+.29f,p.y+1.8f,p.z+.29f}};for(int x=int(std::floor(body.min.x));x<=int(std::floor(body.max.x));++x)for(int y=int(std::floor(p.y));y<=int(std::floor(body.max.y));++y)for(int z=int(std::floor(body.min.z));z<=int(std::floor(body.max.z));++z){auto boxes=CollisionBoxesAt(x,y,z);for(int i=0;i<boxes.count;++i)if(CheckCollisionBoxes(body,boxes.boxes[i]))return false;}return true;}
 Vector3 MateSpawn(Vector3 p){constexpr int offsets[][2]={{1,0},{-1,0},{0,1},{0,-1},{1,1},{-1,-1},{2,0},{0,2}};for(auto& o:offsets){Vector3 q{p.x+o[0],p.y,p.z+o[1]};if(!ClearBody(q))continue;auto below=CollisionBoxesAt(int(q.x),int(q.y)-1,int(q.z));for(int i=0;i<below.count;++i)if(std::abs(below.boxes[i].max.y-q.y)<.02f)return q;}return p;}
-Vector3 TeamSpawn(int id){auto p=mapId>=FirstExternalArena?ExternalArenaAt(mapId).teams[TeamOf(id)].spawn:mapId==4?AirshowSpawn(TeamOf(id)):bases[TeamOf(id)];int seat=0;for(int i=0;i<id;++i)if(fighters[i].connected&&TeamOf(i)==TeamOf(id))++seat;if(mapId>=3&&seat){p=MateSpawn(p);seat=0;}return {p.x+seat*1.2f,p.y+.001f,p.z-((mapId>=3)?0:1.5f)};}
+Vector3 TeamSpawn(int id){if(tester)return TesterSpawn(id);auto p=mapId>=FirstExternalArena?ExternalArenaAt(mapId).teams[TeamOf(id)].spawn:mapId==4?AirshowSpawn(TeamOf(id)):bases[TeamOf(id)];int seat=0;for(int i=0;i<id;++i)if(fighters[i].connected&&TeamOf(i)==TeamOf(id))++seat;if(mapId>=3&&seat){p=MateSpawn(p);seat=0;}return {p.x+seat*1.2f,p.y+.001f,p.z-((mapId>=3)?0:1.5f)};}
 Vector3 Vendor(int team,int kind){if(mapId>=FirstExternalArena)return ExternalArenaAt(mapId).teams[team].vendors[kind];if(mapId==1)return RuinsVendor(team,kind,islandGap);if(mapId==4)return AirshowVendor(team,kind);if(mapId==3)return {team==0?74.5f:182.5f,26,float((team==0?(kind?34:22):(kind?22:34))+128)+.5f};return {bases[team].x+(kind?4.f:-4.f),26,bases[team].z+(kind?2.f:-2.f)};}
 Vector3 TeamChest(int team){if(mapId>=FirstExternalArena)return ExternalArenaAt(mapId).teams[team].chest;if(mapId==4)return AirshowChest(team);if(mapId==3)return {float((team?51:-51)+128),26,float((team?32:24)+128)};return {bases[team].x+4,26,bases[team].z-2};}
 bool ChestReach(Vector3 p,int team){if(Vector3Distance(p,TeamChest(team))<5)return true;return mapId==3&&Vector3Distance(p,{float((team?51:-51)+128),26,float((team?24:32)+128)})<5;}
 void RemoveBed(int team,bool escape=false);
-bool ShopReach(Vector3 p,int kind){for(int team=0;team<TeamLimit();++team)if(Vector3Distance(p,Vendor(team,kind))<5)return true;return false;}
+bool ShopReach(Vector3 p,int kind){if(tester)return false;for(int team=0;team<TeamLimit();++team)if(Vector3Distance(p,Vendor(team,kind))<5)return true;return false;}
 int Cell(int x,int y,int z){return (x*Height+y)*Width+z;}
 Vector3 LobbyPosition(int id){return {125.5f+(id%4)*2,(MapLobbyY(mapId)+1.001f),128.5f+(id/4)*2};}
 bool Fighting(const Fighter& f){return f.connected&&!f.eliminated&&f.respawn<=0;}
@@ -241,7 +249,11 @@ int ToolLevel(Block item){if(item==WoodenPickaxe||item==WoodenAxe)return 1;if(it
 bool IsAxe(Block item){return item==WoodenAxe||item==StoneAxe||item==IronAxe;}
 int OfferCategory(const Offer& o){if((o.special>=1&&o.special<=2)||o.special==6)return 2;if(Sword(o.item)||o.item==Stick)return 1;if(ToolLevel(o.item))return 3;if(o.item>=SpeedPotion&&o.item<=InvisibilityPotion)return 4;if(o.item!=Tnt&&o.item!=Ladder&&Placeable(o.item))return 0;return 5;}
 bool ShowOffer(const Offer& o,const Fighter& f){if(o.special==7)return false;bool upgrade=o.special>=3&&o.special<=5;if(upgrade!=bool(shopKind))return false;if(shopKind)return true;if(OfferCategory(o)!=shopCategory)return false;int level=ToolLevel(o.item);return !level||level==std::min(3,(IsAxe(o.item)?f.axe:f.pick)+1);}
-void Loadout(int id){auto& f=fighters[id];f.inventory={};f.crafting={};f.cursor={};Give(f,WoodenSword,1);if(f.pick)Give(f,PickItem(f.pick),1);if(f.axe)Give(f,AxeItem(f.axe),1);f.hp=20;f.absorption=f.regen=f.speedTime=f.jumpTime=f.invisTime=0;f.healClock=f.regenClock=f.eating=f.fallDistance=0;f.eatSlot=-1;f.bowStart=-1;f.bowSlot=-1;f.sneaking=false;f.digging={};++f.revision;}
+void GiveTesterItems(Fighter& f){
+    f.inventory={};f.crafting={};f.cursor={};
+    for(auto item:{IronSword,Stick,Bow,Arrow,WhiteWool,IronPickaxe,IronAxe,Tnt,Fireball,WoodenSword,StoneSword,DiamondSword,WoodenPickaxe,StonePickaxe,DiamondPickaxe,WoodenAxe,StoneAxe,DiamondAxe,Planks,EndStone,Obsidian,GoldenApple,EnderPearl,SpeedPotion,JumpPotion,InvisibilityPotion})Give(f,item,item==Arrow||Placeable(item)||item==Fireball||item==EnderPearl||item==GoldenApple?64:1,item==Stick?1:0);
+}
+void Loadout(int id){auto& f=fighters[id];f.inventory={};f.crafting={};f.cursor={};Give(f,WoodenSword,1);if(f.pick)Give(f,PickItem(f.pick),1);if(f.axe)Give(f,AxeItem(f.axe),1);f.hp=20;f.absorption=f.regen=f.speedTime=f.jumpTime=f.invisTime=0;f.healClock=f.regenClock=f.eating=f.fallDistance=0;f.eatSlot=-1;f.bowStart=-1;f.bowSlot=-1;f.sneaking=false;f.digging={};if(tester&&id==0)GiveTesterItems(f);++f.revision;}
 void Write(int x,int y,int z,Block b){if(Inside(x,y,z)){if(Liquid(b))SetRemoteBlock(x,y,z,b);else World[x][y][z]=b;}}
 Vector3 OriginalForge(Vector3 expected){
     std::set<int> visited;Vector3 best=expected;float bestScore=-1e9f;
@@ -279,8 +291,24 @@ void FinishGenerators(){
     }
     InvalidateLighting();
 }
-void GenerateArena(){
+void BuildTesterTerrain(){
+    for(int x=92;x<=168;++x)for(int z=94;z<=157;++z){Write(x,24,z,StoneBricks);Write(x,25,z,Planks);}
+    for(int team=1;team<=4;++team){
+        int x=100+(team-1)*18,z=144;bases[team]={float(x),26,float(z-3)};
+        Write(x,26,z,Bed);Write(x,26,z+1,BedHead);
+        Block defense=team==2?Planks:team==3?EndStone:Obsidian;
+        if(team>1)for(int dx=-1;dx<=1;++dx)for(int dz=-1;dz<=2;++dz)for(int dy=0;dy<=1;++dy){
+            if(dy==0&&dx==0&&(dz==0||dz==1))continue;
+            Write(x+dx,26+dy,z+dz,defense);placed.insert(Cell(x+dx,26+dy,z+dz));
+        }
+    }
+    for(int dx=-1;dx<=1;++dx)for(int dz=-1;dz<=1;++dz){Write(128+dx,25,109+dz,MapSlab);SetMapBlockState(128+dx,25,109+dz,{MapSlab,StoneBricks,MapShape::Slab,0});}
+    generators.push_back({{128.5f,25.5f,109.5f},IronIngot,0,0,.08f,64,-1});
+    InvalidateLighting();
+}
+void GenerateArena(){droppedItems.clear();
     ClearRemoteWorld();ClearItems();PersonalCrafting={};WorkbenchCrafting={};EquippedArmor={};RegionOriginX=RegionOriginZ=0;SetClockMinute(720);placed.clear();shots.clear();generators.clear();chests={};
+    if(tester){BuildTesterTerrain();return;}
     BuildArenaTerrain(mapId,islandGap,Write);
     if(mapId==3){generators.push_back({{128.5f,25,156.5f},Emerald,0,0,35,4});for(int team=0;team<2;++team){Vector3 p{team?186.5f:70.5f,25.5f,156.5f};generators.push_back({p,IronIngot,0,0,2.5f,48,team});generators.push_back({p,GoldIngot,0,0,8,16,team});}generators.push_back({{128.5f,27,183.5f},Diamond,0,0,25,8});FinishGenerators();return;}
     if(mapId>=FirstExternalArena){const auto& arena=ExternalArenaAt(mapId);for(auto p:arena.emeralds)generators.push_back({p,Emerald,0,0,35,4});for(int team=0;team<8;++team){auto p=arena.teams[team].forge;generators.push_back({p,IronIngot,0,0,2.5f,48,team});generators.push_back({p,GoldIngot,0,0,8,16,team});}for(auto p:arena.diamonds)generators.push_back({p,Diamond,0,0,25,8});FinishGenerators();return;}
@@ -291,7 +319,7 @@ void GenerateArena(){
     FinishGenerators();
 }
 void ClaimProfile(int id);
-void ResetMatch(){ClearPenguins();
+void ResetMatch(){if(tester){ResetTester();return;}ClearPenguins();
     seenTeleport=seenRevision=-1;++epoch;GenerateArena();phase=0;phaseClock=clock=0;winner=-1;participants=0;
     for(int i=0;i<MaxPlayers;++i){auto& f=fighters[i];auto previous=f;f=Fighter{};f.profile=previous.profile;f.name=previous.name;f.peer=previous.peer;f.team=previous.team;f.connected=previous.connected;f.pitch=-.55f;if(f.connected){Give(f,WhiteWool,1);if(host)ClaimProfile(i);}Teleport(i,LobbyPosition(i));}
     BalanceTeams();Notice("Lobby: clique com a la para escolher o time. Host: P inicia.");
@@ -303,8 +331,8 @@ void Knock(int id,Vector3 v,bool melee=false,bool explosion=false){fighters[id].
     if(melee){
         // Recovery covers both the hop and the horizontal impulse decaying below 0.75 blocks/s.
         float recovery=std::max(2.f*std::max(0.f,v.y)/28.f,std::log(std::max(1.f,fighters[id].knockSpeed/.75f))/4.5f);
-        fighters[id].meleeImmuneUntil=clock+recovery;
-    }if(id==0){if(explosion)localExplosionForce=Vector3Add(localExplosionForce,v);else if(melee)localMeleeForce=v;else localForce=Vector3Add(localForce,v);}else {auto b=Packet(Force);b.Vec(v);b.Byte(explosion?2:melee?1:0);wire.Send(fighters[id].peer,b.bytes);}}
+        fighters[id].meleeImmuneUntil=clock+std::max(.2f,recovery-.15f);
+    }if(tester&&id>0&&id<=2){auto& bot=trainingBots[id-1];if(bot.teleport!=fighters[id].teleport){PlayerState pose;pose.position=fighters[id].p;pose.valid=true;bot.player.RestoreState(pose);bot.teleport=fighters[id].teleport;}float fall=FallDistance;if(explosion)bot.player.ExplosionKnockback(v);else if(melee)bot.player.MeleeKnockback(v);else bot.player.Knockback(v);FallDistance=fall;return;}if(id==0){if(explosion)localExplosionForce=Vector3Add(localExplosionForce,v);else if(melee)localMeleeForce=v;else localForce=Vector3Add(localForce,v);}else {auto b=Packet(Force);b.Vec(v);b.Byte(explosion?2:melee?1:0);wire.Send(fighters[id].peer,b.bytes);}}
 progression::Profile joiningProfile,lastLocalProfile;bool localProfileSaved=false;
 std::filesystem::path ProfileDirectory(int id){return id==0?progression::Directory:progression::Directory/"host-cache";}
 void ProfilePacket(Buffer& b,const progression::Profile& p){b.Int(p.xp);b.Int(p.crates);b.Int(p.pending);for(int i=0;i<3;++i){b.Int(int(p.unlocked[i]));b.Byte(p.skins[i]);}}
@@ -319,12 +347,12 @@ void PersistLocalProfile(){
     const auto& f=fighters[me];if(localProfileSaved&&lastLocalProfile==f.profile)return;
     std::string error;if(progression::Save(f.name,f.profile,error)){lastLocalProfile=f.profile;localProfileSaved=true;}else {status="Falha ao salvar perfil local: "+error;ConnectionTrace(status);}
 }
-void SaveProfile(int id){std::string error;if(!progression::Save(fighters[id].name,fighters[id].profile,error,ProfileDirectory(id)))Tell(id,"Perfil: falha ao salvar. Verifique permissao/espaco em disco.");}
-void ClaimProfile(int id){auto next=fighters[id].profile;int count=next.Claim();if(!count)return;std::string error;if(!progression::Save(fighters[id].name,next,error,ProfileDirectory(id))){Tell(id,"Falha ao entregar caixa; recompensa continua pendente.");return;}fighters[id].profile=next;Tell(id,std::to_string(count)+" caixa(s) recebida(s)! Abra no inventario do lobby.");}
-void AwardXP(int id,int amount){auto& f=fighters[id];int before=f.profile.Level();f.profile.Award(amount);SaveProfile(id);if(f.profile.Level()>before)Tell(id,"Nivel "+std::to_string(f.profile.Level())+"! Sua caixa sera entregue ao voltar ao lobby.");}
-void Kill(int id,int killer){auto& f=fighters[id];if(f.respawn>0||f.eliminated)return;if(killer==id)killer=-1;if(killer<0&&f.lastAttacker!=id&&clock-f.lastHurt<10)killer=f.lastAttacker;if(killer>=0&&killer<MaxPlayers){++fighters[killer].kills;AwardXP(killer,5);if(!f.bed)++fighters[killer].finals;for(Block item:{IronIngot,GoldIngot,Diamond,Emerald}){int remaining=Count(f,item);while(remaining>0){int count=std::min(64,remaining);if(!Give(fighters[killer],item,count))break;remaining-=count;}}}
+void SaveProfile(int id){if(tester&&id>0)return;std::string error;if(!progression::Save(fighters[id].name,fighters[id].profile,error,ProfileDirectory(id)))Tell(id,"Perfil: falha ao salvar. Verifique permissao/espaco em disco.");}
+void ClaimProfile(int id){if(tester&&id>0)return;auto next=fighters[id].profile;int count=next.Claim();if(!count)return;std::string error;if(!progression::Save(fighters[id].name,next,error,ProfileDirectory(id))){Tell(id,"Falha ao entregar caixa; recompensa continua pendente.");return;}fighters[id].profile=next;Tell(id,std::to_string(count)+" caixa(s) recebida(s)! Abra no inventario do lobby.");}
+void AwardXP(int id,int amount){if(tester)return;auto& f=fighters[id];int before=f.profile.Level();f.profile.Award(amount);SaveProfile(id);if(f.profile.Level()>before)Tell(id,"Nivel "+std::to_string(f.profile.Level())+"! Sua caixa sera entregue ao voltar ao lobby.");}
+void Kill(int id,int killer){auto& f=fighters[id];if(tester){if(f.respawn>0)return;f.hp=0;f.respawn=id==0?2.f:1.f;f.eliminated=false;f.bed=true;if(id>0&&id<=2)trainingBots[id-1].awake=false;return;}if(f.respawn>0||f.eliminated)return;if(killer==id)killer=-1;if(killer<0&&f.lastAttacker!=id&&clock-f.lastHurt<10)killer=f.lastAttacker;if(killer>=0&&killer<MaxPlayers){++fighters[killer].kills;AwardXP(killer,f.bed?5:15);if(!f.bed)++fighters[killer].finals;for(Block item:{IronIngot,GoldIngot,Diamond,Emerald}){int remaining=Count(f,item);while(remaining>0){int count=std::min(64,remaining);if(!Give(fighters[killer],item,count))break;remaining-=count;}}}
     f.hp=0;f.inventory={};f.crafting={};f.cursor={};++f.revision;if(f.bed){f.respawn=5;if(f.pick>1)--f.pick;if(f.axe>1)--f.axe;}else f.eliminated=true;Teleport(id,LobbyPosition(id));}
-bool Damage(int id,float damage,int attacker,Vector3 force={},bool melee=false){auto& f=fighters[id];if(!Live(id)||(attacker>=0&&attacker!=id&&TeamOf(attacker)==TeamOf(id))||(attacker>=0&&attacker!=id&&clock<f.meleeImmuneUntil)||(!melee&&f.hurtClock>0))return false;f.hurtClock=.5f;f.invisTime=0;f.lastAttacker=attacker;f.lastHurt=clock;f.healClock=0;float armor=f.armor==2?.68f:f.armor==1?.8f:f.armor==3?.86f:.92f;damage*=armor*(1.f-std::min(4,f.protection)*.04f);float absorbed=std::min(f.absorption,damage);f.absorption-=absorbed;f.hp-=damage-absorbed;if(attacker>=0&&attacker!=id)BroadcastHit(id,attacker);if(Vector3Length(force)>.001f)Knock(id,force,melee);if(f.hp<=0)Kill(id,attacker);return true;}
+bool Damage(int id,float damage,int attacker,Vector3 force={},bool melee=false,bool applyArmor=true){auto& f=fighters[id];if(!Live(id)||(attacker>=0&&attacker!=id&&TeamOf(attacker)==TeamOf(id))||(attacker>=0&&attacker!=id&&clock<f.meleeImmuneUntil)||(!melee&&f.hurtClock>0))return false;if(tester&&id==2&&attacker==0)trainingBots[1].awake=true;f.hurtClock=.5f;f.invisTime=0;f.lastAttacker=attacker;f.lastHurt=clock;f.healClock=0;float armor=f.armor==2?.68f:f.armor==1?.8f:f.armor==3?.86f:.92f;if(applyArmor)damage*=armor*(1.f-std::min(4,f.protection)*.04f);float absorbed=std::min(f.absorption,damage);f.absorption-=absorbed;f.hp-=damage-absorbed;if(attacker>=0&&attacker!=id)BroadcastHit(id,attacker);if(Vector3Length(force)>.001f)Knock(id,force,melee);if(f.hp<=0)Kill(id,attacker);return true;}
 bool CanReach(int id,int x,int y,int z){return Live(id)&&Vector3Distance(Vector3Add(fighters[id].p,{0,fighters[id].sneaking?1.54f:1.62f,0}),{std::clamp(fighters[id].p.x,float(x),x+1.f),std::clamp(fighters[id].p.y+1.62f,float(y),y+1.f),std::clamp(fighters[id].p.z,float(z),z+1.f)})<=4.f;}
 int BedTeam(int x,int y,int z){for(int t=0;t<TeamLimit();++t)for(auto p:MapBeds(mapId,t,bases[t]))if(x==int(p.x)&&y==int(p.y)&&z==int(p.z))return t;return -1;}
 bool Breakable(int id,int x,int y,int z){if(!CanReach(id,x,y,z)||At(x,y,z)==Air||Liquid(At(x,y,z)))return false;int bed=BedTeam(x,y,z);return (bed>=0&&bed!=TeamOf(id)&&TeamBed(bed))||placed.count(Cell(x,y,z));}
@@ -349,13 +377,17 @@ void Explosion(Vector3 p,int owner,Block kind){
     }
     for(int i=0;i<MaxPlayers;++i){
         float distance=Vector3Distance(fighters[i].p,p);
-        if(!Live(i)||distance>=5||(i!=owner&&TeamOf(i)==TeamOf(owner)))continue;
+        if(!Live(i)||distance>=5||(kind!=Tnt&&i!=owner&&TeamOf(i)==TeamOf(owner)))continue;
+        if(i!=owner&&owner>=0&&owner<MaxPlayers&&TeamOf(i)!=TeamOf(owner)){fighters[i].lastAttacker=owner;fighters[i].lastHurt=clock;}
         Vector3 delta=Vector3Subtract(fighters[i].p,p),d=Vector3Normalize({delta.x,0,delta.z});
         if(kind==Fireball){
             if(Vector3Length(d)<.01f)d={-std::sin(fighters[i].yaw),0,std::cos(fighters[i].yaw)};
             float strength=std::clamp(1.f-distance/5.f,.25f,1.f);
             Knock(i,{d.x*32*strength,10+2*strength,d.z*32*strength},false,true);
-            if(i!=owner)Damage(i,(5-distance)*2,owner);
+        }else if(kind==Tnt){
+            if(Vector3Length(d)<.01f)d={-std::sin(fighters[i].yaw),0,std::cos(fighters[i].yaw)};
+            float strength=std::clamp(1.f-distance/5.f,.25f,1.f);
+            Knock(i,{d.x*12*strength,6.f+3.f*strength,d.z*12*strength},false,true);
         }else Damage(i,(5-distance)*3,owner,{d.x*6,5,d.z*6});
     }
 }
@@ -365,7 +397,7 @@ void StartSwing(int id){auto& f=fighters[id];if(f.swingAge<.18f)return;f.swingAg
 void ArmPose(const Fighter& f,float side,float swing){
     rlTranslatef(0,f.sneaking?.82f:.67f,f.sneaking?.16f:0);if(f.sneaking)rlRotatef(-28,1,0,0);
     rlTranslatef(side,.65f,0);if(f.sneaking)rlRotatef(12,1,0,0);
-    if(side>0){rlRotatef(85*swing,1,0,0);rlRotatef(-18*swing,0,0,1);}
+    if(side>0){if(f.eating>0){rlRotatef(-65+5*std::sin(f.eating*PI*10),1,0,0);rlRotatef(-25,0,0,1);}rlRotatef(85*swing,1,0,0);rlRotatef(-18*swing,0,0,1);}
 }
 void Process(int id,Buffer& b){int kind=b.Byte();auto& f=fighters[id];
     if(kind==CosmeticRequest){
@@ -411,6 +443,14 @@ void Process(int id,Buffer& b){int kind=b.Byte();auto& f=fighters[id];
         else if(target==255){TransferStack(result,inventory.data(),inventory.size());if(result.count)return;}else return;
         f.inventory=inventory;for(auto& stack:f.crafting)if(stack.count&&!--stack.count)stack={};++f.revision;SendState();return;}
     if(!Live(id))return;
+    if(kind==DropRequest){
+        int slot=b.Byte(),all=b.Byte();if((slot>8&&slot!=255)||all>1||droppedItems.size()>=192)return;
+        auto& stack=slot==255?f.cursor:f.inventory[slot];if(!stack.count||stack.block==Air)return;
+        ItemStack drop=stack;if(!all)drop.count=1;
+        Vector3 direction{std::sin(f.yaw)*std::cos(f.pitch),std::sin(f.pitch),-std::cos(f.yaw)*std::cos(f.pitch)};
+        droppedItems.push_back(MakeDrop(drop,Vector3Add(f.p,{0,f.sneaking?1.54f:1.62f,0}),direction));
+        stack.count-=drop.count;if(!stack.count)stack={};++f.revision;f.eating=0;f.eatSlot=-1;f.bowStart=-1;f.bowSlot=-1;SendState();return;
+    }
     if(kind==BowRequest){
         int slot=b.Byte(),action=b.Byte();if(slot>8||action>3)return;
         if(action==2){f.bowStart=-1;f.bowSlot=-1;return;}
@@ -425,7 +465,7 @@ void Process(int id,Buffer& b){int kind=b.Byte();auto& f=fighters[id];
         static std::mt19937 rng(std::random_device{}());float damage=BowDamage(held,rng());
         Consume(f,Arrow,1);Shot arrow{Vector3Add(eye,Vector3Scale(direction,.7f)),Vector3Scale(direction,ArrowSpeed*BowPower(held)),id,Arrow,10};arrow.damage=damage;arrow.critical=damage>4;shots.push_back(arrow);f.lastBowShot=clock;return;
     }
-    if(kind==HoldUseRequest){int slot=b.Byte(),held=b.Byte();if(slot>8||held>1)return;if(held&&f.inventory[slot].block==GoldenApple&&f.inventory[slot].count){if(f.eatSlot!=slot){f.eating=0;f.eatSlot=slot;}f.eatHeartbeat=clock;}else{f.eating=0;f.eatSlot=-1;}return;}
+    if(kind==HoldUseRequest){int slot=b.Byte(),held=b.Byte();if(slot>8||held>1)return;if(held&&f.inventory[slot].block==GoldenApple&&f.inventory[slot].count){if(f.eatSlot!=slot){f.eating=0;f.eatSlot=slot;}f.selected=slot;f.eatHeartbeat=clock;}else{f.eating=0;f.eatSlot=-1;}return;}
     if(kind==BuyRequest){int index=b.Byte();if(index>=int(std::size(offers))||offers[index].special==7)return;const auto& offer=offers[index];bool upgrade=offer.special>=3&&offer.special<=5;if(!ShopReach(f.p,upgrade))return;
         int level=ToolLevel(offer.item);int current=IsAxe(offer.item)?f.axe:f.pick;if(level&&level!=current+1){Tell(id,"Compre a proxima melhoria da ferramenta");return;}
         if(Count(f,offer.currency)<offer.cost){Tell(id,"Recursos insuficientes");return;}
@@ -451,20 +491,27 @@ void Process(int id,Buffer& b){int kind=b.Byte();auto& f=fighters[id];
     }
     if(kind==DigRequest){int stage=b.Byte(),x=b.Int(),y=b.Int(),z=b.Int(),slot=b.Byte();if(slot>8)return;if(stage==1){f.digging={};return;}if(!Inside(x,y,z)||!Breakable(id,x,y,z))return;
         if(stage==0){f.digging={true,x,y,z};f.digStart=clock;return;}
-        if(stage!=2||!f.digging.found||x!=f.digging.x||y!=f.digging.y||z!=f.digging.z||clock-f.digStart+.08f<MiningTime(At(x,y,z),f.inventory[slot].block))return;
+        if(stage!=2||!f.digging.found||x!=f.digging.x||y!=f.digging.y||z!=f.digging.z||clock-f.digStart+.05001f<MiningTimeAt(x,y,z,f.inventory[slot].count?f.inventory[slot].block:Air))return;
         int bed=BedTeam(x,y,z);if(bed>=0){RemoveBed(bed,true);++f.beds;AwardXP(id,10);status=std::string("Cama destruida: ")+teamNames[bed];}
         else {Block block=At(x,y,z);placed.erase(Cell(x,y,z));EditCell(x,y,z,Air);Give(f,block,1);}f.digging={};return;}
-    if(kind==PlaceRequest){int x=b.Int(),y=b.Int(),z=b.Int(),slot=b.Byte();if(slot>8||!Inside(x,y,z)||y<(mapId>=3?1:20)||y>(mapId>=3?MapLobbyY(mapId)-5:55)||!CanReach(id,x,y,z)||At(x,y,z)!=Air)return;auto& stack=f.inventory[slot];if(!stack.count||!Placeable(stack.block)||Liquid(stack.block)||stack.block==Bed||stack.block==BedHead||stack.block==Tnt)return;
+    if(kind==PlaceRequest){int x=b.Int(),y=b.Int(),z=b.Int(),slot=b.Byte();if(slot>8||!Inside(x,y,z)||y<(mapId>=3?1:20)||y>(mapId>=3?MapLobbyY(mapId)-5:55)||!CanReach(id,x,y,z)||At(x,y,z)!=Air)return;auto& stack=f.inventory[slot];if(!stack.count||!Placeable(stack.block)||Liquid(stack.block)||stack.block==Bed||stack.block==BedHead)return;
         for(const auto& generator:generators)if(Vector3Distance({x+.5f,y+.5f,z+.5f},generator.p)<2)return;
         for(int i=0;i<MaxPlayers;++i){auto p=fighters[i].p;if(Fighting(fighters[i])&&p.x+.3f>x&&p.x-.3f<x+1&&p.y+1.8f>y+.001f&&p.y<y+1-.001f&&p.z+.3f>z&&p.z-.3f<z+1)return;}
+        if(stack.block==Tnt){
+            if(shots.size()>=192)return;
+            Vector3 center{x+.5f,y+.5f,z+.5f};
+            for(const auto& shot:shots)if(shot.kind==Tnt&&Vector3Distance(shot.p,center)<.8f)return;
+            shots.push_back({center,{},id,Tnt,TntFuse});Consume(f,Tnt,1);SendState();return;
+        }
         Block block=stack.block;EditCell(x,y,z,block);placed.insert(Cell(x,y,z));if(!--stack.count)stack={};++f.revision;return;}
     if(kind==AttackRequest){int slot=b.Byte();if(slot>8)return;StartSwing(id);Vector3 eye=Vector3Add(f.p,{0,f.sneaking?1.54f:1.62f,0}),direction{std::sin(f.yaw)*std::cos(f.pitch),std::sin(f.pitch),-std::cos(f.yaw)*std::cos(f.pitch)};float closest=std::numeric_limits<float>::infinity();int victim=-1;auto block=Trace(eye,direction);if(block.found){auto h=GetRayCollisionBox({eye,direction},{{float(block.x),float(block.y),float(block.z)},{block.x+1.f,block.y+1.f,block.z+1.f}});if(h.hit)closest=std::min(closest,h.distance);}
         for(int i=0;i<MaxPlayers;++i)if(i!=id&&TeamOf(i)!=TeamOf(id)&&Live(i)){auto p=fighters[i].p;auto hit=GetRayCollisionBox({eye,direction},{{p.x-.3f,p.y,p.z-.3f},{p.x+.3f,p.y+1.8f,p.z+.3f}});if(hit.hit&&hit.distance<=3.3f&&hit.distance<closest){victim=i;closest=hit.distance;}}
-        if(victim>=0){Block sword=f.inventory[slot].block;float damage=sword==DiamondSword?5:sword==IronSword?4:sword==StoneSword?3:sword==WoodenSword||sword==GoldenSword?2:1;Vector3 delta=Vector3Subtract(fighters[victim].p,f.p);Vector3 d=Vector3Normalize({delta.x,0,delta.z});float horizontal=sword==Stick&&f.inventory[slot].damage==1?22.f:8.5f;if(Damage(victim,damage+f.sharp,id,{d.x*horizontal,6.f,d.z*horizontal},true)){if(id==0)localSprintPause=true;else wire.Send(f.peer,Packet(SprintPause).bytes);}SendState();}return;}
+        if(victim>=0){Block sword=f.inventory[slot].block;float damage=sword==DiamondSword?5:sword==IronSword?4:sword==StoneSword?3:sword==WoodenSword||sword==GoldenSword?2:1;Vector3 delta=Vector3Subtract(fighters[victim].p,f.p);Vector3 d=Vector3Normalize({delta.x,0,delta.z});float horizontal=sword==Stick&&f.inventory[slot].damage==1?28.6f:11.05f;if(Damage(victim,damage+f.sharp,id,{d.x*horizontal,6.5f,d.z*horizontal},true)){if(id==0)localSprintPause=true;else if(tester&&id<=2)trainingBots[id-1].player.SuspendSprint(.1f);else wire.Send(f.peer,Packet(SprintPause).bytes);}SendState();}return;}
     if(kind==UseRequest){int slot=b.Byte();if(slot>8)return;auto& stack=f.inventory[slot];if(clock-f.lastAction<(stack.block==Bow?.15f:.3f))return;if(!stack.count)return;Block item=stack.block;if((item==Bow||item==Fireball||item==EnderPearl||item==Tnt)&&shots.size()>=192){auto old=std::find_if(shots.begin(),shots.end(),[](const Shot& shot){return shot.embedded;});if(old!=shots.end())shots.erase(old);else return;}Vector3 eye=Vector3Add(f.p,{0,1.4f,0}),direction{std::sin(f.yaw)*std::cos(f.pitch),std::sin(f.pitch),-std::cos(f.yaw)*std::cos(f.pitch)};
         if(item>=SpeedPotion&&item<=InvisibilityPotion){Consume(f,item,1);if(item==SpeedPotion)f.speedTime=45;if(item==JumpPotion)f.jumpTime=45;if(item==InvisibilityPotion)f.invisTime=30;}
         else if(item==GoldenApple){return;}
-        else if(item==Fireball||item==EnderPearl||item==Tnt){Consume(f,item,1);shots.push_back({Vector3Add(eye,Vector3Scale(direction,.7f)),Vector3Scale(direction,item==EnderPearl?32.f:item==Fireball?FireballSpeed:2.f),id,item,item==Tnt?4.f:8.f});}
+        else if(item==Tnt){auto hit=Trace(eye,direction);if(hit.found){auto place=Packet(PlaceRequest);place.Int(hit.x+hit.nx);place.Int(hit.y+hit.ny);place.Int(hit.z+hit.nz);place.Byte(slot);Process(id,place);}return;}
+        else if(item==Fireball||item==EnderPearl){Consume(f,item,1);shots.push_back({Vector3Add(eye,Vector3Scale(direction,.7f)),Vector3Scale(direction,item==EnderPearl?32.f:FireballSpeed),id,item,8.f});}
         else if(item==Bow)return;
         f.lastAction=clock;
     }
@@ -475,16 +522,27 @@ void SendState(){auto b=Packet(Snapshot);b.Int(epoch);b.Byte(phase);b.Float(phas
     b.Byte(int(generators.size()));for(auto& g:generators){b.Int(g.stock);b.Float(g.clock);}
     b.Byte(int(shots.size()));for(auto& s:shots){b.Vec(s.p);b.Byte(s.kind);b.Vec(s.v);b.Byte(s.embedded);b.Byte(s.critical);}
     wire.Broadcast(b.bytes);SendPenguins();
+    auto drops=Packet(DropUpdate);drops.Byte(int(droppedItems.size()));
+    for(const auto& item:droppedItems){Stack(drops,item.stack);drops.Vec(item.position);drops.Float(item.age);}
+    wire.Broadcast(drops.bytes);
+    auto timers=Packet(TntTimers);int count=0;for(const auto& s:shots)if(s.kind==Tnt)++count;
+    if(count){timers.Byte(count);for(size_t i=0;i<shots.size();++i)if(shots[i].kind==Tnt){timers.Byte(int(i));timers.Float(std::max(0.f,shots[i].life));}wire.Broadcast(timers.bytes);}
 }
 void Simulate(float dt){clock+=dt;
     if(phase==0){if(phaseClock>0&&PlayerCount()<2){phaseClock=0;Notice("Contagem cancelada: aguardando 2 jogadores.");}if(phaseClock>0){phaseClock=std::max(.0001f,phaseClock-dt);if(phaseClock<.001f)BeginRound();}if(phase!=0)return;for(int i=0;i<MaxPlayers;++i)if(fighters[i].connected&&(fighters[i].p.y<(MapLobbyY(mapId)-1)||Vector3Distance(fighters[i].p,LobbyPosition(i))>14))Teleport(i,LobbyPosition(i));return;}
-    phaseClock+=dt;if(phase==2){if(phaseClock>10)ResetMatch();return;}
+    for(auto& item:droppedItems){StepDrop(item,dt);if(item.life<=0)continue;
+        for(int id=0;id<MaxPlayers&&item.stack.count;++id)if(Live(id)&&(!tester||id==0)&&CanPickUpDrop(item,fighters[id].p)){
+            int before=item.stack.count;TransferStack(item.stack,fighters[id].inventory.data(),fighters[id].inventory.size());if(item.stack.count!=before)++fighters[id].revision;
+        }
+    }
+    droppedItems.erase(std::remove_if(droppedItems.begin(),droppedItems.end(),[](const DroppedItem& item){return item.life<=0||!item.stack.count;}),droppedItems.end());
+    phaseClock+=dt;if(tester)UpdateTrainingBots(dt);if(phase==2){if(phaseClock>10)ResetMatch();return;}
     for(int i=0;i<MaxPlayers;++i){auto& f=fighters[i];if(f.bowStart>=0&&(f.bowSlot!=f.selected||f.bowSlot<0||f.inventory[f.bowSlot].block!=Bow||clock-f.bowHeartbeat>.4f||!Live(i))){f.bowStart=-1;f.bowSlot=-1;}f.hurtClock=std::max(0.f,f.hurtClock-dt);f.speedTime=std::max(0.f,f.speedTime-dt);f.jumpTime=std::max(0.f,f.jumpTime-dt);f.invisTime=std::max(0.f,f.invisTime-dt);f.absorbTime=std::max(0.f,f.absorbTime-dt);if(f.absorbTime==0)f.absorption=0;if(Live(i)){
-            if(f.eatSlot>=0){auto& food=f.inventory[f.eatSlot];if(clock-f.eatHeartbeat>.3f||f.selected!=f.eatSlot||food.block!=GoldenApple||!food.count){f.eating=0;f.eatSlot=-1;}else{f.eating+=dt;if(f.eating+1e-5f>=1.61f){Consume(f,GoldenApple,1);f.absorption=4;f.absorbTime=120;f.regen=5;f.regenClock=f.healClock=f.eating=0;f.eatSlot=-1;}}}
-            if(f.regen>0){float elapsed=std::min(dt,f.regen);f.regen=std::max(0.f,f.regen-dt);f.regenClock+=elapsed;while(f.regenClock>=1.f-1e-5f){f.regenClock=std::max(0.f,f.regenClock-1);f.hp=std::min(20.f,f.hp+1);}f.healClock=0;}
+            if(f.eatSlot>=0){auto& food=f.inventory[f.eatSlot];if(clock-f.eatHeartbeat>.3f||f.selected!=f.eatSlot||food.block!=GoldenApple||!food.count){f.eating=0;f.eatSlot=-1;}else{f.eating+=dt;if(f.eating+1e-5f>=1.61f){if(!--food.count)food={};++f.revision;f.absorption=4;f.absorbTime=120;f.regen=5;f.regenClock=f.healClock=f.eating=0;f.eatSlot=-1;}}}
+            if(f.regen>0){float elapsed=std::min(dt,f.regen);f.regen=std::max(0.f,f.regen-dt);f.regenClock+=elapsed;while(f.regenClock>=.5f-1e-5f){f.regenClock=std::max(0.f,f.regenClock-.5f);f.hp=std::min(20.f,f.hp+1);}f.healClock=0;}
             else if(f.hp<20){f.healClock+=dt;while(f.healClock>=4){f.healClock-=4;f.hp=std::min(20.f,f.hp+2);}}else f.healClock=0;
         }if(f.respawn>0){f.respawn=std::max(0.f,f.respawn-dt);if(f.respawn==0){Loadout(i);Teleport(i,TeamSpawn(i));}}else if(Live(i)&&f.p.y< -6)Kill(i,-1);}
-    for(size_t i=0;i<generators.size();++i){auto& g=generators[i];float interval=(g.item==Diamond||g.item==Emerald)?ResourceInterval(g.item,phaseClock):g.interval;if(g.team>=0)interval/=1+TeamForge(g.team);g.clock+=dt;while(g.clock>=interval){g.clock-=interval;g.stock=std::min(g.cap,g.stock+1);}for(int id=0;id<MaxPlayers;++id)if(g.stock&&Live(id)&&Vector3Distance(fighters[id].p,g.p)<2){if(Give(fighters[id],g.item,1))--g.stock;}}
+    for(size_t i=0;i<generators.size();++i){auto& g=generators[i];float interval=(!tester&&(g.item==Diamond||g.item==Emerald))?ResourceInterval(g.item,phaseClock):g.interval;if(g.team>=0)interval/=1+TeamForge(g.team);g.clock+=dt;while(g.clock>=interval){g.clock-=interval;g.stock=std::min(g.cap,g.stock+1);}for(int id=0;id<MaxPlayers;++id)if(g.stock&&Live(id)&&Vector3Distance(fighters[id].p,g.p)<2){if(tester){bool received=false;for(Block ore:{IronIngot,GoldIngot,Diamond,Emerald})received=Give(fighters[id],ore,1)||received;if(received)--g.stock;}else if(Give(fighters[id],g.item,1))--g.stock;}}
     for(auto it=shots.begin();it!=shots.end();){
         auto& s=*it;s.life-=dt;
         if(s.embedded){if(s.life<=0||!ArrowSolidPoint(s.support))it=shots.erase(it);else ++it;continue;}
@@ -496,7 +554,7 @@ void Simulate(float dt){clock+=dt;
             int steps=std::max(1,int(std::ceil(Vector3Length(s.v)*stepTime/.2f)));
             for(int step=0;step<steps;++step){
                 Vector3 next=Vector3Add(s.p,Vector3Scale(s.v,stepTime/steps));
-                collision=SolidPoint(next);
+                collision=SolidPoint(s.kind==Tnt?Vector3Add(next,{0,-.49f,0}):next);
                 if(s.kind==Arrow&&collision){s.support=next;s.p=EmbeddedArrowTip(s.p,next);s.embedded=true;s.life=60;break;}
                 if(s.kind==Tnt&&collision){s.v={};collision=false;break;}
                 if(s.kind!=Tnt)for(int i=0;i<MaxPlayers;++i)if(i!=s.owner&&TeamOf(i)!=TeamOf(s.owner)&&Live(i)&&Vector3Distance(Vector3Add(fighters[i].p,{0,.9f,0}),next)<.8f)victim=i;
@@ -511,11 +569,20 @@ void Simulate(float dt){clock+=dt;
             if(s.kind==Tnt){if(expired)Explosion(s.p,s.owner,s.kind);}
             else if(s.kind==Fireball)Explosion(s.p,s.owner,s.kind);
             else if(s.kind==Arrow&&victim>=0)Damage(victim,s.damage,s.owner,Vector3Scale(Vector3Normalize(s.v),3));
-            else if(s.kind==EnderPearl&&collision&&Live(s.owner)){Vector3 destination=s.p;destination.y=std::ceil(destination.y);if(!Solid(At(int(destination.x),int(destination.y),int(destination.z)))&&!Solid(At(int(destination.x),int(destination.y+1),int(destination.z)))){Teleport(s.owner,destination);Damage(s.owner,4,-1);}}
+            else if(s.kind==EnderPearl&&(collision||victim>=0)&&Live(s.owner)){
+                float impactY=victim>=0&&!collision?fighters[victim].p.y:std::ceil(s.p.y);
+                if(victim>=0&&!collision){auto horizontal=Vector3Normalize(Vector3{s.v.x,0,s.v.z});Damage(victim,1.f,s.owner,{horizontal.x*6.f,3.6f,horizontal.z*6.f},false,false);}
+                Vector3 destination=Vector3Subtract(s.p,Vector3Scale(Vector3Normalize(s.v),.3f));
+                destination.y=impactY;
+                if(Inside(int(std::floor(destination.x)),int(std::floor(destination.y)),int(std::floor(destination.z)))&&ClearBody(destination)){
+                    fighters[s.owner].fallDistance=0;Teleport(s.owner,destination);Damage(s.owner,4,-1);
+                }
+            }
             it=shots.erase(it);
         }else ++it;
     }
 
+    if(tester)return;
     if(phaseClock>=600)for(int team=0;team<TeamLimit();++team)if(TeamBed(team)){SetTeamBed(team,false);RemoveBed(team);}
     if(phaseClock>=900)for(int i=0;i<MaxPlayers;++i)Damage(i,dt*2,-1);
     std::set<int> alive;for(const auto& f:fighters)if(f.connected&&!f.eliminated)alive.insert(f.team);
@@ -526,7 +593,9 @@ void Receive(int peer,Buffer& b){if(host){int kind=b.bytes.empty()?0:b.bytes[0];
         bool duplicate=std::any_of(fighters.begin(),fighters.end(),[&](const Fighter& f){return f.connected&&progression::Key(f.name)==progression::Key(name);});
         if(duplicate||!LoadGuestProfile(name,profile,profileError)){auto e=Packet(Error);e.Text(duplicate?"Nick ja conectado nesta sala":"Perfil corrompido ou inacessivel no host");wire.Send(peer,e.bytes);wire.Drop(peer);return;}if(b.offset<b.bytes.size())profile=progression::Reconcile(ReadProfile(b),profile);int id=-1;for(int i=1;i<MaxPlayers;++i)if(!fighters[i].connected){id=i;break;}if(id<0||PlayerCount()>=TeamLimit()*teamCapacity){wire.Drop(peer);return;}peerTeam[peer]=id;auto& f=fighters[id];f=Fighter{};f.profile=profile;f.name=name;f.peer=peer;f.team=AvailableTeam();f.connected=true;ClaimProfile(id);Give(f,WhiteWool,1);Teleport(id,LobbyPosition(id));auto w=Packet(Welcome);w.Int(Version);w.Byte(id);wire.Send(peer,w.bytes);SendState();}else if(peerTeam.count(peer))Process(peerTeam[peer],b);return;}
     int kind=b.Byte();if(kind==Welcome){ConnectionTrace("welcome received; awaiting world snapshot");if(b.Int()!=Version)throw std::runtime_error("Versao BedWars diferente do host");me=b.Byte();if(me>=MaxPlayers)throw std::runtime_error("Equipe invalida");status="Conectado ao BedWars LAN";return;}
-    if(kind==Snapshot){int nextEpoch=b.Int();epoch=nextEpoch;phase=b.Byte();phaseClock=b.Float();winner=b.Int();clock=b.Float();int gap=b.Byte();int nextMap=b.Byte();teamCapacity=b.Byte();if(teamCapacity!=1&&teamCapacity!=2)throw std::runtime_error("Modo invalido");if(nextMap>=MapCount)throw std::runtime_error("Mapa invalido");if(gap!=16&&gap!=32&&gap!=64)throw std::runtime_error("Distancia Rush invalida");if(nextEpoch!=seenEpoch){ClearPenguins();mapId=nextMap;ConnectionTrace("generating map "+std::to_string(mapId)+" epoch "+std::to_string(nextEpoch));SetLayout(gap);GenerateArena();ConnectionTrace("map block data ready");seenEpoch=nextEpoch;seenTeleport=seenRevision=-1;}for(auto& f:fighters){f.connected=b.Byte()!=0;f.team=b.Byte();if(f.team>=TeamLimit())throw std::runtime_error("Time invalido");f.name=b.Text();f.profile.xp=b.Int();f.profile.crates=b.Int();f.profile.pending=b.Int();for(int i=0;i<3;++i){f.profile.unlocked[i]=uint32_t(b.Int());f.profile.skins[i]=b.Byte();}if(!progression::Valid(f.profile))throw std::runtime_error("Perfil invalido no pacote");f.p=b.Vec();f.yaw=b.Float();f.pitch=b.Float();f.hp=b.Float();f.respawn=b.Float();f.bed=b.Byte()!=0;f.eliminated=b.Byte()!=0;f.teleport=b.Int();f.revision=b.Int();f.kills=b.Int();f.finals=b.Int();f.beds=b.Int();f.armor=b.Byte();f.sharp=b.Byte();f.protection=b.Byte();f.forge=b.Byte();f.selected=b.Byte();if(f.selected>8)throw std::runtime_error("Slot BedWars invalido");f.sneaking=b.Byte()!=0;f.pick=b.Byte();f.axe=b.Byte();f.speedTime=b.Float();f.jumpTime=b.Float();f.invisTime=b.Float();f.absorption=b.Float();f.regen=b.Float();f.eating=b.Float();f.bowStart=b.Float();for(auto& s:f.inventory)s=Stack(b);for(auto& s:f.crafting)s=Stack(b);f.cursor=Stack(b);}for(auto& chest:chests)for(auto& s:chest)s=Stack(b);int count=b.Byte();if(count!=int(generators.size()))throw std::runtime_error("Geradores inconsistentes");for(auto& g:generators){g.stock=b.Int();g.clock=b.Float();}int n=b.Byte();shots.clear();for(int i=0;i<n;++i){auto p=b.Vec();int block=b.Byte();if(block>=BlockCount)throw std::runtime_error("Projetil invalido");auto velocity=b.Vec();bool embedded=b.Byte()!=0;bool critical=b.Byte()!=0;Shot shot{p,velocity,0,Block(block),0,0,embedded};shot.critical=critical;shots.push_back(shot);}if(!ready)ConnectionTrace("first world snapshot ready");ready=true;PersistLocalProfile();return;}
+    if(kind==Snapshot){int nextEpoch=b.Int();epoch=nextEpoch;phase=b.Byte();phaseClock=b.Float();winner=b.Int();clock=b.Float();int gap=b.Byte();int nextMap=b.Byte();teamCapacity=b.Byte();if(teamCapacity!=1&&teamCapacity!=2)throw std::runtime_error("Modo invalido");if(nextMap>=MapCount)throw std::runtime_error("Mapa invalido");if(gap!=16&&gap!=32&&gap!=64)throw std::runtime_error("Distancia Rush invalida");if(nextEpoch!=seenEpoch){ClearPenguins();mapId=nextMap;ConnectionTrace("generating map "+std::to_string(mapId)+" epoch "+std::to_string(nextEpoch));SetLayout(gap);GenerateArena();ConnectionTrace("map block data ready");seenEpoch=nextEpoch;seenTeleport=seenRevision=-1;}for(auto& f:fighters){f.connected=b.Byte()!=0;f.team=b.Byte();if(f.team>=TeamLimit())throw std::runtime_error("Time invalido");f.name=b.Text();f.profile.xp=b.Int();f.profile.crates=b.Int();f.profile.pending=b.Int();for(int i=0;i<3;++i){f.profile.unlocked[i]=uint32_t(b.Int());f.profile.skins[i]=b.Byte();}if(!progression::Valid(f.profile))throw std::runtime_error("Perfil invalido no pacote");f.p=b.Vec();f.yaw=b.Float();f.pitch=b.Float();f.hp=b.Float();f.respawn=b.Float();f.bed=b.Byte()!=0;f.eliminated=b.Byte()!=0;f.teleport=b.Int();f.revision=b.Int();f.kills=b.Int();f.finals=b.Int();f.beds=b.Int();f.armor=b.Byte();f.sharp=b.Byte();f.protection=b.Byte();f.forge=b.Byte();f.selected=b.Byte();if(f.selected>8)throw std::runtime_error("Slot BedWars invalido");f.sneaking=b.Byte()!=0;f.pick=b.Byte();f.axe=b.Byte();f.speedTime=b.Float();f.jumpTime=b.Float();f.invisTime=b.Float();f.absorption=b.Float();f.regen=b.Float();f.eating=b.Float();f.bowStart=b.Float();for(auto& s:f.inventory)s=Stack(b);for(auto& s:f.crafting)s=Stack(b);f.cursor=Stack(b);}for(auto& chest:chests)for(auto& s:chest)s=Stack(b);int count=b.Byte();if(count!=int(generators.size()))throw std::runtime_error("Geradores inconsistentes");for(auto& g:generators){g.stock=b.Int();g.clock=b.Float();}int n=b.Byte();shots.clear();for(int i=0;i<n;++i){auto p=b.Vec();int block=b.Byte();if(block>=BlockCount)throw std::runtime_error("Projetil invalido");auto velocity=b.Vec();bool embedded=b.Byte()!=0;bool critical=b.Byte()!=0;Shot shot{p,velocity,0,Block(block),0,0,embedded};shot.critical=critical;if(shot.kind==Tnt)shot.life=TntFuse;shots.push_back(shot);}if(!ready)ConnectionTrace("first world snapshot ready");ready=true;PersistLocalProfile();return;}
+    if(kind==DropUpdate){int count=b.Byte();if(count>192)throw std::runtime_error("Drops invalidos");std::vector<DroppedItem> next;for(int i=0;i<count;++i){auto stack=Stack(b);auto position=b.Vec();float age=b.Float();if(!stack.count||stack.block==Air||age<0)throw std::runtime_error("Drop invalido");next.push_back({stack,position,{},age});}droppedItems=std::move(next);return;}
+    if(kind==TntTimers){int count=b.Byte();if(count>int(shots.size()))throw std::runtime_error("Timers TNT invalidos");for(int i=0;i<count;++i){int index=b.Byte();float remaining=b.Float();if(index>=int(shots.size())||shots[index].kind!=Tnt||remaining<0||remaining>TntFuse+.01f)throw std::runtime_error("Timer TNT invalido");shots[index].life=remaining;}return;}
     if(kind==PenguinUpdate){ReadPenguins(b);return;}
     if(kind==HitEffect){int victim=b.Byte(),attacker=b.Byte();if(victim>=MaxPlayers||attacker>=MaxPlayers)throw std::runtime_error("Hit invalido");ShowHit(victim,attacker);return;}
     if(kind==CosmeticResult){int reward=b.Byte();if(reward<1||reward>36)throw std::runtime_error("Skin invalida");cosmetics::Reward(reward);return;}
@@ -544,7 +613,7 @@ int StorageIndex(int displayed){return displayed<27?displayed+9:displayed-27;}
 void ConnectionTrace(const std::string& message){if(connectionLog.empty())return;try{std::ofstream out(connectionLog,std::ios::app);out<<int64_t((ConnectionNow()-joinStarted)*1000)<<" ms: "<<message<<'\n';}catch(...){}}
 int ResourceLevel(Block item,float elapsed){if(item!=Diamond&&item!=Emerald)return 1;int maxLevel=item==Diamond?5:7;return 1+int(std::clamp(std::max(0.f,elapsed)/170.f,0.f,float(maxLevel-1)));}
 float ResourceInterval(Block item,float elapsed){if(item!=Diamond&&item!=Emerald)return item==IronIngot?2.5f:8.f;float base=item==Diamond?25.f:item==Emerald?35.f:item==IronIngot?2.5f:8.f;return std::max(5.f,base-5*(ResourceLevel(item,elapsed)-1));}
-std::vector<GeneratorInfo> Generators(){std::vector<GeneratorInfo> result;for(size_t i=0;i<generators.size();++i){const auto& g=generators[i];float interval=(g.item==Diamond||g.item==Emerald)?ResourceInterval(g.item,phaseClock):g.interval;if(g.team>=0)interval/=1+TeamForge(g.team);result.push_back({g.p,g.item,g.stock,ResourceLevel(g.item,phaseClock),interval,std::max(0.f,interval-g.clock)});}return result;}
+std::vector<GeneratorInfo> Generators(){std::vector<GeneratorInfo> result;for(size_t i=0;i<generators.size();++i){const auto& g=generators[i];float interval=(!tester&&(g.item==Diamond||g.item==Emerald))?ResourceInterval(g.item,phaseClock):g.interval;if(g.team>=0)interval/=1+TeamForge(g.team);result.push_back({g.p,g.item,g.stock,ResourceLevel(g.item,phaseClock),interval,std::max(0.f,interval-g.clock)});}return result;}
 int TeamCapacity(){return teamCapacity;}
 int PlayerTeam(int id){return id>=0&&id<MaxPlayers&&fighters[id].connected?TeamOf(id):-1;}
 int LocalTeam(){return TeamOf(me);}
@@ -558,9 +627,44 @@ bool Host(const std::string& name,unsigned short port,int gap,int map,int capaci
     serverTitle=serverName.empty()?name:serverName;
     if(serverTitle.size()>32||serverTitle.find_first_not_of(" ")==std::string::npos||std::any_of(serverTitle.begin(),serverTitle.end(),[](unsigned char c){return c<32||c>126;})){status="Nome da sala: use de 1 a 32 caracteres";return false;}
 if(capacity!=1&&capacity!=2){status="Modo invalido";return false;}teamCapacity=capacity;if(map<0||map>=MapCount){status="Mapa invalido";return false;}mapId=map;if(gap!=16&&gap!=32&&gap!=64){status="Distancia Rush invalida";return false;}SetLayout(gap);if(name.size()<3||name.size()>16||name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")!=std::string::npos){status="Nick: use 3 a 16 letras, numeros ou _";return false;}progression::Profile profile;std::string profileError;if(!progression::Load(name,profile,profileError)){status=profileError;return false;}if(!wire.Host(port)){status=wire.Error();return false;}roomPort=port;host=active=ready=true;me=0;fighters={};fighters[0].connected=true;fighters[0].profile=profile;fighters[0].name=name.empty()?"Host":name;fighters[0].peer=0;seenEpoch=seenRevision=seenTeleport=-1;ResetMatch();UpdateDiscovery();return true;}
+namespace {
+void ResetTester(){
+    ClearPenguins();GenerateArena();phase=1;phaseClock=clock=0;winner=-1;participants=1;++epoch;
+    seenTeleport=seenRevision=-1;
+    for(int id=0;id<MaxPlayers;++id){auto previous=fighters[id];fighters[id]={};auto& f=fighters[id];f.connected=id<3;f.peer=-1;f.team=id;f.name=id==0?previous.name:id==1?"Dummy":"Dummy lutador";if(id==0)f.profile=previous.profile;f.bed=true;
+        if(id<3){Loadout(id);Teleport(id,TesterSpawn(id));}
+    }
+    trainingBots={};
+    Notice("Tester: gerador rapido, camas e dummies. F8 restaura a arena.");
+}
+void UpdateTrainingBots(float dt){
+    for(int id=1;id<=2;++id){auto& f=fighters[id];auto& bot=trainingBots[id-1];if(!Live(id))continue;
+        if(bot.teleport!=f.teleport){PlayerState pose;pose.position=f.p;pose.valid=true;bot.player.RestoreState(pose);bot.teleport=f.teleport;bot.awake=false;}
+        Vector3 delta=Vector3Subtract(fighters[0].p,f.p);float distance=std::hypot(delta.x,delta.z);
+        PlayerInput input;
+        if(id==2&&bot.awake&&Live(0)){
+            float target=std::atan2(delta.x,-delta.z);
+            float turn=std::remainder(target-bot.player.CaptureState().yaw,2*PI);
+            input.look.x=turn/(.0025f*std::max(.01f,Settings.mouseSensitivity));
+            if(distance>2.2f)input.forward=1;
+            auto ahead=Vector3Add(f.p,Vector3Scale(Vector3Normalize({delta.x,0,delta.z}),.6f));
+            input.jump=bot.player.OnGround()&&CollisionBoxesAt(int(std::floor(ahead.x)),int(std::floor(ahead.y)),int(std::floor(ahead.z))).count>0;
+        }
+        bot.player.Update(input,dt,false);auto pose=bot.player.CaptureState();f.p=pose.position;f.yaw=pose.yaw;f.pitch=0;
+        if(f.p.y< -6){Kill(id,-1);continue;}
+        if(id==2&&bot.awake&&Live(0)&&distance<3.f&&clock>=bot.nextHit){bot.nextHit=clock+.65f;auto packet=Packet(AttackRequest);packet.Byte(0);Process(id,packet);}
+    }
+}
+}
+bool StartTester(const std::string& name){
+    if(!Host(name.empty()?"Tester":name,0,64,0,1,"Tester"))return false;
+    tester=true;discovery.StopHosting();ResetTester();return true;
+}
+bool Testing(){return active&&tester;}
+std::vector<TrainingDummyInfo> TrainingDummies(){std::vector<TrainingDummyInfo> result;if(!Testing())return result;for(int id=1;id<=2;++id)result.push_back({fighters[id].name,fighters[id].p,fighters[id].hp,trainingBots[id-1].awake});return result;}
 bool Join(const std::string& address,const std::string& name){Stop();StartConnectionTrace("join "+address);if(name.size()<3||name.size()>16||name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")!=std::string::npos){status="Nick: use 3 a 16 letras, numeros ou _";return false;}std::string profileError;if(!progression::Load(name,joiningProfile,profileError)){status=profileError;return false;}localProfileSaved=false;if(!wire.Join(address)){status=wire.Error();return false;}active=true;host=ready=false;me=0;fighters={};fighters[0].name=name;status="Conectando ao BedWars LAN...";seenEpoch=seenRevision=seenTeleport=-1;return true;}
-void Stop(){ClearPenguins();if(screamSound.frameCount)UnloadSound(screamSound);screamSound={};screamChecked=false;if(hitSound.frameCount)UnloadSound(hitSound);hitSound={};hitSoundChecked=false;CancelBow();if(active&&!host)PersistLocalProfile();if(active)ConnectionTrace("session stopped: "+status);cosmetics::Reset();if(host&&active)for(int i=0;i<MaxPlayers;++i)if(fighters[i].connected)SaveProfile(i);discovery.StopHosting();discovery.CancelSearch();wire.Stop();active=ready=host=false;shots.clear();peerTeam.clear();chatMessages.clear();localForce=localMeleeForce=localExplosionForce={};localSprintPause=false;}
-void UpdateDiscovery(){if(host&&active&&ready){LanRoom room;room.name=serverTitle;room.port=roomPort;room.players=PlayerCount();room.gap=islandGap;room.joinable=phase==0;room.capacity=TeamLimit()*teamCapacity;room.map=MapName(mapId);for(const auto& f:fighters)if(f.connected)room.playerNames.push_back(f.name);discovery.Advertise(room);}discovery.Poll();}
+void Stop(){ClearPenguins();if(screamSound.frameCount)UnloadSound(screamSound);screamSound={};screamChecked=false;if(hitSound.frameCount)UnloadSound(hitSound);hitSound={};hitSoundChecked=false;CancelBow();if(active&&!host)PersistLocalProfile();if(active)ConnectionTrace("session stopped: "+status);cosmetics::Reset();if(host&&active)for(int i=0;i<MaxPlayers;++i)if(fighters[i].connected)SaveProfile(i);discovery.StopHosting();discovery.CancelSearch();wire.Stop();tester=false;trainingBots={};active=ready=host=false;shots.clear();droppedItems.clear();peerTeam.clear();chatMessages.clear();localForce=localMeleeForce=localExplosionForce={};localSprintPause=false;}
+void UpdateDiscovery(){if(tester)return;if(host&&active&&ready){LanRoom room;room.name=serverTitle;room.port=roomPort;room.players=PlayerCount();room.gap=islandGap;room.joinable=phase==0;room.capacity=TeamLimit()*teamCapacity;room.map=MapName(mapId);for(const auto& f:fighters)if(f.connected)room.playerNames.push_back(f.name);discovery.Advertise(room);}discovery.Poll();}
 void SearchRooms(){discovery.Search();}
 bool SearchingRooms(){return discovery.Searching();}
 const std::vector<LanRoom>& Rooms(){return discovery.Rooms();}
@@ -575,7 +679,7 @@ void EquipSkin(int category,int color){if(Ready()&&category>=0&&category<3&&colo
 std::vector<PlayerEntry> PlayerList(){std::vector<PlayerEntry> result;for(const auto& f:fighters)if(f.connected)result.push_back({f.name,f.team,f.eliminated});return result;}
 void Chat(const std::string& text){auto b=Packet(ChatMessage);b.Text(text.substr(0,60));Request(std::move(b));}const std::string& Status(){return status;}
 void StartRound(){Request(Packet(StartRequest));}void Restart(){Request(Packet(RestartRequest));}
-void Update(Player& player,float dt,bool playing,int selected){if(!active)return;dt=std::clamp(dt,0.f,.1f);LoadHitSound();for(auto& f:fighters)f.hitFlash=std::max(0.f,f.hitFlash-dt);for(auto& event:wire.Poll()){try{if(event.kind==LanTransport::Event::Connected&&!host){ConnectionTrace("TCP connected; sending hello");auto b=Packet(Hello);b.Int(Version);b.Text(fighters[0].name);ProfilePacket(b,joiningProfile);wire.Send(0,b.bytes);}else if(event.kind==LanTransport::Event::Data){Buffer b{event.data};Receive(event.peer,b);}else if(event.kind==LanTransport::Event::Disconnected){if(host){auto it=peerTeam.find(event.peer);if(it!=peerTeam.end()){auto& f=fighters[it->second];SaveProfile(it->second);f.connected=false;f.eliminated=true;f.bed=false;peerTeam.erase(it);if(phase==0)BalanceTeams();}}else{status=connectionFailure.empty()?wire.Error():connectionFailure;ConnectionTrace("disconnected: "+status);Stop();return;}}}catch(const std::exception& error){status=error.what();ConnectionTrace("packet error: "+status);if(host)wire.Drop(event.peer);else {Stop();return;}}}
+void Update(Player& player,float dt,bool playing,int selected){if(!active)return;dt=std::clamp(dt,0.f,.1f);if(!host)for(auto& shot:shots)if(shot.kind==Tnt)shot.life=std::max(0.f,shot.life-dt);LoadHitSound();for(auto& f:fighters)f.hitFlash=std::max(0.f,f.hitFlash-dt);for(auto& event:wire.Poll()){try{if(event.kind==LanTransport::Event::Connected&&!host){ConnectionTrace("TCP connected; sending hello");auto b=Packet(Hello);b.Int(Version);b.Text(fighters[0].name);ProfilePacket(b,joiningProfile);wire.Send(0,b.bytes);}else if(event.kind==LanTransport::Event::Data){Buffer b{event.data};Receive(event.peer,b);}else if(event.kind==LanTransport::Event::Disconnected){if(host){auto it=peerTeam.find(event.peer);if(it!=peerTeam.end()){auto& f=fighters[it->second];SaveProfile(it->second);f.connected=false;f.eliminated=true;f.bed=false;peerTeam.erase(it);if(phase==0)BalanceTeams();}}else{status=connectionFailure.empty()?wire.Error():connectionFailure;ConnectionTrace("disconnected: "+status);Stop();return;}}}catch(const std::exception& error){status=error.what();ConnectionTrace("packet error: "+status);if(host)wire.Drop(event.peer);else {Stop();return;}}}
     if(!wire.Alive()){status=wire.Error();Stop();return;}
     if(!host&&!ready&&ConnectionNow()-joinStarted>20){status="Host nao enviou o mapa. Confira as versoes e tente novamente.";ConnectionTrace("world handshake timeout");Stop();return;}
     if(!ready)return;
@@ -598,10 +702,12 @@ void Update(Player& player,float dt,bool playing,int selected){if(!active)return
 bool CanMine(const Hit& hit){return Ready()&&hit.found&&Inside(hit.x,hit.y,hit.z)&&Breakable(me,hit.x,hit.y,hit.z);}
 void Dig(const Hit& hit,int stage,int selected){if(!hit.found)return;auto b=Packet(DigRequest);b.Byte(stage);b.Int(hit.x);b.Int(hit.y);b.Int(hit.z);b.Byte(selected);Request(std::move(b));}
 std::vector<PenguinState> PenguinStates(){std::vector<PenguinState> result;for(int team=0;team<Teams;++team){auto& p=penguins[team];if(p.active)result.push_back({team,p.p,p.direction,p.age});}return result;}
+std::vector<PrimedTntState> TntStates(){std::vector<PrimedTntState> result;for(const auto& s:shots)if(s.kind==Tnt)result.push_back({s.p,s.life});return result;}
 std::vector<ArrowState> ArrowStates(){std::vector<ArrowState> result;for(const auto& shot:shots)if(shot.kind==Arrow)result.push_back({shot.p,Vector3Normalize(shot.v),shot.embedded,shot.damage,shot.critical});return result;}
 void Place(int x,int y,int z,int selected,const Player* player){if(player){auto pose=player->CaptureState();auto position=Packet(Position);position.Vec(pose.position);position.Float(pose.yaw);position.Float(pose.pitch);position.Byte(selected);position.Byte(player->IsSneaking());Request(std::move(position));}auto b=Packet(PlaceRequest);b.Int(x);b.Int(y);b.Int(z);b.Byte(selected);Request(std::move(b));}
 void Attack(int selected,const Player* player){if(player){auto pose=player->CaptureState();auto position=Packet(Position);position.Vec(pose.position);position.Float(pose.yaw);position.Float(pose.pitch);position.Byte(selected);position.Byte(player->IsSneaking());Request(std::move(position));}auto b=Packet(AttackRequest);b.Byte(selected);Request(std::move(b));}
 namespace {bool localBowHeld=false;float localBowAge=0,localBowHeartbeat=0;int localBowSlot=-1;}
+float EatingTime(){return Ready()?fighters[me].eating:0.f;}
 float BowDrawTime(){return localBowHeld?localBowAge:-1.f;}
 void CancelBow(){if(localBowHeld&&Ready()){auto b=Packet(BowRequest);b.Byte(localBowSlot);b.Byte(2);Request(std::move(b));}localBowHeld=false;localBowAge=localBowHeartbeat=0;localBowSlot=-1;}
 void BowInput(int selected,bool held,bool pressed,bool released,float dt,const Player* player){
@@ -613,6 +719,13 @@ void BowInput(int selected,bool held,bool pressed,bool released,float dt,const P
     if(localBowHeld&&released){if(player){auto pose=player->CaptureState();auto b=Packet(Position);b.Vec(pose.position);b.Float(pose.yaw);b.Float(pose.pitch);b.Byte(selected);b.Byte(player->IsSneaking());Request(std::move(b));}auto b=Packet(BowRequest);b.Byte(selected);b.Byte(1);Request(std::move(b));localBowHeld=false;localBowSlot=-1;localBowAge=0;}
 }
 void HoldUse(int selected,bool held){static double sent=-1;static bool previous=false;static int slot=-1;if(!Ready())return;held=held&&selected>=0&&selected<9&&Hotbar[selected].block==GoldenApple&&Hotbar[selected].count;if(held!=previous||selected!=slot||(held&&(clock-sent>=.1||clock<sent))){auto b=Packet(HoldUseRequest);b.Byte(selected);b.Byte(held);Request(std::move(b));sent=clock;previous=held;slot=selected;}}
+const std::vector<DroppedItem>& DroppedItems(){return droppedItems;}
+void DropCursor(bool all){if(!Ready())return;auto b=Packet(DropRequest);b.Byte(255);b.Byte(all);Request(std::move(b));}
+void Drop(int selected,bool all,const Player* player){
+    if(!Ready()||selected<0||selected>8)return;
+    if(player){auto pose=player->CaptureState();auto position=Packet(Position);position.Vec(pose.position);position.Float(pose.yaw);position.Float(pose.pitch);position.Byte(selected);position.Byte(player->IsSneaking());Request(std::move(position));}
+    auto b=Packet(DropRequest);b.Byte(selected);b.Byte(all);Request(std::move(b));
+}
 void Use(int selected){auto b=Packet(UseRequest);b.Byte(selected);Request(std::move(b));}
 bool NearShop(const Player& player){return ready&&phase==1&&ShopReach(player.CaptureState().position,shopKind);}
 bool AimedShop(const Player& player){
@@ -625,7 +738,9 @@ bool AimedShop(const Player& player){
     shopKind=selected;return true;
 }
 bool NearChest(const Player& player){return ready&&phase==1&&ChestReach(player.CaptureState().position,TeamOf(me));}
-void DrawWorld(const Camera3D& camera,Texture2D atlas){if(!Ready())return;BeginMode3D(camera);for(int i=0;i<MaxPlayers;++i){if(i!=me&&fighters[i].connected&&!fighters[i].eliminated&&fighters[i].respawn<=0&&fighters[i].invisTime<=0){auto p=fighters[i].display;auto& f=fighters[i];
+void DrawWorld(const Camera3D& camera,Texture2D atlas){
+    if(!Ready())return;
+    BeginMode3D(camera);for(const auto& item:droppedItems)DrawDroppedItem3D(atlas,item.stack.block,item.position,item.age);for(int i=0;i<MaxPlayers;++i){if(i!=me&&fighters[i].connected&&!fighters[i].eliminated&&fighters[i].respawn<=0&&fighters[i].invisTime<=0){auto p=fighters[i].display;auto& f=fighters[i];
         auto tint=[&](Color c){return f.hitFlash>0?Color{255,0,0,c.a}:c;};
         Color shirt=tint(Outfit(f));Color metal=f.armor==2?Color{87,224,224,255}:f.armor==1?Color{207,211,217,255}:f.armor==3?Color{125,131,139,255}:Outfit(f);metal=tint(metal);
         rlPushMatrix();
@@ -666,7 +781,7 @@ void DrawWorld(const Camera3D& camera,Texture2D atlas){if(!Ready())return;BeginM
     }}
 
     DrawPenguins();
-    for(int i=0;i<TeamLimit();++i)for(int kind=0;kind<2;++kind){
+    if(!tester)for(int i=0;i<TeamLimit();++i)for(int kind=0;kind<2;++kind){
         auto p=Vendor(i,kind);Color robe=kind?Color{91,62,111,255}:Color{106,73,48,255};Color skin{177,136,103,255};
         rlPushMatrix();auto facing=Vector3Subtract(bases[i],p);float heading=std::atan2(facing.x,facing.z)*RAD2DEG;
         rlTranslatef(p.x,p.y,p.z);rlRotatef(heading,0,1,0);rlTranslatef(-p.x,-p.y,-p.z);
@@ -688,15 +803,22 @@ void DrawWorld(const Camera3D& camera,Texture2D atlas){if(!Ready())return;BeginM
         DrawCube(Vector3Add(p,{0,1.02f,.43f}),.24f,.17f,.08f,skin);rlPopMatrix();
     }
     for(auto& g:generators)if(g.stock){DrawCube(Vector3Add(g.p,{0,.4f+std::sin(float(GetTime())*2)*.08f,0}),.35f,.2f,.35f,g.item==IronIngot?LIGHTGRAY:g.item==GoldIngot?GOLD:g.item==Diamond?SKYBLUE:GREEN);}
-    for(auto& shot:shots){if(shot.kind==Tnt)DrawCube(shot.p,.6f,.6f,.6f,RED);else if(shot.kind==Arrow){DrawArrowModel(shot.p,shot.v);if(shot.critical&&!shot.embedded)DrawArrowSparkles(shot.p,shot.v,float(GetTime()));}else DrawSphere(shot.p,.16f,shot.kind==Fireball?ORANGE:shot.kind==EnderPearl?DARKGREEN:BEIGE);}EndMode3D();
+    for(auto& shot:shots){if(shot.kind==Tnt)DrawPrimedTnt(atlas,BlockTile(Tnt),shot.p,shot.life);else if(shot.kind==Arrow){DrawArrowModel(shot.p,shot.v);if(shot.critical&&!shot.embedded)DrawArrowSparkles(shot.p,shot.v,float(GetTime()));}else if(shot.kind==Fireball||shot.kind==EnderPearl)DrawThrownItem(shot.kind,shot.p,shot.v);else DrawSphere(shot.p,.16f,shot.kind==Fireball?ORANGE:shot.kind==EnderPearl?DARKGREEN:BEIGE);}EndMode3D();
     auto label=[&](Vector3 p,const std::string& text,Color color){Vector3 direction=Vector3Subtract(camera.target,camera.position);if(Vector3DotProduct(direction,Vector3Subtract(p,camera.position))<=0||Vector3Distance(camera.position,p)>36)return;Vector2 screen=GetWorldToScreen(p,camera);int width=MeasureText(text.c_str(),16);DrawRectangle(int(screen.x-width/2-3),int(screen.y-2),width+6,20,Fade(BLACK,.6f));DrawText(text.c_str(),int(screen.x-width/2),int(screen.y),16,color);};
+    for(const auto& shot:shots)if(shot.kind==Tnt)label(Vector3Add(shot.p,{0,1.05f,0}),TextFormat("%ds",int(std::ceil(std::max(0.f,shot.life)))),shot.life<2?RED:GOLD);
     for(const auto& g:Generators())if((g.item==Diamond||g.item==Emerald)&&Vector3Distance(camera.position,g.position)<=5.f){std::string text=std::string(g.item==Diamond?"DIAMANTE":"ESMERALDA")+" | Nivel "+std::to_string(g.level)+" | "+std::to_string(int(std::ceil(g.remaining)))+"s";label(Vector3Add(g.position,{0,2.7f,0}),text,g.item==Diamond?SKYBLUE:GREEN);}
-    for(int i=0;i<TeamLimit();++i)for(int kind=0;kind<2;++kind)label(Vector3Add(Vendor(i,kind),{0,2.2f,0}),kind?"MELHORIAS":"LOJA DE ITENS",kind?GREEN:GOLD);
-    for(int i=0;i<MaxPlayers;++i)if(i!=me&&fighters[i].connected&&!fighters[i].sneaking&&fighters[i].invisTime<=0)label(Vector3Add(fighters[i].display,{0,2,0}),"["+std::to_string(fighters[i].profile.Level())+"] "+fighters[i].name,colors[TeamOf(i)]);
+    if(!tester)for(int i=0;i<TeamLimit();++i)for(int kind=0;kind<2;++kind)label(Vector3Add(Vendor(i,kind),{0,2.2f,0}),kind?"MELHORIAS":"LOJA DE ITENS",kind?GREEN:GOLD);
+    for(int i=0;i<MaxPlayers;++i)if(i!=me&&fighters[i].connected&&fighters[i].respawn<=0&&!fighters[i].sneaking&&fighters[i].invisTime<=0){std::string text=tester?fighters[i].name+" | "+TextFormat("%.1f / 20 HP",fighters[i].hp):"["+std::to_string(fighters[i].profile.Level())+"] "+fighters[i].name;label(Vector3Add(fighters[i].display,{0,2,0}),text,colors[TeamOf(i)]);}
+    if(tester){const char* titles[]={"Sem defesa","Madeira","End stone","Obsidiana"};for(int team=1;team<=4;++team)label(Vector3Add(bases[team],{.5f,4,3.5f}),titles[team-1],GOLD);label({128.5f,27.5f,109.5f},"GERADOR RAPIDO",GOLD);}
+
 }
-void DrawHud(){if(!Ready())return;int x=GetScreenWidth()-220,y=70;DrawRectangle(x-8,y-8,216,74+TeamLimit()*24,Fade(BLACK,.6f));DrawText("BEDWARS LAN",x,y,21,GOLD);DrawText(TextFormat("%02d:%02d",int(phaseClock)/60,int(phaseClock)%60),x,y+28,17,WHITE);
+void DrawHud(){if(!Ready())return;
+    const auto& effects=fighters[me];
+    if(effects.eating>0){int x=GetScreenWidth()/2-70,y=GetScreenHeight()/2+36;DrawRectangle(x,y,140,8,DARKGRAY);DrawRectangle(x,y,int(140*std::min(1.f,effects.eating/1.61f)),8,GOLD);}
+    if(effects.regen>0)DrawText(TextFormat("Regeneracao: %ds",int(std::ceil(effects.regen))),12,GetScreenHeight()-218,16,GOLD);
+    if(tester){DrawText("TESTER",16,24,24,GOLD);DrawText("F8: restaurar camas e dummies",16,54,16,WHITE);DrawText("Acerte o Dummy lutador para iniciar o combate",16,76,16,WHITE);if(fighters[0].respawn>0)DrawText("Renascendo...",GetScreenWidth()/2-70,GetScreenHeight()/2,20,RED);return;}int x=GetScreenWidth()-220,y=70;DrawRectangle(x-8,y-8,216,74+TeamLimit()*24,Fade(BLACK,.6f));DrawText("BEDWARS LAN",x,y,21,GOLD);DrawText(TextFormat("%02d:%02d",int(phaseClock)/60,int(phaseClock)%60),x,y+28,17,WHITE);
     for(int team=0;team<TeamLimit();++team)DrawText(TextFormat("%s %s %d/%d%s",TeamBed(team)?"[C]":"[ ]",teamNames[team],TeamCount(team),teamCapacity,team==TeamOf(me)?" <":""),x,y+52+team*24,17,TeamCount(team)?colors[team]:GRAY);
-    const auto& f=fighters[me];DrawText(TextFormat("Nivel %d | XP %d/%d | Caixas %d",f.profile.Level(),f.profile.xp,f.profile.xp-f.profile.xp%50+50,f.profile.crates),12,GetScreenHeight()-195,16,GOLD);if(f.eating>0){int x=GetScreenWidth()/2-70,y=GetScreenHeight()/2+36;DrawRectangle(x,y,140,8,DARKGRAY);DrawRectangle(x,y,int(140*std::min(1.f,f.eating/1.61f)),8,GOLD);}
+    const auto& f=fighters[me];DrawText(TextFormat("Nivel %d | XP %d/%d | Caixas %d",f.profile.Level(),f.profile.xp,f.profile.xp-f.profile.xp%50+50,f.profile.crates),12,GetScreenHeight()-195,16,GOLD);
     if(f.speedTime>0||f.jumpTime>0||f.invisTime>0)DrawText(TextFormat("Velocidade %ds | Salto %ds | Invisibilidade %ds",int(f.speedTime),int(f.jumpTime),int(f.invisTime)),12,GetScreenHeight()-170,16,SKYBLUE);
     DrawText(TextFormat("Kills %d  Finais %d  Camas %d",f.kills,f.finals,f.beds),12,GetScreenHeight()-122,16,WHITE);
     if(phase==0){const char* message=phaseClock>0?TextFormat("Iniciando em %d",int(std::ceil(phaseClock))):host?"P: iniciar (2+ jogadores) | F8: reiniciar":"Lobby: aguardando o host iniciar";DrawText(message,12,90,17,WHITE);if(host)DrawText("Amigos entram no IP do host:25566",12,114,17,WHITE);}
@@ -817,6 +939,9 @@ void InventoryInput(bool chest){
     if(!chest&&cosmetics::Input())return;
     if(!chest&&IsMouseButtonPressed(MOUSE_BUTTON_LEFT))for(int i=0;i<2;++i)if(CheckCollisionPointRec(GetMousePosition(),CosmeticButton(i))){CosmeticsInput(i);return;}
     int key=PressedHotbarBinding();bool left=IsMouseButtonPressed(MOUSE_BUTTON_LEFT),right=IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+    Rectangle panel=ClassicInventoryPanel();
+    if(chest){auto first=InventoryRect(36,true),last=InventoryRect(35,true);panel={first.x-8,first.y-36,9*(first.width+3)+16,last.y+last.height-first.y+44};}
+    if((left||right)&&!CheckCollisionPointRec(GetMousePosition(),panel)){DropCursor(left);return;}
     if(!chest&&CheckCollisionPointRec(GetMousePosition(),ClassicCraftOutput())){if(key>=0||left||right)Craft(key>=0?key:ActionDown(BindingAction::Sneak)?255:254);return;}
     for(int i=0;i<(chest?63:40);++i)if(CheckCollisionPointRec(GetMousePosition(),InventoryRect(i,chest))){int slot=i<36?StorageIndex(i):i;
         if(key>=0){SwapSlots(slot,key,chest,true);return;}if(left||right)InventoryClick(slot,right,chest,left&&ActionDown(BindingAction::Sneak));return;

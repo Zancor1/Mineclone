@@ -3,9 +3,9 @@
 #include <array>
 #include <raylib.h>
 namespace game {
-enum class BindingAction {Forward,Backward,Left,Right,Jump,Sneak,Sprint,Inventory,Pause,Attack,Use,Chat,Command,PlayerList,TargetLiquid,ToggleLamp,SkipTime,StartRound,RestartRound,Hotbar1,Hotbar2,Hotbar3,Hotbar4,Hotbar5,Hotbar6,Hotbar7,Hotbar8,Hotbar9,Count};
+enum class BindingAction {Forward,Backward,Left,Right,Jump,Sneak,Sprint,Inventory,Pause,Attack,Use,Chat,Command,PlayerList,TargetLiquid,ToggleLamp,SkipTime,StartRound,RestartRound,Hotbar1,Hotbar2,Hotbar3,Hotbar4,Hotbar5,Hotbar6,Hotbar7,Hotbar8,Hotbar9,Drop,Count};
 constexpr int BindingCount=int(BindingAction::Count);
-inline constexpr std::array<int,BindingCount> DefaultBindings={KEY_W,KEY_S,KEY_A,KEY_D,KEY_SPACE,KEY_LEFT_SHIFT,KEY_LEFT_CONTROL,KEY_E,KEY_ESCAPE,-1,-2,KEY_T,KEY_SLASH,KEY_TAB,KEY_LEFT_ALT,KEY_F,KEY_F6,KEY_P,KEY_F8,KEY_ONE,KEY_TWO,KEY_THREE,KEY_FOUR,KEY_FIVE,KEY_SIX,KEY_SEVEN,KEY_EIGHT,KEY_NINE};
+inline constexpr std::array<int,BindingCount> DefaultBindings={KEY_W,KEY_S,KEY_A,KEY_D,KEY_SPACE,KEY_LEFT_SHIFT,KEY_LEFT_CONTROL,KEY_E,KEY_ESCAPE,-1,-2,KEY_T,KEY_SLASH,KEY_TAB,KEY_LEFT_ALT,KEY_F,KEY_F6,KEY_P,KEY_F8,KEY_ONE,KEY_TWO,KEY_THREE,KEY_FOUR,KEY_FIVE,KEY_SIX,KEY_SEVEN,KEY_EIGHT,KEY_NINE,KEY_Q};
 const char* BindingLabel(BindingAction action);
 std::string BindingKeyName(int key);
 bool SetBinding(BindingAction action,int key);

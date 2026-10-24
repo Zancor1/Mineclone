@@ -2,6 +2,8 @@
 #include "world.h"
 #include "crafting.h"
 #include "player.h"
+#include "map_blocks.h"
+#include <cmath>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -21,6 +23,25 @@ int main() {
     Check(MineBlock(60,70,60,Hotbar[0])&&Count(Cobblestone)==1&&Hotbar[0].damage==1,"wood pick harvests stone and wears");
     Check(!CanHarvest(IronOre,WoodenPickaxe)&&CanHarvest(IronOre,StonePickaxe),"iron requires stone pick or better");
     Check(MiningTime(Stone,IronPickaxe)<MiningTime(Stone,StonePickaxe)&&MiningTime(Stone,StonePickaxe)<MiningTime(Stone,WoodenPickaxe),"better picks mine faster");
+    const Block picks[]={Air,WoodenPickaxe,StonePickaxe,IronPickaxe,DiamondPickaxe,GoldenPickaxe};
+    const float stoneTimes[]={7.5f,1.15f,.6f,.4f,.3f,.2f};
+    for(int i=0;i<6;++i)Check(std::abs(MiningTime(Stone,picks[i])-stoneTimes[i])<.001f,"stone timings match Minecraft 1.8 tick-rounded table");
+    Check(std::abs(MiningTime(Cobblestone,IronPickaxe)-.5f)<.001f,"cobblestone retains hardness two");
+    Check(std::abs(MiningTime(EndStone,IronPickaxe)-.75f)<.001f,"end stone uses its original hardness");
+    Check(std::abs(MiningTime(Obsidian,DiamondPickaxe)-9.4f)<.001f&&std::abs(MiningTime(Obsidian,IronPickaxe)-41.7f)<.001f,"obsidian distinguishes speed from harvest eligibility");
+    Check(!CanHarvest(IronOre,GoldenPickaxe)&&CanHarvest(IronOre,StonePickaxe),"gold has wood harvest level despite fast mining");
+    Check(std::abs(MiningTime(Planks,WoodenAxe)-1.5f)<.001f&&std::abs(MiningTime(Planks,IronAxe)-.5f)<.001f,"axes use the wood material efficiency");
+    Check(std::abs(MiningTime(Sand,IronShovel)-.15f)<.001f&&std::abs(MiningTime(Sand,IronPickaxe)-.75f)<.001f,"shovels accelerate sand while pickaxes do not");
+    Check(std::abs(MiningTime(WhiteWool,IronSword)-1.2f)<.001f&&std::abs(MiningTime(Glass,Air)-.45f)<.001f,"wool and glass keep original hardness without wrong-tool acceleration");
+    Check(std::abs(MiningTime(Stone,IronPickaxe,false)-1.9f)<.001f&&std::abs(MiningTime(Stone,IronPickaxe,true,true)-1.9f)<.001f,"airborne and underwater mining apply fivefold slowdown before tick rounding");
+    for(Block tool:{Air,WoodenAxe,DiamondPickaxe})Check(std::abs(MiningTime(Bed,tool)-.15f)<.001f&&std::abs(MiningTime(BedHead,tool)-.15f)<.001f,"both bed halves break in 0.15 seconds with any tool");
+    Change(70,70,70,MapStairs);SetMapBlockState(70,70,70,{MapStairs,Planks,MapShape::Stairs,0});
+    Check(std::abs(MiningTimeAt(70,70,70,IronAxe)-.5f)<.001f,"imported wood stairs use wood mining efficiency");
+    Change(70,70,70,MapSlab);SetMapBlockState(70,70,70,{MapSlab,StoneBricks,MapShape::Slab,0});
+    Check(std::abs(MiningTimeAt(70,70,70,IronPickaxe)-.5f)<.001f,"imported slabs retain slab hardness");
+    Change(70,70,70,MapDecoration);SetMapBlockState(70,70,70,{MapDecoration,Stone,MapShape::Barrier,0});
+    Check(std::isinf(MiningTimeAt(70,70,70,DiamondPickaxe)),"barriers remain unbreakable");
+    Change(70,70,70,Air);
     Hotbar[0]={StonePickaxe,1};Change(60,70,60,IronOre);
     Check(MineBlock(60,70,60,Hotbar[0])&&Count(IronOre)==1,"stone pick collects iron ore");
     ItemStack block{Planks,2};

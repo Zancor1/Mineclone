@@ -35,6 +35,7 @@ void DrawPlayers();
 void Attack(const Player& player);
 void Interact(const Player& player);
 void Dig(const Hit& hit,int status);
+void Drop(bool all);
 void SelectSlot(int index);
 void MovementFlags(bool sprint,bool sneak);
 int SelectedSlot();

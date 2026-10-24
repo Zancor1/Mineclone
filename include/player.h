@@ -23,7 +23,7 @@ public:
     void Translate(Vector3 displacement);
     PlayerState CaptureState() const;
     bool RestoreState(const PlayerState& state);
-    void Update(const PlayerInput& input,float dt);
+    void Update(const PlayerInput& input,float dt,bool affectVitals=true);
     Camera3D Camera() const;
     bool Overlaps(int x,int y,int z) const;
 private:

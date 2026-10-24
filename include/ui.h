@@ -7,7 +7,7 @@
 #include "game.h"
 #include "bedwars_maps.h"
 namespace game {
-enum class UiAction { None, OpenMinigames, OpenKeyboard, CloseKeyboard, SearchBedwars, OpenBedwars, ChooseMode, ChooseRush, ChooseMap, HostBedwars, JoinBedwars, OpenMultiplayer, ConnectServer, DisconnectServer, Respawn, CloseChest, OpenOptions, CloseOptions, NewWorld, Resume, SaveAndReturn, OpenWorlds, LoadSelected, DeleteSelected, BackToMenu, QuitApplication };
+enum class UiAction { None, OpenMinigames, OpenKeyboard, CloseKeyboard, SearchBedwars, OpenBedwars, ChooseMode, ChooseRush, ChooseMap, HostBedwars, JoinBedwars, OpenMultiplayer, ConnectServer, DisconnectServer, Respawn, CloseChest, OpenOptions, CloseOptions, NewWorld, Resume, SaveAndReturn, OpenWorlds, LoadSelected, DeleteSelected, BackToMenu, QuitApplication, OpenTester, DropCursor, DropCursorSingle };
 class UI {
 public:
     int selected=0;

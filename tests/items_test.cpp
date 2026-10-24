@@ -16,6 +16,22 @@ int main(int argc,char**){
     using namespace game;
     Mode=GameMode::Survival;ClearChests();ClearItems();Player player;PlayerState pose;pose.valid=true;pose.position={50.5f,72,50.5f};player.RestoreState(pose);
     Check(MinigameItemCount>50&&BlockCount<=256,"minigame selection and stable byte IDs");
+    {
+        for(int x=47;x<=54;++x)for(int z=44;z<=53;++z)Change(x,70,z,Stone);
+        Hotbar={};Backpack={};Hotbar[0]={IronSword,1,27};Hotbar[1]={WhiteWool,8};
+        Check(DropItem(player,Hotbar[1],false)&&Hotbar[1].count==7&&DroppedItems().size()==1&&DroppedItems()[0].stack.count==1,"Q drops exactly one item");
+        Check(DropItem(player,Hotbar[1],true)&&!Hotbar[1].count&&DroppedItems()[1].stack.count==7,"Ctrl Q drops the remaining selected stack");
+        Check(DropItem(player,Hotbar[0],false)&&DroppedItems()[2].stack.damage==27&&!Hotbar[0].count,"dropping tools preserves durability");
+        Check(!DropItem(player,Hotbar[0],true)&&DroppedItems().size()==3,"dropping an empty slot does nothing");
+        UpdateItems(player,.05f);Check(DroppedItems().size()==3,"drops cannot be picked up immediately");
+        for(int frame=0;frame<60;++frame)UpdateItems(player,.05f);
+        Check(DroppedItems().size()==3&&DroppedItems()[0].position.y>71&&DroppedItems()[0].position.y<71.25f,"drops land above solid ground");
+        auto pickupPose=pose;pickupPose.position=DroppedItems()[0].position;pickupPose.position.y=71;player.RestoreState(pickupPose);UpdateItems(player,.05f);
+        Check(DroppedItems().empty(),"walking over dropped items collects them");
+        int wool=0;bool sword=false;for(auto stack:Hotbar){if(stack.block==WhiteWool)wool+=stack.count;if(stack.block==IronSword)sword=stack.damage==27;}
+        Check(wool==8&&sword,"pickup conserves quantities and durability");
+        ClearItems();Hotbar={};Backpack={};player.RestoreState(pose);
+    }
     ItemStack worn{IronHelmet,1,3};CursorStack={IronHelmet,1,9};ClickStack(worn,false);
     Check(worn.damage==9&&CursorStack.damage==3,"same armor type swaps without losing wear");CursorStack={};
     ItemStack armor{DiamondChestplate,1};Check(EquipArmor(armor)&&!armor.count&&EquippedArmor[1].block==DiamondChestplate,"armor moves from hand into equipment");
@@ -56,6 +72,13 @@ int main(int argc,char**){
     ClearItems();Change(61,71,60,Stone);Change(62,71,60,Obsidian);PrimeTnt({60.5f,72,60.5f},.15f);
     for(int i=0;i<4;++i)UpdateItems(player,.05f);
     Check(ActiveProjectiles()==0&&At(61,71,60)==Air&&At(62,71,60)==Obsidian,"TNT explodes after fuse without destroying obsidian");
+    ClearItems();Change(90,79,90,Stone);PrimeTnt({90.5f,80.5f,90.5f});
+    for(int i=0;i<99;++i)UpdateItems(player,.05f);
+    Check(TntStates().size()==1&&TntStates()[0].remaining>0,"single-player TNT uses a five-second fuse");
+    UpdateItems(player,.1f);Check(TntStates().empty(),"single-player TNT disappears after exploding");
+    Health=20;float beforeTntAbsorption=Absorption;PrimeTnt({50.5f,72.f,52.5f},.1f);for(int i=0;i<3;++i)UpdateItems(player,.05f);
+    Check(TntStates().empty()&&Health==20&&Absorption==beforeTntAbsorption,"TNT blast causes no direct health or absorption damage in survival");
+    Change(50,70,50,Stone);Change(50,70,51,Stone);
     ClearItems();ItemStack bed{Bed,1};UseHeldItem(player,bed,{0,-1,0},click);
     Check(!bed.count&&At(50,71,50)==Bed&&At(50,71,51)==BedHead,"bed occupies two supported blocks");
     player.Respawn();Check(player.CaptureState().position.y>71.56f&&player.CaptureState().position.y<71.57f,"active bed provides regional respawn");

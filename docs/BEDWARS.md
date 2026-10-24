@@ -39,6 +39,8 @@ Não há seleção automática de partidas nem bots.
 - Inventário com 27 slots mais nove da hotbar; clique na origem e no destino
   para mover ou juntar pilhas. O baú da equipe também usa essas operações.
 - Dano, intervalo entre golpes, knockback, flechas, explosivos e pérolas.
+- A pérola que acerta um adversário ou dummy aplica meio coração de dano e
+  knockback, e teleporta quem lançou até uma posição livre junto ao impacto.
 - Morte no vazio: renascimento em cinco segundos enquanto a cama existir.
 - Sem cama, cada morte elimina o jogador. A última equipe com jogadores vivos vence.
 - As camas restantes são destruídas após dez minutos. Após quinze minutos,
@@ -175,9 +177,10 @@ O alcance corpo a corpo é de até **3,3 blocos** dos olhos até a caixa de coli
 do adversário. O clique envia a posição e direção atuais antes do ataque.
 Pacotes prontos tentam sair imediatamente pelo socket não bloqueante e os
 acertos são confirmados pelo host sem esperar o snapshot periódico. Durante a
-recuperação do knockback, o jogador fica imune a novos ataques de jogadores.
+parte inicial da recuperação do knockback, o jogador fica imune a novos ataques de jogadores.
 Golpes bloqueados não reaplicam dano, impulso, som ou flash vermelho. A proteção
-dura cerca de 0,54 s em golpes normais e 0,75 s com o graveto. Latência da rede
+termina 0,15 s antes do fim estimado do impulso: cerca de 0,45 s em golpes
+normais e 0,66 s com o graveto. Latência da rede
 ainda influencia a resposta.
 
 ## Toggle Sprint e impulso dos golpes
@@ -188,8 +191,8 @@ suspende a corrida e soltá-lo permite retomá-la. Desligar a opção restaura o
 comportamento de segurar a tecla de corrida. A opção respeita a bind escolhida
 em Keyboard e é salva em `settings.cfg`.
 
-Golpes corpo a corpo usam impulso horizontal de 8,5 blocos/s e vertical de
-6 blocos/s, amortecem o
+Golpes corpo a corpo usam impulso horizontal de 11,05 blocos/s e vertical de
+6,5 blocos/s, amortecem o
 movimento anterior e limitam a soma de impactos sucessivos. Explosões mantêm
 seu impulso próprio. Cada clique que passa pelas verificações de alcance de
 3,3 blocos, direção, paredes e imunidade pode causar dano imediatamente.
@@ -231,8 +234,7 @@ Os textos dos geradores de diamante e esmeralda aparecem apenas a até
 
 O sprint local usa 5,2 blocos por segundo. Acertar um adversário interrompe o
 sprint do atacante por 0,1 segundo; Toggle Sprint retoma a corrida depois desse
-intervalo. O impulso vertical dos golpes foi ajustado para 6,0, com amortecimento exponencial, limite horizontal de
-8,5 e gravidade de combate de 28 blocos/s². Golpes sucessivos no ar não
+intervalo. O impulso vertical dos golpes foi ajustado para 6,5, com amortecimento exponencial, limite horizontal proporcional à força do golpe e gravidade de combate de 28 blocos/s². Golpes sucessivos no ar não
 reiniciam a subida.
 
 As bases têm seis blocos adicionais de vazio entre as bordas: 22, 38 ou 70
@@ -278,14 +280,14 @@ progresso em blocos permitidos; ar e terreno protegido não são mineráveis.
 Lojas de qualquer equipe atendem todos os jogadores. Melhorias sempre pertencem
 à equipe de quem paga. Madeira e ouro foram retirados das ofertas de espadas;
 a espada inicial de madeira continua no equipamento de renascimento. O graveto
-com Knockback II custa cinco ouros e arremessa aproximadamente cinco blocos
+com Knockback II custa cinco ouros e arremessa aproximadamente 6,5 blocos
 para trás em terreno livre, mantendo a altura do golpe comum. Paredes e a
 movimentação do jogador alteram a distância final.
 
 Segure o botão de uso por 1,61 segundo para comer uma maçã dourada. Soltar o
 botão, trocar de item ou abrir uma interface cancela o consumo. A maçã concede
 quatro pontos de absorção (dois corações dourados) e regenera um ponto de vida
-por segundo durante cinco segundos. A cura natural restaura dois pontos a cada
+a cada meio segundo (um coração por segundo) durante cinco segundos. A cura natural restaura dois pontos a cada
 quatro segundos; receber dano reinicia sua contagem. Durante a regeneração da
 maçã, os pulsos de cura natural ficam suspensos. Dano de queda é calculado pelo
 host ao aterrissar.
@@ -331,8 +333,8 @@ A lista é paginada; consulte [Mapas](MAPS.md).
 
 ## Níveis, caixas e skins
 
-Kills valem 5 XP; camas destruídas valem 10 XP, uma vez por cama. Uma kill final
-vale os mesmos 5 XP. Cada jogador conectado da equipe vencedora recebe
+Kills normais valem 5 XP; camas destruídas valem 10 XP, uma vez por cama.
+Uma kill final, quando a vítima está sem cama, vale 15 XP no total. Cada jogador conectado da equipe vencedora recebe
 25 XP extras uma única vez por partida; empates não concedem esse bônus. O nível é `1 + XP total / 50`: nível 2 com 50 XP, nível 3
 com 100 XP, nível 4 com 150 XP. Cada subida deixa uma caixa pendente.
 
@@ -467,3 +469,11 @@ Flechas têm haste, ponta e penas em 3D. Ao atingir um bloco, ficam fincadas
 na superfície por até 60 segundos. Remover o bloco de apoio também remove
 a flecha. Posição, orientação e estado fincado são sincronizados pela LAN;
 a próxima rodada limpa os projéteis restantes.
+
+## TNT
+
+O botão de uso coloca a TNT ativada no bloco apontado, dentro do alcance normal,
+sem lançá-la do jogador. O contador acima dela começa em cinco segundos,
+e a pulsação acelera conforme o pavio acaba. O host sincroniza o tempo restante.
+A explosão destrói as defesas permitidas e empurra jogadores, inclusive o dono,
+sem causar dano direto à vida ou absorção.

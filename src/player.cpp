@@ -96,7 +96,8 @@ Camera3D Player::Camera() const {
     Vector3 d{std::sin(yaw)*std::cos(pitch),std::sin(pitch),-std::cos(yaw)*std::cos(pitch)};
     c.target=Vector3Add(c.position,d); c.up={0,1,0}; c.fovy=Settings.fov; c.projection=CAMERA_PERSPECTIVE; return c;
 }
-void Player::Update(const PlayerInput& input,float dt) {
+void Player::Update(const PlayerInput& input,float dt,bool affectVitals) {
+    float savedFallDistance=FallDistance;
     if(!Settings.toggleSprint)sprintLatched=false;
     else if(input.sprintPressed)sprintLatched=!sprintLatched;
     const bool sprintRequested=(Settings.toggleSprint?sprintLatched:input.sprint)&&sprintLock<=0;
@@ -185,7 +186,7 @@ void Player::Update(const PlayerInput& input,float dt) {
         if(hitZ)motionZ=0;
         float beforeY=position.y;bool descending=velocityY<0;
         if(MoveAxis(position,1,velocityY*tick)) {
-            if(descending&&!swimming&&!flying) {meleeMotion=false;if(!net::Active()&&FallDistance>3) Hurt(std::floor(FallDistance-3));FallDistance=0;}
+            if(descending&&!swimming&&!flying) {meleeMotion=false;if(affectVitals&&!net::Active()&&FallDistance>3) Hurt(std::floor(FallDistance-3));FallDistance=0;}
             velocityY=0;
         } else if(descending&&!swimming&&!flying) FallDistance+=std::max(0.f,beforeY-position.y);
         else if(swimming||flying||velocityY>0) FallDistance=0;
@@ -194,6 +195,7 @@ void Player::Update(const PlayerInput& input,float dt) {
     if(net::Active()&&!flying&&!swimming)velocityY=(velocityY-1.6f)*.98f;
     if(position.y<-25&&Mode==GameMode::Creative&&!net::Active()) Respawn();
     if(net::Joined()){net::MovementFlags(sprinting,input.swimDown);net::SendMovement(*this);}
-    if(!net::Active())UpdateHazards(position,dt);
+    if(affectVitals&&!net::Active())UpdateHazards(position,dt);
+    if(!affectVitals)FallDistance=savedFallDistance;
 }
 }

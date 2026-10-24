@@ -1,5 +1,6 @@
 #pragma once
 #include "projectile_physics.h"
+#include "dropped_items.h"
 #include <vector>
 #include "player.h"
 #include "chest.h"
@@ -8,14 +9,19 @@ std::vector<ArrowState> ArrowStates();
 struct UseInput {bool pressed=false,down=false,released=false;float dt=0;};
 bool UseHeldItem(Player& player,ItemStack& stack,Vector3 direction,const UseInput& input);
 void UpdateItems(Player& player,float dt);
-void DrawItems();
+void DrawItems(Texture2D atlas={},int tntTile=0);
+void DrawItemLabels(const Camera3D& camera);
+std::vector<PrimedTntState> TntStates();
 void TranslateItems(Vector3 displacement);
 void ClearItems();
 void CancelItemUse();
 float BowDrawTime();
-void PrimeTnt(Vector3 position,float fuse=4.f);
-void Explode(Player& player,Vector3 position,float radius=3.5f);
+float EatingTime();
+void PrimeTnt(Vector3 position,float fuse=TntFuse);
+void Explode(Player& player,Vector3 position,float radius=3.5f,bool damage=true);
 int ActiveProjectiles();
+bool DropItem(const Player& player,ItemStack& stack,bool all);
+const std::vector<DroppedItem>& DroppedItems();
 inline constexpr Block MinigameItems[]={EnderPearl,Fireball,Tnt,GoldenApple,Bow,Arrow,Snowball,Egg,
     Bucket,WaterBucket,LavaBucket,FlintAndSteel,Bed,Ladder,WhiteWool,RedWool,BlueWool,GreenWool,
     YellowWool,Planks,EndStone,Obsidian,Glass,Chest,CraftingTable,

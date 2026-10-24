@@ -1,5 +1,6 @@
 #pragma once
 #include "projectile_physics.h"
+#include "dropped_items.h"
 #include <vector>
 #include "world.h"
 #include "progression.h"
@@ -8,8 +9,13 @@
 #include <string>
 namespace game::bw {
 std::vector<ArrowState> ArrowStates();
+std::vector<PrimedTntState> TntStates();
 struct PenguinState {int team;Vector3 position,direction;float age;};
 std::vector<PenguinState> PenguinStates();
+bool StartTester(const std::string& name);
+bool Testing();
+struct TrainingDummyInfo {std::string name;Vector3 position;float health;bool fighting;};
+std::vector<TrainingDummyInfo> TrainingDummies();
 bool Host(const std::string& name,unsigned short port=25566,int gap=64,int map=0,int capacity=1,const std::string& serverName="");
 struct GeneratorInfo {Vector3 position;Block item;int stock,level;float interval,remaining;};
 int ResourceLevel(Block item,float elapsed);
@@ -57,10 +63,14 @@ void Dig(const Hit& hit,int stage,int selected);
 void Place(int x,int y,int z,int selected,const Player* player=nullptr);
 void Attack(int selected,const Player* player=nullptr);
 void Use(int selected);
+void Drop(int selected,bool all,const Player* player=nullptr);
+void DropCursor(bool all=true);
+const std::vector<DroppedItem>& DroppedItems();
 void HoldUse(int selected,bool held);
 void BowInput(int selected,bool held,bool pressed,bool released,float dt,const Player* player=nullptr);
 void CancelBow();
 float BowDrawTime();
+float EatingTime();
 void Buy(int offer);
 void SwapSlots(int from,int to,bool chest,bool exact=false);
 bool NearShop(const Player& player);

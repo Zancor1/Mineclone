@@ -86,6 +86,7 @@ Rectangle MinigameCard(int i){
     float width=std::min(860.f,float(GetScreenWidth()-48)),gap=24,card=(width-gap)/2;
     return {(GetScreenWidth()-width)/2+i*(card+gap),GetScreenHeight()/2.f-135,card,270};
 }
+Rectangle TesterButton(){return {GetScreenWidth()-116.f,GetScreenHeight()-46.f,100,30};}
 Rectangle MinigamesBack(){return {GetScreenWidth()/2.f-120,GetScreenHeight()/2.f+160,240,40};}
 Rectangle MainButton(int i){return {GetScreenWidth()/2.f-150,GetScreenHeight()/2.f-65+i*46.f,300,40};}
 Rectangle Panel() {return {GetScreenWidth()/2.f-330,GetScreenHeight()/2.f-215,660,430};}
@@ -225,6 +226,7 @@ UiAction UI::Update(GameState state) {
         if(!mapPreviews[0].id)mapPreviews[0]=bw::CreateMapPreview(0,16);
         if(!skywarsPreview.id)skywarsPreview=CreateSkywarsPreview();
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            if(Hover(TesterButton()))return UiAction::OpenTester;
             if(Hover(MinigameCard(0)))return UiAction::OpenBedwars;
             if(Hover(MinigamesBack()))return UiAction::BackToMenu;
         }
@@ -288,9 +290,15 @@ UiAction UI::Update(GameState state) {
         if(IsKeyPressed(KEY_BACKSPACE)&&!field.empty())field.pop_back();
         return UiAction::None;
     }
+    if(CursorStack.count&&((state==GameState::Inventory&&!catalogOpen)||state==GameState::ChestScreen||state==GameState::CraftScreen||state==GameState::FurnaceScreen)){
+        auto panel=state==GameState::Inventory?InventoryPanel():ChestPanel();
+        if(!Hover(panel)){if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))return UiAction::DropCursor;if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))return UiAction::DropCursorSingle;}
+    }
     if(state==GameState::ServerInventory) {
         bool left=IsMouseButtonPressed(MOUSE_BUTTON_LEFT),right=IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
-        if(left||right)for(const auto& slot:RemoteSlots())if(Hover(slot.rect))net::ClickSlot(slot.index,right,ActionDown(BindingAction::Sneak));
+        if(left||right){auto slots=RemoteSlots();for(const auto& slot:slots)if(Hover(slot.rect)){net::ClickSlot(slot.index,right,ActionDown(BindingAction::Sneak));return UiAction::None;}
+            if(!slots.empty()){auto panel=slots.front().rect;for(const auto& slot:slots){float x=std::min(panel.x,slot.rect.x),y=std::min(panel.y,slot.rect.y);panel={x,y,std::max(panel.x+panel.width,slot.rect.x+slot.rect.width)-x,std::max(panel.y+panel.height,slot.rect.y+slot.rect.height)-y};}panel={panel.x-8,panel.y-28,panel.width+16,panel.height+36};if(!Hover(panel))net::ClickSlot(-999,right,false);}
+        }
         return UiAction::None;
     }
     if(state==GameState::Playing&&(net::Active()||bw::Ready())) {
@@ -510,7 +518,7 @@ void UI::Draw(Texture2D atlas,GameState state) const {
             DrawText(subtitle,int(r.x+(r.width-MeasureText(subtitle,16))/2),int(r.y+229),16,enabled?RAYWHITE:GRAY);
             DrawRectangleLinesEx(r,2,hover?GOLD:enabled?GRAY:Color{66,66,70,255});
         }
-        ClassicButton(MinigamesBack(),"Voltar",true);return;
+        ClassicButton(MinigamesBack(),"Voltar",true);ClassicButton(TesterButton(),"Tester",true);return;
     }
     if(state==GameState::BedwarsMode){
         ClearBackground({34,35,43,255});float x=GetScreenWidth()/2.f-220,y=GetScreenHeight()/2.f-60;
@@ -770,7 +778,6 @@ void UI::Draw(Texture2D atlas,GameState state) const {
         for(int i=0;i<10;++i)DrawRectangle(left+i*18,h-130,11,8,DefensePoints()>i*2?LIGHTGRAY:Color{43,43,45,255});
         for(int i=0;i<int(std::ceil(Absorption/2));++i){int x=left+185+i*18,y=h-115;Color c=Absorption-i*2>=2?GOLD:Color{173,133,30,255};DrawRectangle(x,y,5,5,c);DrawRectangle(x+6,y,5,5,c);DrawRectangle(x+1,y+4,9,5,c);DrawRectangle(x+3,y+9,5,3,c);}
         if(Breath<20) for(int i=0;i<10;++i) DrawCircle(left+i*18+5,h-144,4,Breath>i*2?SKYBLUE:DARKGRAY);
-        if(miningProgress>0) {DrawRectangle(w/2-44,h/2+22,88,6,Fade(BLACK,.7f));DrawRectangle(w/2-43,h/2+23,int(86*miningProgress),4,RAYWHITE);}
     }
     if(net::Active()||bw::Ready()) {
         int y=GetScreenHeight()-170;

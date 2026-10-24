@@ -82,18 +82,21 @@ int RunGame() {
         UiAction action=UiAction::None;
         if(!transition&&IsWindowFocused()) action=ui.Update(state);
         switch(action) {
+            case UiAction::DropCursor:DropItem(player,CursorStack,true);break;
+            case UiAction::DropCursorSingle:DropItem(player,CursorStack,false);break;
             case UiAction::SearchBedwars:bw::SearchRooms();enter(GameState::BedwarsDiscovery);break;
             case UiAction::OpenMinigames:enter(GameState::Minigames);break;
             case UiAction::OpenBedwars:if(!bw::Active())bw::SearchRooms();enter(GameState::BedwarsMenu);break;
             case UiAction::ChooseMap:enter(GameState::BedwarsMaps);break;
             case UiAction::ChooseMode:enter(GameState::BedwarsMode);break;
             case UiAction::ChooseRush:enter(GameState::BedwarsRush);break;
+            case UiAction::OpenTester:
             case UiAction::HostBedwars:
             case UiAction::JoinBedwars:{
                 if(bw::Active())break;
                 if(hasWorld&&!activeSave.empty()&&!SaveWorld(activeSave,player.CaptureState())){ui.Notify("Falha ao salvar o mundo local");break;}
                 net::Disconnect();online=false;activeSave.clear();hasWorld=false;
-                bool ok=action==UiAction::HostBedwars?bw::Host(ui.playerName,25566,ui.rushGap,ui.mapChoice,ui.teamCapacity,ui.roomName):bw::Join(ui.bedwarsAddress,ui.playerName);
+                bool ok=action==UiAction::OpenTester?bw::StartTester(ui.playerName):action==UiAction::HostBedwars?bw::Host(ui.playerName,25566,ui.rushGap,ui.mapChoice,ui.teamCapacity,ui.roomName):bw::Join(ui.bedwarsAddress,ui.playerName);
                 if(!ok){enter(GameState::BedwarsMenu);ui.Notify(bw::Status());}
                 else {ui.selected=0;Settings.playerName=ui.playerName;if(!SaveSettings())ui.Notify("Nao foi possivel salvar o nick");enter(GameState::BedwarsMenu);}
                 break;
@@ -249,6 +252,12 @@ int RunGame() {
             if(active&&!ui.chatOpen) {
                 Vector3 direction=Vector3Normalize(Vector3Subtract(camera.target,camera.position));
                 bool targetLiquids=ActionDown(BindingAction::TargetLiquid);
+                if(ActionPressed(BindingAction::Drop)){
+                    bool all=IsKeyDown(KEY_LEFT_CONTROL)||IsKeyDown(KEY_RIGHT_CONTROL);
+                    if(bw::Ready())bw::Drop(ui.selected,all,&player);
+                    else if(online)net::Drop(all);
+                    else DropItem(player,Hotbar[ui.selected],all);
+                }
                 const bool usePressed=ActionPressed(BindingAction::Use);
                 const bool placeNow=placementRepeat.Update(usePressed,!ui.chatOpen&&ActionDown(BindingAction::Use),std::min(GetFrameTime(),.05f));
                 if(bw::Ready()){
@@ -259,15 +268,14 @@ int RunGame() {
                     if(hit.found){auto rayHit=GetRayCollisionBox({camera.position,direction},{{float(hit.x),float(hit.y),float(hit.z)},{hit.x+1.f,hit.y+1.f,hit.z+1.f}});if(rayHit.hit&&rayHit.distance>4.f)hit={};}
                     if(ActionPressed(BindingAction::Attack))bw::Attack(ui.selected,&player);
                     if(ActionDown(BindingAction::Attack)&&bw::CanMine(hit)){
-                        if(!miningTarget.found||miningTarget.x!=hit.x||miningTarget.y!=hit.y||miningTarget.z!=hit.z){miningTarget=hit;ui.miningProgress=0;bw::Dig(hit,0,ui.selected);}
-                        ui.miningProgress+=std::min(GetFrameTime(),.05f)/MiningTime(At(hit.x,hit.y,hit.z),ui.SelectedBlock());
+                        if(!miningTarget.found||miningTarget.x!=hit.x||miningTarget.y!=hit.y||miningTarget.z!=hit.z||miningTool!=ui.SelectedBlock()){miningTarget=hit;miningTool=ui.SelectedBlock();ui.miningProgress=0;bw::Dig(hit,0,ui.selected);}
+                        ui.miningProgress+=std::min(GetFrameTime(),.05f)/MiningTimeAt(hit.x,hit.y,hit.z,ui.SelectedBlock(),player.OnGround(),WaterContains(camera.position));
                         if(ui.miningProgress>=1){bw::Dig(hit,2,ui.selected);ui.miningProgress=0;miningTarget={};}
-                    }else if(miningTarget.found){bw::Dig(miningTarget,1,ui.selected);miningTarget={};}
+                    }else if(miningTarget.found){bw::Dig(miningTarget,1,ui.selected);miningTarget={};ui.miningProgress=0;}
                     bw::BowInput(ui.selected,ActionDown(BindingAction::Use),usePressed,ActionReleased(BindingAction::Use),std::min(GetFrameTime(),.05f),&player);
-                    if(placeNow&&ui.SelectedBlock()!=Bow){
+                    if(placeNow&&ui.SelectedBlock()!=Bow&&ui.SelectedBlock()!=GoldenApple){
                         if(usePressed&&bw::NearChest(player)&&hit.found&&(At(hit.x,hit.y,hit.z)==Chest||(MapStateAt(hit.x,hit.y,hit.z).shape==MapShape::Cube&&MapStateAt(hit.x,hit.y,hit.z).block==MapDecoration&&MapStateAt(hit.x,hit.y,hit.z).material==Obsidian)))enter(GameState::BedwarsChest);
                         else if(usePressed&&bw::AimedShop(player))enter(GameState::BedwarsShop);
-                        else if(usePressed&&ui.SelectedBlock()==Tnt)bw::Use(ui.selected);
                         else if(hit.found&&Placeable(ui.SelectedBlock()))bw::Place(hit.x+hit.nx,hit.y+hit.ny,hit.z+hit.nz,ui.selected,&player);
                         else if(usePressed)bw::Use(ui.selected);
                     }
@@ -278,9 +286,9 @@ int RunGame() {
                     if(ActionPressed(BindingAction::Use))net::Interact(player);
                     if(ActionDown(BindingAction::Attack)&&hit.found) {
                         if(!miningTarget.found||miningTarget.x!=hit.x||miningTarget.y!=hit.y||miningTarget.z!=hit.z){if(miningTarget.found)net::Dig(miningTarget,1);miningTarget=hit;ui.miningProgress=0;net::Dig(hit,0);}
-                        ui.miningProgress+=std::min(GetFrameTime(),.05f)/MiningTime(At(hit.x,hit.y,hit.z),ui.SelectedBlock());
+                        ui.miningProgress+=std::min(GetFrameTime(),.05f)/MiningTimeAt(hit.x,hit.y,hit.z,ui.SelectedBlock(),player.OnGround(),WaterContains(camera.position));
                         if(Mode==GameMode::Creative||ui.miningProgress>=1){net::Dig(hit,2);ui.miningProgress=0;miningTarget={};}
-                    }else if(miningTarget.found){net::Dig(miningTarget,1);miningTarget={};}
+                    }else if(miningTarget.found){net::Dig(miningTarget,1);miningTarget={};ui.miningProgress=0;}
                 }else {
                 if(singleUseSlot!=ui.selected){CancelItemUse();singleUseSlot=ui.selected;}
                 bool usedItem=UseHeldItem(player,Hotbar[ui.selected],direction,{ActionPressed(BindingAction::Use),ActionDown(BindingAction::Use),ActionReleased(BindingAction::Use),std::min(GetFrameTime(),.05f)});
@@ -293,7 +301,7 @@ int RunGame() {
                         if(!miningTarget.found||miningTarget.x!=hit.x||miningTarget.y!=hit.y||miningTarget.z!=hit.z||miningTool!=selected) {
                             miningTarget=hit;miningTool=selected;ui.miningProgress=0;
                         }
-                        ui.miningProgress+=std::min(GetFrameTime(),.05f)/MiningTime(At(hit.x,hit.y,hit.z),selected);
+                        ui.miningProgress+=std::min(GetFrameTime(),.05f)/MiningTimeAt(hit.x,hit.y,hit.z,selected,player.OnGround(),WaterContains(camera.position));
                         if(ui.miningProgress>=1) {
                             if(!MineBlock(hit.x,hit.y,hit.z,Hotbar[ui.selected])) ui.Notify("Nao foi possivel recolher o bloco. Verifique o inventario.");
                             ui.miningProgress=0;
@@ -337,7 +345,7 @@ int RunGame() {
         if(worldPrimed&&state==GameState::WorldLoading)bw::ConnectionTrace("loading: drawing first world frame");
         BeginDrawing();
         if(hasWorld&&(state==GameState::WorldLoading||state==GameState::Playing||state==GameState::BedwarsTeams||state==GameState::BedwarsShop||state==GameState::BedwarsInventory||state==GameState::BedwarsChest||state==GameState::ServerInventory||state==GameState::Inventory||(state==GameState::ChestScreen||state==GameState::CraftScreen||state==GameState::FurnaceScreen)||state==GameState::Paused||state==GameState::Dead||
-                     (state==GameState::Options&&optionsParent==GameState::Paused))) renderer.Draw(camera,hit);
+                     (state==GameState::Options&&optionsParent==GameState::Paused))) renderer.Draw(camera,hit,ui.miningProgress);
         else ClearBackground({43,41,37,255});
         if(hasWorld&&bw::Ready())bw::DrawWorld(camera,renderer.Atlas());
         if(hasWorld&&state==GameState::Playing) {

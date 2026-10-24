@@ -239,12 +239,12 @@ obsidiana e consumíveis de construção e mobilidade.
 
 | Item | Uso |
 | --- | --- |
-| Pérola do End | Botão direito lança; o impacto teleporta para uma posição livre e causa 5 de dano na sobrevivência |
-| Bola de fogo | Botão direito lança um projétil explosivo |
-| TNT | Botão direito coloca TNT ativada, com pavio de 4 segundos |
+| Pérola do End | Modelo 3D na mão e em voo, com rastro de partículas; botão direito lança; o impacto teleporta para uma posição livre e causa 5 de dano na sobrevivência |
+| Bola de fogo | Modelo 3D com crosta incandescente e rastro de fogo; botão direito lança um projétil explosivo |
+| TNT | Botão direito coloca TNT ativada, com contador de 5 segundos |
 | Arco | Segure o botão direito e solte para disparar; consome flechas na sobrevivência |
 | Bola de neve / ovo | Botão direito lança um projétil com gravidade |
-| Maçã dourada | Segure o botão direito por 1,6 s; concede regeneração por 5 s e 4 pontos de absorção por 120 s |
+| Maçã dourada | Modelo 3D com animação de comer e farelos; segure o botão direito por 1,6 s; recupera 1 coração por segundo durante 5 s e concede 4 pontos de absorção por 120 s |
 | Balde vazio | Botão direito coleta uma fonte de água/lava |
 | Balde cheio | Botão direito coloca uma fonte; devolve o balde na sobrevivência |
 | Armadura | Botão direito na mão ou no inventário equipa; pode ser retirada dos quatro slots de equipamento |
@@ -311,16 +311,33 @@ transfere a pilha entre inventário e hotbar, ou entre jogador e baú aberto.
 As teclas da hotbar trocam o item com o slot sob o cursor. Cliques separados
 colocam blocos sem intervalo artificial; segurar o botão repete a cada 0,2 s.
 
+Em **Multiplayer → Tester**, o botão no canto inferior direito abre uma arena
+local para testes, sem esperar outros jogadores. Ela tem um gerador rápido de
+ferro, ouro, diamante e esmeralda; quatro camas separadas (sem defesa, madeira,
+end stone e obsidiana); um dummy passivo e outro que persegue e ataca depois
+de receber um golpe. Ambos mostram a vida acima da cabeça. O inventário já
+vem com equipamentos e utilitários. **F8** restaura a arena, e esse modo não
+concede XP.
+
+Ao minerar, rachaduras aparecem no próprio bloco e aumentam com o progresso,
+sem barra no centro da tela.
+
+A cama quebra em **0,15 segundo**. Os tempos básicos dos demais blocos e
+ferramentas seguem a dureza, o material e os ticks da Java 1.8.9; veja a
+[tabela de mineração](docs/MINING.md).
+
 Ao destruir uma cama, o pinguim acorda e foge com os braços levantados até cair
 no void. A animação é sincronizada pelo host, e `sounds/ahh.mp3` toca por
 proximidade enquanto ele corre e cai.
 
-Durante a recuperação do knockback, novos ataques de jogadores não causam
-dano nem reiniciam o empurrão. Acertos confirmados deixam o jogador vermelho
+Durante a parte inicial do knockback, novos ataques de jogadores não causam
+dano nem reiniciam o empurrão; novos hits são liberados 0,15 s antes do fim
+estimado do impulso. Acertos confirmados deixam o jogador vermelho
 por 0,2 s e reproduzem `sounds/Hit.mp3`.
 
-A bola de fogo voa a 24 blocos/s e aplica seu impulso horizontal gradualmente.
-O graveto de knockback arremessa aproximadamente cinco blocos em espaço livre;
+A bola de fogo voa a 24 blocos/s e aplica seu impulso horizontal gradualmente,
+sem causar dano direto ao dono ou aos inimigos.
+O graveto de knockback arremessa aproximadamente 6,5 blocos em espaço livre;
 obstáculos e movimento alteram a distância final. Flechas têm haste, ponta e
 penas em 3D, acompanham a direção do voo e ficam fincadas no chão ou em paredes
 por até 60 segundos. Remover o bloco de apoio remove a flecha. Esse estado é
@@ -337,8 +354,10 @@ de brilho. Armadura e proteção reduzem esses valores.
 O terreno da arena é protegido; blocos colocados pelos jogadores e camas
 adversárias podem ser quebrados.
 Segure **TAB** para listar os jogadores e seus times. No BedWars, a TNT explode
-após quatro segundos e destrói construções de lã até quatro blocos, madeira
+após cinco segundos, aplica knockback sem dano direto e destrói construções de lã até quatro blocos, madeira
 até três e pedra do fim até dois. Obsidiana resiste à explosão.
+A TNT aparece no bloco apontado, mostra o tempo restante acima dela e pulsa
+cada vez mais rápido conforme a explosão se aproxima.
 
 Consulte [BedWars LAN](docs/BEDWARS.md) para controles, regras e limitações.
 As partidas são temporárias e separadas dos saves do single-player.
@@ -356,7 +375,8 @@ construção. Consulte [BedWars LAN](docs/BEDWARS.md#mapa-nc) para detalhes.
 
 ### Progressão no BedWars
 
-Kills concedem **5 XP**, camas destruídas **10 XP** e cada jogador da equipe
+Kills normais concedem **5 XP**, kills finais (vítima sem cama) **15 XP** no total,
+camas destruídas **10 XP** e cada jogador da equipe
 vencedora recebe **25 XP** uma única vez por partida. Empates não dão o bônus
 de vitória. Cada **50 XP acumulados**
 sobe um nível: nível 2 com 50 XP, nível 3 com 100 XP, etc. Cada subida deixa uma
@@ -377,6 +397,13 @@ a outro computador, copie sua pasta de dados; usar apenas o nick não é um logi
 Não há autenticação ou banco de dados central. A pasta `skins/` guarda as cores
 das ferramentas; não é um carregador de skins PNG do personagem.
 Veja [Níveis, caixas e skins](docs/BEDWARS.md#níveis-caixas-e-skins).
+
+**Q** joga uma unidade do item selecionado no chão; **Ctrl + Q** joga a pilha
+inteira. Os itens têm física e podem ser recolhidos ao chegar perto, após uma
+pequena espera de 0,8 segundo. No BedWars, os drops são sincronizados pelo host.
+A tecla pode ser alterada nas opções de controles. Com uma pilha no cursor,
+clicar fora da janela do inventário com o botão esquerdo dropa a pilha inteira;
+o botão direito dropa uma unidade.
 
 ## Teclas e campo de visão
 

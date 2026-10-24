@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "projectile_models.h"
 #include "bedwars.h"
 #include "ui.h"
 #include "chest.h"
@@ -52,9 +53,16 @@ int main() {
             BeginDrawing();renderer.Draw(bedCamera,{});rlDrawRenderBatchActive();
             Image bedCapture=LoadImageFromScreen();ExportImage(bedCapture,"build/bed-penguin.png");UnloadImage(bedCapture);EndDrawing();
 
-            const Block heldItems[]={Air,Grass,IronSword,IronPickaxe};
-            const char* handFiles[]={"build/hand-empty.png","build/hand-block.png","build/hand-sword.png","build/hand-pickaxe.png"};
-            for(int i=0;i<4;++i) for(int frame=0;frame<8;++frame) {
+            Camera3D crackCamera{{8,7,8},{6.5f,5.5f,5.5f},{0,1,0},55,CAMERA_PERSPECTIVE};
+            Hit crackTarget{true,6,5,5};
+            for(int stage=0;stage<3;++stage){
+                float progress=stage==0?.1f:stage==1?.5f:.9f;
+                BeginDrawing();renderer.Draw(crackCamera,crackTarget,progress);rlDrawRenderBatchActive();
+                Image image=LoadImageFromScreen();ExportImage(image,TextFormat("build/mining-cracks-%d.png",stage));UnloadImage(image);EndDrawing();
+            }
+            const Block heldItems[]={Air,Grass,IronSword,IronPickaxe,EnderPearl,Fireball};
+            const char* handFiles[]={"build/hand-empty.png","build/hand-block.png","build/hand-sword.png","build/hand-pickaxe.png","build/hand-pearl.png","build/hand-fireball.png"};
+            for(int i=0;i<6;++i) for(int frame=0;frame<8;++frame) {
                 BeginDrawing();renderer.Draw(camera,{});renderer.DrawFirstPerson(camera,heldItems[i],false,false,.05f);
                 if(frame==7) {rlDrawRenderBatchActive();Image capture=LoadImageFromScreen();ExportImage(capture,handFiles[i]);UnloadImage(capture);}
                 EndDrawing();
@@ -67,6 +75,18 @@ int main() {
             }
             Player bowPlayer;PlayerState bowPose;bowPose.valid=true;bowPose.position=camera.position;bowPlayer.RestoreState(bowPose);Mode=GameMode::Creative;ItemStack displayBow{Bow,1};
             for(int stage=0;stage<4;++stage){CancelItemUse();float seconds=stage==0?-1.f:stage==1?.05f:stage==2?.5f:1.1f;if(stage){UseHeldItem(bowPlayer,displayBow,{0,0,-1},{true,true,false,0});for(int frame=0;frame<int(seconds*100);++frame)UseHeldItem(bowPlayer,displayBow,{0,0,-1},{false,true,false,.01f});}for(int frame=0;frame<8;++frame){BeginDrawing();renderer.Draw(camera,{});renderer.DrawFirstPerson(camera,Bow,false,false,.05f);if(frame==7){rlDrawRenderBatchActive();Image image=LoadImageFromScreen();ExportImage(image,TextFormat("build/hand-bow-%d.png",stage));UnloadImage(image);}EndDrawing();}}CancelItemUse();
+            ItemStack displayApple{GoldenApple,4};
+            for(int stage=0;stage<3;++stage){
+                CancelItemUse();
+                for(int frame=0;frame<(stage==0?0:stage==1?35:105);++frame)UseHeldItem(bowPlayer,displayApple,{0,0,-1},{false,true,false,.01f});
+                for(int frame=0;frame<8;++frame){BeginDrawing();renderer.Draw(camera,{});renderer.DrawFirstPerson(camera,GoldenApple,false,false,.05f);
+                    if(frame==7){rlDrawRenderBatchActive();Image image=LoadImageFromScreen();ExportImage(image,TextFormat("build/hand-apple-%d.png",stage));UnloadImage(image);}EndDrawing();}
+            }
+            CancelItemUse();
+            BeginDrawing();renderer.Draw(camera,{});BeginMode3D(camera);
+            DrawDroppedItem3D(renderer.Atlas(),IronSword,{6,6.3f,7},.5f);DrawDroppedItem3D(renderer.Atlas(),GoldenApple,{7,6.3f,7},.5f);DrawDroppedItem3D(renderer.Atlas(),RedWool,{8,6.3f,7},.5f);
+            EndMode3D();rlDrawRenderBatchActive();Image dropped=LoadImageFromScreen();ExportImage(dropped,"build/dropped-items.png");UnloadImage(dropped);EndDrawing();
+            BeginDrawing();renderer.Draw(camera,{});BeginMode3D(camera);DrawThrownItem(EnderPearl,{6,6.5f,8},{0,0,-32});DrawThrownItem(Fireball,{7.5f,6.5f,8},{0,0,-30});EndMode3D();rlDrawRenderBatchActive();Image projectiles=LoadImageFromScreen();ExportImage(projectiles,"build/thrown-items.png");UnloadImage(projectiles);EndDrawing();
             const bool fogBefore=Settings.fogEnabled;
             Settings.fogEnabled=false;Settings.renderChunks=6;
             BeginDrawing();renderer.Draw(camera,{});EndDrawing();
