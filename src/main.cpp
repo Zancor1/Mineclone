@@ -3,6 +3,7 @@
 #include <raylib.h>
 
 int game::Run() {
+    SetTraceLogLevel(LOG_WARNING);
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
     InitWindow(1280,720,"MineClone");
     SetWindowMinSize(720,480);

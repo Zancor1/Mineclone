@@ -1,0 +1,608 @@
+{
+  "name": "NC",
+  "source": "NC Bedwars 1v1",
+  "cells": 39240,
+  "compressed_bytes": 77119,
+  "source_offset": [
+    128,
+    -5,
+    128
+  ],
+  "legacy_states": [
+    {
+      "id": 1,
+      "data": 0,
+      "count": 9500
+    },
+    {
+      "id": 1,
+      "data": 3,
+      "count": 400
+    },
+    {
+      "id": 1,
+      "data": 4,
+      "count": 218
+    },
+    {
+      "id": 1,
+      "data": 5,
+      "count": 3271
+    },
+    {
+      "id": 1,
+      "data": 6,
+      "count": 1790
+    },
+    {
+      "id": 2,
+      "data": 0,
+      "count": 589
+    },
+    {
+      "id": 3,
+      "data": 0,
+      "count": 1650
+    },
+    {
+      "id": 4,
+      "data": 0,
+      "count": 1587
+    },
+    {
+      "id": 5,
+      "data": 1,
+      "count": 66
+    },
+    {
+      "id": 5,
+      "data": 3,
+      "count": 288
+    },
+    {
+      "id": 17,
+      "data": 0,
+      "count": 20
+    },
+    {
+      "id": 24,
+      "data": 0,
+      "count": 45
+    },
+    {
+      "id": 26,
+      "data": 1,
+      "count": 1
+    },
+    {
+      "id": 26,
+      "data": 9,
+      "count": 1
+    },
+    {
+      "id": 42,
+      "data": 0,
+      "count": 44
+    },
+    {
+      "id": 43,
+      "data": 0,
+      "count": 18
+    },
+    {
+      "id": 43,
+      "data": 1,
+      "count": 6
+    },
+    {
+      "id": 43,
+      "data": 5,
+      "count": 57
+    },
+    {
+      "id": 43,
+      "data": 7,
+      "count": 28
+    },
+    {
+      "id": 43,
+      "data": 8,
+      "count": 2013
+    },
+    {
+      "id": 43,
+      "data": 9,
+      "count": 366
+    },
+    {
+      "id": 43,
+      "data": 15,
+      "count": 160
+    },
+    {
+      "id": 44,
+      "data": 0,
+      "count": 90
+    },
+    {
+      "id": 44,
+      "data": 3,
+      "count": 3
+    },
+    {
+      "id": 44,
+      "data": 5,
+      "count": 34
+    },
+    {
+      "id": 44,
+      "data": 7,
+      "count": 3
+    },
+    {
+      "id": 44,
+      "data": 8,
+      "count": 296
+    },
+    {
+      "id": 44,
+      "data": 11,
+      "count": 5
+    },
+    {
+      "id": 44,
+      "data": 13,
+      "count": 122
+    },
+    {
+      "id": 44,
+      "data": 15,
+      "count": 64
+    },
+    {
+      "id": 45,
+      "data": 0,
+      "count": 38
+    },
+    {
+      "id": 49,
+      "data": 0,
+      "count": 176
+    },
+    {
+      "id": 50,
+      "data": 1,
+      "count": 1
+    },
+    {
+      "id": 50,
+      "data": 2,
+      "count": 1
+    },
+    {
+      "id": 54,
+      "data": 4,
+      "count": 1
+    },
+    {
+      "id": 54,
+      "data": 5,
+      "count": 1
+    },
+    {
+      "id": 55,
+      "data": 0,
+      "count": 3
+    },
+    {
+      "id": 57,
+      "data": 0,
+      "count": 76
+    },
+    {
+      "id": 65,
+      "data": 2,
+      "count": 7
+    },
+    {
+      "id": 65,
+      "data": 3,
+      "count": 6
+    },
+    {
+      "id": 65,
+      "data": 4,
+      "count": 6
+    },
+    {
+      "id": 65,
+      "data": 5,
+      "count": 3
+    },
+    {
+      "id": 68,
+      "data": 3,
+      "count": 1
+    },
+    {
+      "id": 76,
+      "data": 1,
+      "count": 2
+    },
+    {
+      "id": 76,
+      "data": 2,
+      "count": 2
+    },
+    {
+      "id": 76,
+      "data": 3,
+      "count": 3
+    },
+    {
+      "id": 76,
+      "data": 4,
+      "count": 2
+    },
+    {
+      "id": 82,
+      "data": 0,
+      "count": 988
+    },
+    {
+      "id": 90,
+      "data": 1,
+      "count": 150
+    },
+    {
+      "id": 95,
+      "data": 0,
+      "count": 16
+    },
+    {
+      "id": 97,
+      "data": 0,
+      "count": 4
+    },
+    {
+      "id": 98,
+      "data": 0,
+      "count": 300
+    },
+    {
+      "id": 101,
+      "data": 0,
+      "count": 14
+    },
+    {
+      "id": 109,
+      "data": 0,
+      "count": 65
+    },
+    {
+      "id": 109,
+      "data": 1,
+      "count": 66
+    },
+    {
+      "id": 109,
+      "data": 2,
+      "count": 67
+    },
+    {
+      "id": 109,
+      "data": 3,
+      "count": 55
+    },
+    {
+      "id": 109,
+      "data": 4,
+      "count": 104
+    },
+    {
+      "id": 109,
+      "data": 5,
+      "count": 104
+    },
+    {
+      "id": 109,
+      "data": 6,
+      "count": 101
+    },
+    {
+      "id": 109,
+      "data": 7,
+      "count": 118
+    },
+    {
+      "id": 118,
+      "data": 0,
+      "count": 1
+    },
+    {
+      "id": 125,
+      "data": 1,
+      "count": 4
+    },
+    {
+      "id": 125,
+      "data": 3,
+      "count": 200
+    },
+    {
+      "id": 126,
+      "data": 1,
+      "count": 2
+    },
+    {
+      "id": 126,
+      "data": 3,
+      "count": 544
+    },
+    {
+      "id": 126,
+      "data": 9,
+      "count": 10
+    },
+    {
+      "id": 126,
+      "data": 11,
+      "count": 37
+    },
+    {
+      "id": 128,
+      "data": 0,
+      "count": 16
+    },
+    {
+      "id": 128,
+      "data": 1,
+      "count": 16
+    },
+    {
+      "id": 128,
+      "data": 2,
+      "count": 6
+    },
+    {
+      "id": 128,
+      "data": 3,
+      "count": 6
+    },
+    {
+      "id": 130,
+      "data": 4,
+      "count": 1
+    },
+    {
+      "id": 130,
+      "data": 5,
+      "count": 1
+    },
+    {
+      "id": 133,
+      "data": 0,
+      "count": 1
+    },
+    {
+      "id": 134,
+      "data": 0,
+      "count": 2
+    },
+    {
+      "id": 134,
+      "data": 2,
+      "count": 5
+    },
+    {
+      "id": 134,
+      "data": 3,
+      "count": 5
+    },
+    {
+      "id": 134,
+      "data": 4,
+      "count": 6
+    },
+    {
+      "id": 134,
+      "data": 5,
+      "count": 14
+    },
+    {
+      "id": 134,
+      "data": 6,
+      "count": 6
+    },
+    {
+      "id": 134,
+      "data": 7,
+      "count": 6
+    },
+    {
+      "id": 135,
+      "data": 0,
+      "count": 14
+    },
+    {
+      "id": 135,
+      "data": 1,
+      "count": 14
+    },
+    {
+      "id": 135,
+      "data": 2,
+      "count": 10
+    },
+    {
+      "id": 135,
+      "data": 3,
+      "count": 10
+    },
+    {
+      "id": 137,
+      "data": 0,
+      "count": 3
+    },
+    {
+      "id": 139,
+      "data": 0,
+      "count": 18
+    },
+    {
+      "id": 140,
+      "data": 0,
+      "count": 3
+    },
+    {
+      "id": 143,
+      "data": 3,
+      "count": 1
+    },
+    {
+      "id": 154,
+      "data": 0,
+      "count": 4
+    },
+    {
+      "id": 155,
+      "data": 0,
+      "count": 1141
+    },
+    {
+      "id": 155,
+      "data": 2,
+      "count": 1280
+    },
+    {
+      "id": 156,
+      "data": 0,
+      "count": 5
+    },
+    {
+      "id": 156,
+      "data": 1,
+      "count": 7
+    },
+    {
+      "id": 156,
+      "data": 2,
+      "count": 6
+    },
+    {
+      "id": 156,
+      "data": 3,
+      "count": 6
+    },
+    {
+      "id": 156,
+      "data": 4,
+      "count": 4
+    },
+    {
+      "id": 156,
+      "data": 5,
+      "count": 2
+    },
+    {
+      "id": 156,
+      "data": 6,
+      "count": 6
+    },
+    {
+      "id": 156,
+      "data": 7,
+      "count": 6
+    },
+    {
+      "id": 159,
+      "data": 1,
+      "count": 1259
+    },
+    {
+      "id": 159,
+      "data": 4,
+      "count": 166
+    },
+    {
+      "id": 159,
+      "data": 7,
+      "count": 616
+    },
+    {
+      "id": 159,
+      "data": 9,
+      "count": 911
+    },
+    {
+      "id": 159,
+      "data": 11,
+      "count": 1189
+    },
+    {
+      "id": 159,
+      "data": 13,
+      "count": 3814
+    },
+    {
+      "id": 159,
+      "data": 14,
+      "count": 1189
+    },
+    {
+      "id": 159,
+      "data": 15,
+      "count": 1168
+    },
+    {
+      "id": 164,
+      "data": 0,
+      "count": 2
+    },
+    {
+      "id": 164,
+      "data": 1,
+      "count": 2
+    },
+    {
+      "id": 164,
+      "data": 2,
+      "count": 2
+    },
+    {
+      "id": 164,
+      "data": 3,
+      "count": 1
+    },
+    {
+      "id": 169,
+      "data": 0,
+      "count": 6
+    },
+    {
+      "id": 171,
+      "data": 0,
+      "count": 2
+    },
+    {
+      "id": 171,
+      "data": 15,
+      "count": 2
+    },
+    {
+      "id": 173,
+      "data": 0,
+      "count": 245
+    },
+    {
+      "id": 188,
+      "data": 0,
+      "count": 8
+    },
+    {
+      "id": 190,
+      "data": 0,
+      "count": 13
+    }
+  ]
+}

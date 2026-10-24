@@ -1,6 +1,11 @@
+#include "file_replace.h"
 #include "world.h"
+#include "map_blocks.h"
 #include "lighting.h"
 #include "settings.h"
+#include "chest.h"
+#include "crafting.h"
+#include "survival.h"
 #include <raymath.h>
 #include <algorithm>
 #include <cmath>
@@ -84,7 +89,7 @@ void WriteFluidCell(int x, int y, int z, Block block,
         return;
     }
 
-    if(LightPassable(At(x,y,z))!=LightPassable(block)||Emission(At(x,y,z))!=Emission(block)) InvalidateLighting();
+    if(LightPassable(At(x,y,z))!=LightPassable(block)||Emission(At(x,y,z))!=Emission(block)) InvalidateLighting(x,y,z);
     World[x][y][z] = block;
     FluidLevels[x][y][z] = static_cast<unsigned char>(nextLevel);
     FluidSources[x][y][z] = static_cast<unsigned char>(nextSource);
@@ -280,6 +285,7 @@ void UpdateWorld(float dt) {
     if(!Settings.freezeTime&&std::isfinite(dt)) WorldTime=std::fmod(WorldTime+std::max(0.f,dt),DayDuration);
     UpdateWater(dt);
     UpdateLava(dt);
+    UpdateFurnaces(dt);
 }
 
 float FadeCurve(float t) { return t*t*t*(t*(t*6-15)+10); }
@@ -331,6 +337,12 @@ void GenerateRegion() {
             if(y==h&&block==Dirt) block=Grass;
             if(biome==Biome::Mountains&&h>43&&y>h-2) block=Stone;
             if(block==Stone&&y<h-4&&Hash(wx,wz,y)%41<3) block=CoalOre;
+            else if(block==Stone&&y<h-4&&Hash(wx,wz,y+174)%67<3) block=IronOre;
+            if(block==Stone&&y<16&&Hash(wx,wz,y+280)%191<2) block=DiamondOre;
+            else if(block==Stone&&y<24&&Hash(wx,wz,y+290)%131<3) block=GoldOre;
+            else if(block==Stone&&y<24&&Hash(wx,wz,y+300)%149<3) block=RedstoneOre;
+            else if(block==Stone&&y<24&&Hash(wx,wz,y+310)%151<2) block=LapisLazuliOre;
+            else if(block==Stone&&y<24&&Hash(wx,wz,y+320)%503==0) block=EmeraldOre;
             World[x][y][z]=block;
         }
         for(int y=h+1;y<=SeaLevel;++y) {
@@ -365,15 +377,37 @@ void GenerateRegion() {
 }
 }
 void GenerateWorld(uint32_t seed) {
+    ClearMapBlocks();
+    ClearChests();
     Seed=seed;RegionOriginX=RegionOriginZ=0;
     SetClockMinute(Settings.newWorldMinute);
     GenerateRegion();
 }
 
 void Change(int x,int y,int z,Block b) {
-    if(!Inside(x,y,z)||b>=BlockCount) return;
+    if(!Inside(x,y,z)||!Placeable(b)) return;
     if(At(x,y,z)==b && (!Liquid(b)||FluidSources[x][y][z])) return;
+    if(At(x,y,z)==Chest&&b!=Chest&&!RemoveChest(x,y,z)) return;
+    if(At(x,y,z)==Furnace&&b!=Furnace&&!RemoveFurnace(x,y,z)) return;
+    Block previous=At(x,y,z);
+    if((previous==Bed||previous==BedHead)&&b!=previous) {
+        int otherZ=z+(previous==Bed?1:-1);
+        if(At(x,y,otherZ)==(previous==Bed?BedHead:Bed))WriteFluidCell(x,y,otherZ,Air,0,false);
+    }
     WriteFluidCell(x,y,z,b,Liquid(b)?MaxWaterLevel:0,Liquid(b));
+}
+void ClearRemoteWorld(bool inventory) {
+    ClearMapBlocks();
+    std::memset(World,0,sizeof(World));std::memset(FluidLevels,0,sizeof(FluidLevels));std::memset(FluidSources,0,sizeof(FluidSources));
+    if(inventory){ClearChests();Hotbar={};Backpack={};CursorStack={};}
+    InvalidateLighting();for(auto& version:ChunkVersions)++version;
+}
+void SetRemoteBlock(int x,int y,int z,Block b) {if(Inside(x,y,z)&&(b==Air||Placeable(b)))WriteFluidCell(x,y,z,b,Liquid(b)?7:0,Liquid(b));}
+void ApplyRemoteChunk(int cx,int cz,const std::vector<Block>& blocks) {
+    if(cx<0||cz<0||cx>=ChunkCount||cz>=ChunkCount||blocks.size()!=size_t(ChunkSize*Height*ChunkSize))return;
+    for(int x=0;x<ChunkSize;++x)for(int y=0;y<Height;++y)for(int z=0;z<ChunkSize;++z){Block b=blocks[(x*Height+y)*ChunkSize+z];int wx=cx*ChunkSize+x,wz=cz*ChunkSize+z;World[wx][y][wz]=Placeable(b)?b:Air;FluidLevels[wx][y][wz]=Liquid(b)?7:0;FluidSources[wx][y][wz]=Liquid(b);}
+    for(int x=std::max(0,cx-1);x<=std::min(ChunkCount-1,cx+1);++x)for(int z=std::max(0,cz-1);z<=std::min(ChunkCount-1,cz+1);++z)++ChunkVersions[x*ChunkCount+z];
+    InvalidateLighting();
 }
 uint32_t RandomSeed() {
     uint64_t now=uint64_t(std::chrono::high_resolution_clock::now().time_since_epoch().count());
@@ -382,7 +416,9 @@ uint32_t RandomSeed() {
     return seed==Seed?seed+1:seed;
 }
 namespace {
-constexpr unsigned char Magic[8]={'B','L','O','C','O','S',7,0};
+bool ReadChunk(const std::filesystem::path& path,int cx,int cz,std::vector<unsigned char>& data,uint32_t expectedSeed);
+void ApplyChunk(int cx,int cz,const std::vector<unsigned char>& data);
+constexpr unsigned char Magic[8]={'B','L','O','C','O','S',12,0};
 constexpr size_t PoseBytes=6*sizeof(uint32_t);
 static_assert(sizeof(float)==sizeof(uint32_t)&&std::numeric_limits<float>::is_iec559,
               "Saves require 32-bit IEEE 754 floats");
@@ -430,11 +466,13 @@ bool SaveWorld(const std::string& path,const PlayerState& player) {
     const uint32_t region[3]={static_cast<uint32_t>(RegionOriginX),static_cast<uint32_t>(RegionOriginZ),uint32_t(player.flying)};
     for(int i=0;i<3;++i) for(int j=0;j<4;++j)
         data[poseOffset+PoseBytes+4+i*4+j]=static_cast<unsigned char>(region[i]>>(8*j));
+    auto containers=SerializeChests();
+    data.insert(data.end(),containers.begin(),containers.end());
     Write32(out,Checksum(data.data(),data.size()));
     out.write(reinterpret_cast<const char*>(data.data()),data.size());
     out.flush(); bool ok=bool(out); out.close(); ok=ok&&!out.fail();
     std::error_code error;
-    if(ok) {std::filesystem::rename(temporary,path,error); ok=!error;}
+    if(ok) {ReplaceSaveFile(temporary,path,error); ok=!error;}
     if(!ok) std::filesystem::remove(temporary,error);
     return ok;
 }
@@ -442,27 +480,49 @@ bool LoadWorld(const std::string& path,PlayerState* player) {
     std::ifstream in(path,std::ios::binary);
     unsigned char magic[8]{};
     in.read(reinterpret_cast<char*>(magic),8);
-    if(!in||std::memcmp(magic,Magic,6)!=0||magic[7]!=0||(magic[6]<1||magic[6]>7)) return false;
+    if(!in||std::memcmp(magic,Magic,6)!=0||magic[7]!=0||(magic[6]<1||magic[6]>12)) return false;
     bool legacy=magic[6]==1;
     uint32_t width=Read32(in),height=Read32(in),seed=Read32(in),checksum=Read32(in);
-    if(!in||width!=Width||height!=Height) return false;
-    std::vector<unsigned char> data(sizeof(World)+(legacy?0:sizeof(FluidLevels))+(magic[6]>=3?sizeof(FluidSources):0)+(magic[6]>=4?PoseBytes:0)+(magic[6]>=5?4:0)+(magic[6]>=7?12:0));
+    if(!in||(width!=Width&&width!=128)||height!=Height) return false;
+    const size_t cells=size_t(width)*height*width;
+    std::vector<unsigned char> data(cells+(legacy?0:cells)+(magic[6]>=3?cells:0)+(magic[6]>=4?PoseBytes:0)+(magic[6]>=5?4:0)+(magic[6]>=7?12:0));
     in.read(reinterpret_cast<char*>(data.data()),data.size());
+    std::vector<unsigned char> containers;
+    if(magic[6]>=8) {
+        uint32_t count=Read32(in);
+        if(!in||count>65536) return false;
+        size_t stackBytes=magic[6]>=11?4:2;
+        containers.resize(4+(magic[6]>=9?37:28)*stackBytes+size_t(count)*(12+27*stackBytes));
+        for(int i=0;i<4;++i) containers[i]=static_cast<unsigned char>(count>>(8*i));
+        in.read(reinterpret_cast<char*>(containers.data()+4),containers.size()-4);
+        if(magic[6]>=10) {
+            const size_t base=containers.size();size_t prefix=magic[6]>=11?56:30,record=magic[6]>=11?32:26;
+            containers.resize(base+prefix);
+            in.read(reinterpret_cast<char*>(containers.data()+base),prefix);
+            if(!in) return false;
+            uint32_t furnaceCount=0;for(int i=0;i<4;++i) furnaceCount|=uint32_t(containers[base+prefix-4+i])<<(8*i);
+            if(furnaceCount>65536) return false;
+            containers.resize(base+prefix+size_t(furnaceCount)*record+(magic[6]>=12?41:(magic[6]>=11?13:0)));
+            in.read(reinterpret_cast<char*>(containers.data()+base+prefix),size_t(furnaceCount)*record+(magic[6]>=12?41:(magic[6]>=11?13:0)));
+        }
+        if(!in||!DeserializeChests(containers,false,magic[6]<9,magic[6]>=10,magic[6]>=11)) return false;
+        data.insert(data.end(),containers.begin(),containers.end());
+    }
     if(!in||in.peek()!=EOF||Checksum(data.data(),data.size())!=checksum) return false;
-    for(size_t i=0;i<sizeof(World);++i) {
-        if(data[i]>=BlockCount) return false;
+    for(size_t i=0;i<cells;++i) {
+        if(!Placeable(static_cast<Block>(data[i]))) return false;
         if(!legacy) {
-            unsigned char level=data[sizeof(World)+i];
+            unsigned char level=data[cells+i];
             if(level>MaxWaterLevel||((magic[6]>=6?!Liquid(static_cast<Block>(data[i])):data[i]!=Water)&&level!=0)) return false;
             if(magic[6]>=3) {
-                unsigned char source=data[sizeof(World)+sizeof(FluidLevels)+i];
+                unsigned char source=data[cells+cells+i];
                 if(source>1||(source&&((magic[6]>=6?!Liquid(static_cast<Block>(data[i])):data[i]!=Water)||level!=MaxWaterLevel))) return false;
             }
         }
     }
     PlayerState loadedPlayer;
     if(magic[6]>=4) {
-        size_t offset=sizeof(World)+sizeof(FluidLevels)+sizeof(FluidSources);
+        size_t offset=cells+cells+cells;
         loadedPlayer.position={DecodeFloat(data.data()+offset),DecodeFloat(data.data()+offset+4),DecodeFloat(data.data()+offset+8)};
         loadedPlayer.yaw=DecodeFloat(data.data()+offset+12);loadedPlayer.pitch=DecodeFloat(data.data()+offset+16);
         loadedPlayer.velocityY=DecodeFloat(data.data()+offset+20);loadedPlayer.valid=true;
@@ -470,12 +530,12 @@ bool LoadWorld(const std::string& path,PlayerState* player) {
     }
     float loadedTime=DayDuration*.25f;
     if(magic[6]>=5) {
-        loadedTime=DecodeFloat(data.data()+sizeof(World)+sizeof(FluidLevels)+sizeof(FluidSources)+PoseBytes);
+        loadedTime=DecodeFloat(data.data()+cells+cells+cells+PoseBytes);
         if(!std::isfinite(loadedTime)||loadedTime<0||loadedTime>=DayDuration) return false;
     }
     int32_t originX=0,originZ=0;
     if(magic[6]>=7) {
-        const size_t offset=sizeof(World)+sizeof(FluidLevels)+sizeof(FluidSources)+PoseBytes+4;
+        const size_t offset=cells+cells+cells+PoseBytes+4;
         uint32_t words[3]{};
         for(int i=0;i<3;++i) for(int j=0;j<4;++j) words[i]|=uint32_t(data[offset+i*4+j])<<(8*j);
         std::memcpy(&originX,&words[0],4);std::memcpy(&originZ,&words[1],4);
@@ -483,17 +543,37 @@ bool LoadWorld(const std::string& path,PlayerState* player) {
            std::abs(int64_t(originZ))>100000000||words[2]>1) return false;
         loadedPlayer.flying=words[2]!=0;
     }
+    struct Expansion {int x,z;std::vector<unsigned char> data;};
+    std::vector<Expansion> expansion;
+    if(width<Width) {
+        std::error_code error;
+        for(int x=0;x<ChunkCount;++x) for(int z=0;z<ChunkCount;++z) {
+            if(x<int(width)/ChunkSize&&z<int(width)/ChunkSize) continue;
+            int cx=originX/ChunkSize+x,cz=originZ/ChunkSize+z;
+            auto archive=std::filesystem::path(path+".chunks")/(std::to_string(cx)+"_"+std::to_string(cz)+".chunk");
+            bool exists=std::filesystem::exists(archive,error);if(error) return false;
+            if(exists) {Expansion e{x,z,{}};if(!ReadChunk(archive,cx,cz,e.data,seed)) return false;expansion.push_back(std::move(e));}
+        }
+    }
+    if(magic[6]<11) {Mode=GameMode::Creative;EquippedArmor={};ResetVitals();}
+    if(magic[6]>=8) DeserializeChests(containers,true,magic[6]<9,magic[6]>=10,magic[6]>=11);else {Mode=GameMode::Creative;ClearChests();}
+    ClearMapBlocks();
     RegionOriginX=originX;RegionOriginZ=originZ;
     WorldTime=loadedTime;InvalidateLighting();
-    std::memcpy(World,data.data(),sizeof(World)); Seed=seed;
-    if(legacy) {
-        auto* levels=reinterpret_cast<unsigned char*>(FluidLevels);
-        for(size_t i=0;i<sizeof(World);++i) levels[i]=data[i]==Water?MaxWaterLevel:0;
-    } else std::memcpy(FluidLevels,data.data()+sizeof(World),sizeof(FluidLevels));
-    if(magic[6]>=3) std::memcpy(FluidSources,data.data()+sizeof(World)+sizeof(FluidLevels),sizeof(FluidSources));
-    else {
-        std::memset(FluidSources,0,sizeof(FluidSources));
-        for(int x=0;x<Width;++x) for(int y=0;y<Height;++y) for(int z=0;z<Width;++z)
+    Seed=seed;
+    if(width<Width) GenerateRegion();
+    auto* blocks=reinterpret_cast<unsigned char*>(World);
+    auto* levels=reinterpret_cast<unsigned char*>(FluidLevels);
+    auto* sources=reinterpret_cast<unsigned char*>(FluidSources);
+    for(int x=0;x<int(width);++x) for(int y=0;y<Height;++y) for(int z=0;z<int(width);++z) {
+        size_t from=(size_t(x)*Height+y)*width+z,to=(size_t(x)*Height+y)*Width+z;
+        blocks[to]=data[from];
+        levels[to]=legacy?(data[from]==Water?MaxWaterLevel:0):data[cells+from];
+        sources[to]=magic[6]>=3?data[cells*2+from]:0;
+    }
+    for(const auto& e:expansion) ApplyChunk(e.x,e.z,e.data);
+    if(magic[6]<3) {
+        for(int x=0;x<int(width);++x) for(int y=0;y<Height;++y) for(int z=0;z<int(width);++z)
             if(At(x,y,z)==Water&&WaterLevelAt(x,y,z)==MaxWaterLevel&&At(x,y+1,z)!=Water) FluidSources[x][y][z]=1;
     }
     if(magic[6]<6) {
@@ -581,15 +661,15 @@ std::vector<unsigned char> CaptureChunk(int cx,int cz) {
         }
     return result;
 }
-bool ReadChunk(const std::filesystem::path& path,int cx,int cz,std::vector<unsigned char>& data) {
+bool ReadChunk(const std::filesystem::path& path,int cx,int cz,std::vector<unsigned char>& data,uint32_t expectedSeed) {
     std::ifstream input(path,std::ios::binary);char magic[4]{};input.read(magic,4);
     uint32_t seed=Read32(input),storedX=Read32(input),storedZ=Read32(input),checksum=Read32(input);
-    if(!input||std::memcmp(magic,"MCC1",4)||seed!=Seed||storedX!=uint32_t(cx)||storedZ!=uint32_t(cz)) return false;
+    if(!input||std::memcmp(magic,"MCC1",4)||seed!=expectedSeed||storedX!=uint32_t(cx)||storedZ!=uint32_t(cz)) return false;
     data.resize(ChunkBytes);input.read(reinterpret_cast<char*>(data.data()),data.size());
     if(!input||input.peek()!=EOF||Checksum(data.data(),data.size())!=checksum) return false;
     for(size_t i=0;i<data.size();i+=3) {
         Block block=static_cast<Block>(data[i]);unsigned char level=data[i+1],source=data[i+2];
-        if(!ValidBlock(block)||level>7||source>1||(!Liquid(block)&&(level||source))||
+        if(!Placeable(block)||level>7||source>1||(!Liquid(block)&&(level||source))||
            (source&&level!=7)) return false;
     }
     return true;
@@ -603,7 +683,7 @@ bool WriteChunk(const std::filesystem::path& path,int cx,int cz,const std::vecto
     out.write(reinterpret_cast<const char*>(data.data()),data.size());
     out.flush();bool ok=bool(out);out.close();ok=ok&&!out.fail();
     std::error_code error;
-    if(ok) {std::filesystem::rename(temporary,path,error);ok=!error;}
+    if(ok) {ReplaceSaveFile(temporary,path,error);ok=!error;}
     if(!ok) std::filesystem::remove(temporary,error);
     return ok;
 }
@@ -619,7 +699,7 @@ bool StreamWorld(PlayerState& player,const std::string& savePath,bool& shifted) 
     shifted=false;
     if(!player.valid||!std::isfinite(player.position.x)||!std::isfinite(player.position.z)) return false;
     auto displacement=[](float coordinate) {
-        return coordinate<40.f||coordinate>88.f?int(std::floor((coordinate-48.f)/32.f))*32:0;
+        return coordinate<Width*.5f-24||coordinate>Width*.5f+24?int(std::floor((coordinate-(Width*.5f-16))/32.f))*32:0;
     };
     if(std::abs(player.position.x)>1000000||std::abs(player.position.z)>1000000) return false;
     int dx=displacement(player.position.x),dz=displacement(player.position.z);
@@ -637,7 +717,7 @@ bool StreamWorld(PlayerState& player,const std::string& savePath,bool& shifted) 
         bool exists=std::filesystem::exists(path,error);if(error) return false;
         if(exists) {
             StoredChunk stored{cx-newCX,cz-newCZ,{}};
-            if(!ReadChunk(path,cx,cz,stored.data)) return false;
+            if(!ReadChunk(path,cx,cz,stored.data,Seed)) return false;
             incoming.push_back(std::move(stored));
         }
     }
@@ -676,7 +756,12 @@ Hit Trace(Vector3 origin,Vector3 direction,bool includeLiquids) {
     }
     float distance=0;
     while(distance<=7.f) {
-        if(At(cell[0],cell[1],cell[2])!=Air && (includeLiquids || !Liquid(At(cell[0],cell[1],cell[2])))) return {true,cell[0],cell[1],cell[2],normal[0],normal[1],normal[2]};
+        if(At(cell[0],cell[1],cell[2])!=Air && (includeLiquids || !Liquid(At(cell[0],cell[1],cell[2])))) {
+            if(!HasMapShape(cell[0],cell[1],cell[2]))return {true,cell[0],cell[1],cell[2],normal[0],normal[1],normal[2]};
+            auto boxes=MapShapeBoxes(cell[0],cell[1],cell[2]);RayCollision closest{};closest.distance=8;
+            for(int i=0;i<boxes.count;++i){auto hit=GetRayCollisionBox({origin,direction},boxes.boxes[i]);if(hit.hit&&hit.distance<closest.distance)closest=hit;}
+            if(closest.hit&&closest.distance<=7)return {true,cell[0],cell[1],cell[2],int(closest.normal.x),int(closest.normal.y),int(closest.normal.z)};
+        }
         int axis=next[0]<next[1]?0:1; if(next[2]<next[axis]) axis=2;
         distance=next[axis]; cell[axis]+=step[axis]; next[axis]+=delta[axis];
         normal[0]=normal[1]=normal[2]=0; normal[axis]=-step[axis];

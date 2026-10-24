@@ -1,9 +1,17 @@
 #include "renderer.h"
+#include "ui.h"
+#include "chest.h"
+#include "crafting.h"
+#include "settings.h"
+#include <rlgl.h>
 #include <cstdio>
+#include <cstdarg>
+#include <cstring>
+namespace {int allocations=0,releases=0;void CountMeshLogs(int,const char* format,va_list args){char line[1024];std::vsnprintf(line,sizeof(line),format,args);if(std::strstr(line,"Mesh uploaded successfully"))++allocations;if(std::strstr(line,"Unloaded vertex array"))++releases;}}
 int main() {
     using namespace game;
     SetConfigFlags(FLAG_WINDOW_HIDDEN);
-    InitWindow(160,120,"MineClone renderer test");
+    InitWindow(720,480,"MineClone renderer test");
     if(!IsWindowReady()) return 1;
     int result=0;
     {
@@ -25,11 +33,55 @@ int main() {
                 Change(3+i%4,5,9+i/4,wool);
             }
             UnloadImage(atlas);
+            Change(10,5,9,CraftingTable);Change(11,5,9,IronOre);Change(12,5,9,Furnace);
+            Change(9,5,9,Chest);(*ChestAt(9,5,9))[0]={RedWool,64};
             Camera3D camera{{9,9,12},{6,5,6},{0,1,0},70,CAMERA_PERSPECTIVE};
             for(int i=0;i<4;++i) {
                 WorldTime=DayDuration*i*.25f;
                 BeginDrawing();renderer.Draw(camera,{});EndDrawing();
             }
+            WorldTime=DayDuration*.25f;
+            const Block heldItems[]={Air,Grass,IronSword,IronPickaxe};
+            const char* handFiles[]={"build/hand-empty.png","build/hand-block.png","build/hand-sword.png","build/hand-pickaxe.png"};
+            for(int i=0;i<4;++i) for(int frame=0;frame<8;++frame) {
+                BeginDrawing();renderer.Draw(camera,{});renderer.DrawFirstPerson(camera,heldItems[i],false,false,.05f);
+                if(frame==7) {rlDrawRenderBatchActive();Image capture=LoadImageFromScreen();ExportImage(capture,handFiles[i]);UnloadImage(capture);}
+                EndDrawing();
+            }
+            for(int frame=0;frame<3;++frame) {
+                BeginDrawing();renderer.Draw(camera,{});
+                renderer.DrawFirstPerson(camera,IronSword,false,frame==0,.05f);
+                if(frame==2) {rlDrawRenderBatchActive();Image capture=LoadImageFromScreen();ExportImage(capture,"build/hand-sword-attack.png");UnloadImage(capture);}
+                EndDrawing();
+            }
+            const bool fogBefore=Settings.fogEnabled;
+            Settings.fogEnabled=false;Settings.renderChunks=6;
+            BeginDrawing();renderer.Draw(camera,{});EndDrawing();
+            Settings.fogEnabled=fogBefore;
+            for(int frame=0;frame<16;++frame){BeginDrawing();renderer.Draw(camera,{});EndDrawing();}
+            allocations=releases=0;SetTraceLogCallback(CountMeshLogs);
+            for(int edit=0;edit<20;++edit){Change(6,4,6,edit%2?Dirt:Stone);BeginDrawing();renderer.Draw(camera,{});EndDrawing();}
+            SetTraceLogCallback(nullptr);
+            if(allocations||releases){std::fprintf(stderr,"FAIL: same-size chunk edits reallocated GPU buffers (%d/%d)\n",allocations,releases);result=1;}
+            UI ui;
+            BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Keyboard);rlDrawRenderBatchActive();Image keyboard=LoadImageFromScreen();ExportImage(keyboard,"build/keyboard-options.png");UnloadImage(keyboard);EndDrawing();
+            BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Options);
+            rlDrawRenderBatchActive();Image options=LoadImageFromScreen();ExportImage(options,"build/options-preview.png");UnloadImage(options);EndDrawing();
+            BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Multiplayer);
+            rlDrawRenderBatchActive();Image multiplayer=LoadImageFromScreen();ExportImage(multiplayer,"build/multiplayer-preview.png");UnloadImage(multiplayer);EndDrawing();
+            ui.OpenChest(9,5,9);
+            BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::ChestScreen);
+            rlDrawRenderBatchActive();
+            Image preview=LoadImageFromScreen();ExportImage(preview,"build/chest-preview.png");UnloadImage(preview);
+            EndDrawing();
+            BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Inventory);
+            rlDrawRenderBatchActive();preview=LoadImageFromScreen();
+            ExportImage(preview,"build/inventory-preview.png");UnloadImage(preview);EndDrawing();
+            WorkbenchCrafting[1]={IronIngot,1};WorkbenchCrafting[4]={IronIngot,1};WorkbenchCrafting[7]={Stick,1};
+            BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::CraftScreen);
+            rlDrawRenderBatchActive();preview=LoadImageFromScreen();ExportImage(preview,"build/crafting-preview.png");UnloadImage(preview);EndDrawing();
+            ui.OpenChest(12,5,9);FurnaceAt(12,5,9)->slots[0]={IronOre,2};
+            BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::FurnaceScreen);EndDrawing();
         }
     }
     CloseWindow();

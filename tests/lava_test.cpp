@@ -42,7 +42,7 @@ int main() {
     // Reconstruct an older save containing the original static lava block.
     std::ifstream input(path,std::ios::binary);
     std::vector<unsigned char> data((std::istreambuf_iterator<char>(input)),{});input.close();
-    data.resize(data.size()-12);data[6]=5;
+    data.resize(24+size_t(Width)*Height*Width*3+24+4);data[6]=5;
     constexpr size_t cells=size_t(Width)*Height*Width;
     for(size_t i=0;i<cells;++i) if(data[24+i]==Lava) {data[24+cells+i]=0;data[24+2*cells+i]=0;}
     uint32_t checksum=2166136261u;

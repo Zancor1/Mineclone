@@ -1,0 +1,17 @@
+Minecraft data reference tables
+Source: https://github.com/PrismarineJS/minecraft-data
+Commit: 1df9432c07c81b47326e4fb1e06d3c8d723bf4aa
+Files: data/pc/1.8/blocks.json data/pc/1.8/items.json and data/pc/1.8/protocol.json
+
+The upstream README declares these tables under MIT:
+https://github.com/PrismarineJS/minecraft-data/blob/1df9432c07c81b47326e4fb1e06d3c8d723bf4aa/README.md#license
+
+Upstream license section:
+"MIT
+Some of the data was extracted manually or automatically from wiki.vg and
+minecraft.gamepedia.com.
+If required by one of the sources the license might change to something more
+appropriate."
+
+These reference records do not contain Minecraft code or texture assets.
+Names and identifiers are used to describe compatibility with Minecraft.

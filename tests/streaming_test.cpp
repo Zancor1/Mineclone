@@ -46,28 +46,28 @@ int main() {
     GenerateWorld(47183);WorldTime=412.5f;
     Change(8,77,8,BlackWool);Change(7,77,8,Lava);Change(9,77,8,Water);
     Change(72,77,64,PinkWool);
-    pose.position={90.5f,76.f,64.5f};pose.flying=true;
+    pose.position={Width*.5f+26.5f,76.f,Width*.5f+.5f};pose.flying=true;
     Check(SaveWorld(save,pose),"save initial edited world");
     bool shifted=false;
     Check(StreamWorld(pose,save,shifted)&&shifted,"crossing margin streams next chunks");
-    Check(RegionOriginX==32&&RegionOriginZ==0&&pose.position.x==58.5f,"world and player rebase together");
+    Check(RegionOriginX==32&&RegionOriginZ==0&&pose.position.x==Width*.5f-5.5f,"world and player rebase together");
     Check(At(40,77,64)==PinkWool,"overlapping constructions survive recenter");
     Check(WorldTime==412.5f&&pose.flying,"streaming preserves clock and flight");
     PlayerState loaded;
-    Check(LoadWorld(save,&loaded)&&RegionOriginX==32&&loaded.position.x==58.5f&&loaded.flying,
+    Check(LoadWorld(save,&loaded)&&RegionOriginX==32&&loaded.position.x==Width*.5f-5.5f&&loaded.flying,
           "origin, player and flight survive reload");
-    pose=loaded;pose.position.x=39.5f;
+    pose=loaded;pose.position.x=Width*.5f-24.5f;
     Check(StreamWorld(pose,save,shifted)&&shifted&&RegionOriginX==0,"return streams archived chunks");
     Check(At(8,77,8)==BlackWool&&IsLavaSource(7,77,8)&&IsWaterSource(9,77,8),
           "return restores offloaded blocks and fluid sources");
-    pose.position={39.5f,76.f,39.5f};
+    pose.position={Width*.5f-24.5f,76.f,Width*.5f-24.5f};
     Check(StreamWorld(pose,save,shifted)&&RegionOriginX==-32&&RegionOriginZ==-32,
           "streaming supports negative origins and diagonal travel");
     Check(At(40,77,40)==BlackWool,"diagonal overlap maps old coordinates correctly");
     Check(LoadWorld(save,&loaded)&&RegionOriginX==-32&&RegionOriginZ==-32,
           "negative origins survive save round trip");
     // Revisit the same coordinate after unload: generation and edits remain stable.
-    pose=loaded;pose.position={90.5f,76.f,90.5f};
+    pose=loaded;pose.position={Width*.5f+26.5f,76.f,Width*.5f+26.5f};
     Check(StreamWorld(pose,save,shifted)&&RegionOriginX==0&&RegionOriginZ==0,
           "return from negative region restores original origin");
     Check(At(8,77,8)==BlackWool,"repeated visits preserve edits");
@@ -75,7 +75,7 @@ int main() {
     auto archive=std::filesystem::path(save+".chunks")/"-2_0.chunk";
     Check(std::filesystem::exists(archive),"negative region archive exists");
     {std::ofstream corrupt(archive,std::ios::trunc);corrupt<<"broken";}
-    pose.position.x=39.5f;shifted=false;
+    pose.position.x=Width*.5f-24.5f;shifted=false;
     Check(!StreamWorld(pose,save,shifted)&&!shifted&&RegionOriginX==0&&At(8,77,8)==BlackWool,
           "corrupt archive cannot replace active world");
     std::filesystem::remove_all(folder);

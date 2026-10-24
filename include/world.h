@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 namespace game {
-constexpr int Width=128, Height=80, ChunkSize=16, ChunkCount=Width/ChunkSize;
+constexpr int Width=256, Height=80, ChunkSize=16, ChunkCount=Width/ChunkSize;
 constexpr int SeaLevel=23;
 enum class Biome { Plains, Forest, Desert, Mountains };
 extern unsigned char World[Width][Height][Width];
@@ -25,6 +25,9 @@ extern std::array<uint64_t,ChunkCount*ChunkCount> ChunkVersions;
 extern uint32_t Seed;
 extern int32_t RegionOriginX,RegionOriginZ;
 bool StreamWorld(PlayerState& player,const std::string& savePath,bool& shifted);
+void ClearRemoteWorld(bool inventory=true);
+void SetRemoteBlock(int x,int y,int z,Block block);
+void ApplyRemoteChunk(int cx,int cz,const std::vector<Block>& blocks);
 bool Inside(int x,int y,int z);
 Block At(int x,int y,int z);
 uint32_t Hash(int x,int z,int salt=0);

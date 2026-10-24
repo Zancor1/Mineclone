@@ -1,0 +1,5686 @@
+{
+  "target": "Java 1.8.x / 1.8.9",
+  "source": "PrismarineJS/minecraft-data data/pc/1.8",
+  "sourceCommit": "1df9432c07c81b47326e4fb1e06d3c8d723bf4aa",
+  "entries": [
+    {
+      "id": 1,
+      "metadata": 0,
+      "name": "stone",
+      "displayName": "Stone",
+      "stackSize": 64,
+      "mineclone": "Stone",
+      "kind": "item"
+    },
+    {
+      "id": 1,
+      "metadata": 1,
+      "name": "stone",
+      "displayName": "Granite",
+      "stackSize": 64,
+      "mineclone": "Granite",
+      "kind": "item"
+    },
+    {
+      "id": 1,
+      "metadata": 2,
+      "name": "stone",
+      "displayName": "Polished Granite",
+      "stackSize": 64,
+      "mineclone": "PolishedGranite",
+      "kind": "item"
+    },
+    {
+      "id": 1,
+      "metadata": 3,
+      "name": "stone",
+      "displayName": "Diorite",
+      "stackSize": 64,
+      "mineclone": "Diorite",
+      "kind": "item"
+    },
+    {
+      "id": 1,
+      "metadata": 4,
+      "name": "stone",
+      "displayName": "Polished Diorite",
+      "stackSize": 64,
+      "mineclone": "PolishedDiorite",
+      "kind": "item"
+    },
+    {
+      "id": 1,
+      "metadata": 5,
+      "name": "stone",
+      "displayName": "Andesite",
+      "stackSize": 64,
+      "mineclone": "Andesite",
+      "kind": "item"
+    },
+    {
+      "id": 1,
+      "metadata": 6,
+      "name": "stone",
+      "displayName": "Polished Andesite",
+      "stackSize": 64,
+      "mineclone": "PolishedAndesite",
+      "kind": "item"
+    },
+    {
+      "id": 2,
+      "metadata": 0,
+      "name": "grass",
+      "displayName": "Grass Block",
+      "stackSize": 64,
+      "mineclone": "Grass",
+      "kind": "item"
+    },
+    {
+      "id": 3,
+      "metadata": 0,
+      "name": "dirt",
+      "displayName": "Dirt",
+      "stackSize": 64,
+      "mineclone": "Dirt",
+      "kind": "item"
+    },
+    {
+      "id": 3,
+      "metadata": 1,
+      "name": "dirt",
+      "displayName": "Coarse Dirt",
+      "stackSize": 64,
+      "mineclone": "CoarseDirt",
+      "kind": "item"
+    },
+    {
+      "id": 3,
+      "metadata": 2,
+      "name": "dirt",
+      "displayName": "Podzol",
+      "stackSize": 64,
+      "mineclone": "Podzol",
+      "kind": "item"
+    },
+    {
+      "id": 4,
+      "metadata": 0,
+      "name": "cobblestone",
+      "displayName": "Cobblestone",
+      "stackSize": 64,
+      "mineclone": "Cobblestone",
+      "kind": "item"
+    },
+    {
+      "id": 5,
+      "metadata": 0,
+      "name": "planks",
+      "displayName": "Oak Wood Planks",
+      "stackSize": 64,
+      "mineclone": "Planks",
+      "kind": "item"
+    },
+    {
+      "id": 5,
+      "metadata": 1,
+      "name": "planks",
+      "displayName": "Spruce Wood Planks",
+      "stackSize": 64,
+      "mineclone": "SpruceWoodPlanks",
+      "kind": "item"
+    },
+    {
+      "id": 5,
+      "metadata": 2,
+      "name": "planks",
+      "displayName": "Birch Wood Planks",
+      "stackSize": 64,
+      "mineclone": "BirchWoodPlanks",
+      "kind": "item"
+    },
+    {
+      "id": 5,
+      "metadata": 3,
+      "name": "planks",
+      "displayName": "Jungle Wood Planks",
+      "stackSize": 64,
+      "mineclone": "JungleWoodPlanks",
+      "kind": "item"
+    },
+    {
+      "id": 5,
+      "metadata": 4,
+      "name": "planks",
+      "displayName": "Acacia Wood Planks",
+      "stackSize": 64,
+      "mineclone": "AcaciaPlanks",
+      "kind": "item"
+    },
+    {
+      "id": 5,
+      "metadata": 5,
+      "name": "planks",
+      "displayName": "Dark Oak Wood Planks",
+      "stackSize": 64,
+      "mineclone": "DarkOakPlanks",
+      "kind": "item"
+    },
+    {
+      "id": 6,
+      "metadata": 0,
+      "name": "sapling",
+      "displayName": "Oak Sapling",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 6,
+      "metadata": 1,
+      "name": "sapling",
+      "displayName": "Spruce Sapling",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 6,
+      "metadata": 2,
+      "name": "sapling",
+      "displayName": "Birch Sapling",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 6,
+      "metadata": 3,
+      "name": "sapling",
+      "displayName": "Jungle Sapling",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 6,
+      "metadata": 4,
+      "name": "sapling",
+      "displayName": "Acacia Sapling",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 6,
+      "metadata": 5,
+      "name": "sapling",
+      "displayName": "Dark Oak Sapling",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 7,
+      "metadata": 0,
+      "name": "bedrock",
+      "displayName": "Bedrock",
+      "stackSize": 64,
+      "mineclone": "Bedrock",
+      "kind": "item"
+    },
+    {
+      "id": 12,
+      "metadata": 0,
+      "name": "sand",
+      "displayName": "Sand",
+      "stackSize": 64,
+      "mineclone": "Sand",
+      "kind": "item"
+    },
+    {
+      "id": 12,
+      "metadata": 1,
+      "name": "sand",
+      "displayName": "Red Sand",
+      "stackSize": 64,
+      "mineclone": "RedSand",
+      "kind": "item"
+    },
+    {
+      "id": 13,
+      "metadata": 0,
+      "name": "gravel",
+      "displayName": "Gravel",
+      "stackSize": 64,
+      "mineclone": "Gravel",
+      "kind": "item"
+    },
+    {
+      "id": 14,
+      "metadata": 0,
+      "name": "gold_ore",
+      "displayName": "Gold Ore",
+      "stackSize": 64,
+      "mineclone": "GoldOre",
+      "kind": "item"
+    },
+    {
+      "id": 15,
+      "metadata": 0,
+      "name": "iron_ore",
+      "displayName": "Iron Ore",
+      "stackSize": 64,
+      "mineclone": "IronOre",
+      "kind": "item"
+    },
+    {
+      "id": 16,
+      "metadata": 0,
+      "name": "coal_ore",
+      "displayName": "Coal Ore",
+      "stackSize": 64,
+      "mineclone": "CoalOre",
+      "kind": "item"
+    },
+    {
+      "id": 17,
+      "metadata": 0,
+      "name": "log",
+      "displayName": "Oak Wood",
+      "stackSize": 64,
+      "mineclone": "Wood",
+      "kind": "item"
+    },
+    {
+      "id": 17,
+      "metadata": 1,
+      "name": "log",
+      "displayName": "Spruce Wood",
+      "stackSize": 64,
+      "mineclone": "SpruceWood",
+      "kind": "item"
+    },
+    {
+      "id": 17,
+      "metadata": 2,
+      "name": "log",
+      "displayName": "Birch Wood",
+      "stackSize": 64,
+      "mineclone": "BirchWood",
+      "kind": "item"
+    },
+    {
+      "id": 17,
+      "metadata": 3,
+      "name": "log",
+      "displayName": "Jungle Wood",
+      "stackSize": 64,
+      "mineclone": "JungleWood",
+      "kind": "item"
+    },
+    {
+      "id": 18,
+      "metadata": 0,
+      "name": "leaves",
+      "displayName": "Oak Leaves",
+      "stackSize": 64,
+      "mineclone": "Leaves",
+      "kind": "item"
+    },
+    {
+      "id": 18,
+      "metadata": 1,
+      "name": "leaves",
+      "displayName": "Spruce Leaves",
+      "stackSize": 64,
+      "mineclone": "SpruceLeaves",
+      "kind": "item"
+    },
+    {
+      "id": 18,
+      "metadata": 2,
+      "name": "leaves",
+      "displayName": "Birch Leaves",
+      "stackSize": 64,
+      "mineclone": "BirchLeaves",
+      "kind": "item"
+    },
+    {
+      "id": 18,
+      "metadata": 3,
+      "name": "leaves",
+      "displayName": "Jungle Leaves",
+      "stackSize": 64,
+      "mineclone": "JungleLeaves",
+      "kind": "item"
+    },
+    {
+      "id": 19,
+      "metadata": 0,
+      "name": "sponge",
+      "displayName": "Sponge",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 19,
+      "metadata": 1,
+      "name": "sponge",
+      "displayName": "Wet Sponge",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 20,
+      "metadata": 0,
+      "name": "glass",
+      "displayName": "Glass",
+      "stackSize": 64,
+      "mineclone": "Glass",
+      "kind": "item"
+    },
+    {
+      "id": 21,
+      "metadata": 0,
+      "name": "lapis_ore",
+      "displayName": "Lapis Lazuli Ore",
+      "stackSize": 64,
+      "mineclone": "LapisLazuliOre",
+      "kind": "item"
+    },
+    {
+      "id": 22,
+      "metadata": 0,
+      "name": "lapis_block",
+      "displayName": "Lapis Lazuli Block",
+      "stackSize": 64,
+      "mineclone": "LapisLazuliBlock",
+      "kind": "item"
+    },
+    {
+      "id": 23,
+      "metadata": 0,
+      "name": "dispenser",
+      "displayName": "Dispenser",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 24,
+      "metadata": 0,
+      "name": "sandstone",
+      "displayName": "Sandstone",
+      "stackSize": 64,
+      "mineclone": "Sandstone",
+      "kind": "item"
+    },
+    {
+      "id": 24,
+      "metadata": 1,
+      "name": "sandstone",
+      "displayName": "Chiseled Sandstone",
+      "stackSize": 64,
+      "mineclone": "ChiseledSandstone",
+      "kind": "item"
+    },
+    {
+      "id": 24,
+      "metadata": 2,
+      "name": "sandstone",
+      "displayName": "Smooth Sandstone",
+      "stackSize": 64,
+      "mineclone": "SmoothSandstone",
+      "kind": "item"
+    },
+    {
+      "id": 25,
+      "metadata": 0,
+      "name": "noteblock",
+      "displayName": "Note Block",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 27,
+      "metadata": 0,
+      "name": "golden_rail",
+      "displayName": "Powered Rail",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 28,
+      "metadata": 0,
+      "name": "detector_rail",
+      "displayName": "Detector Rail",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 29,
+      "metadata": 0,
+      "name": "sticky_piston",
+      "displayName": "Sticky Piston",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 30,
+      "metadata": 0,
+      "name": "web",
+      "displayName": "Cobweb",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 31,
+      "metadata": 0,
+      "name": "tallgrass",
+      "displayName": "Shrub",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 31,
+      "metadata": 1,
+      "name": "tallgrass",
+      "displayName": "Tall Grass",
+      "stackSize": 64,
+      "mineclone": "TallGrass",
+      "kind": "item"
+    },
+    {
+      "id": 31,
+      "metadata": 2,
+      "name": "tallgrass",
+      "displayName": "Fern",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 32,
+      "metadata": 0,
+      "name": "deadbush",
+      "displayName": "Dead Bush",
+      "stackSize": 64,
+      "mineclone": "DeadBush",
+      "kind": "item"
+    },
+    {
+      "id": 33,
+      "metadata": 0,
+      "name": "piston",
+      "displayName": "Piston",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 0,
+      "name": "wool",
+      "displayName": "White Wool",
+      "stackSize": 64,
+      "mineclone": "WhiteWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 1,
+      "name": "wool",
+      "displayName": "Orange Wool",
+      "stackSize": 64,
+      "mineclone": "OrangeWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 2,
+      "name": "wool",
+      "displayName": "Magenta Wool",
+      "stackSize": 64,
+      "mineclone": "MagentaWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 3,
+      "name": "wool",
+      "displayName": "Light blue Wool",
+      "stackSize": 64,
+      "mineclone": "LightBlueWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 4,
+      "name": "wool",
+      "displayName": "Yellow Wool",
+      "stackSize": 64,
+      "mineclone": "YellowWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 5,
+      "name": "wool",
+      "displayName": "Lime Wool",
+      "stackSize": 64,
+      "mineclone": "LimeWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 6,
+      "name": "wool",
+      "displayName": "Pink Wool",
+      "stackSize": 64,
+      "mineclone": "PinkWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 7,
+      "name": "wool",
+      "displayName": "Gray Wool",
+      "stackSize": 64,
+      "mineclone": "GrayWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 8,
+      "name": "wool",
+      "displayName": "Light gray Wool",
+      "stackSize": 64,
+      "mineclone": "LightGrayWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 9,
+      "name": "wool",
+      "displayName": "Cyan Wool",
+      "stackSize": 64,
+      "mineclone": "CyanWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 10,
+      "name": "wool",
+      "displayName": "Purple Wool",
+      "stackSize": 64,
+      "mineclone": "PurpleWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 11,
+      "name": "wool",
+      "displayName": "Blue Wool",
+      "stackSize": 64,
+      "mineclone": "BlueWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 12,
+      "name": "wool",
+      "displayName": "Brown Wool",
+      "stackSize": 64,
+      "mineclone": "BrownWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 13,
+      "name": "wool",
+      "displayName": "Green Wool",
+      "stackSize": 64,
+      "mineclone": "GreenWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 14,
+      "name": "wool",
+      "displayName": "Red Wool",
+      "stackSize": 64,
+      "mineclone": "RedWool",
+      "kind": "item"
+    },
+    {
+      "id": 35,
+      "metadata": 15,
+      "name": "wool",
+      "displayName": "Black Wool",
+      "stackSize": 64,
+      "mineclone": "BlackWool",
+      "kind": "item"
+    },
+    {
+      "id": 37,
+      "metadata": 0,
+      "name": "yellow_flower",
+      "displayName": "Dandelion",
+      "stackSize": 64,
+      "mineclone": "Dandelion",
+      "kind": "item"
+    },
+    {
+      "id": 38,
+      "metadata": 0,
+      "name": "red_flower",
+      "displayName": "Poppy",
+      "stackSize": 64,
+      "mineclone": "Rose",
+      "kind": "item"
+    },
+    {
+      "id": 38,
+      "metadata": 1,
+      "name": "red_flower",
+      "displayName": "Blue Orchid",
+      "stackSize": 64,
+      "mineclone": "Orchid",
+      "kind": "item"
+    },
+    {
+      "id": 38,
+      "metadata": 2,
+      "name": "red_flower",
+      "displayName": "Allium",
+      "stackSize": 64,
+      "mineclone": "Allium",
+      "kind": "item"
+    },
+    {
+      "id": 38,
+      "metadata": 3,
+      "name": "red_flower",
+      "displayName": "Azure Bluet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 38,
+      "metadata": 4,
+      "name": "red_flower",
+      "displayName": "Red Tulip",
+      "stackSize": 64,
+      "mineclone": "RedTulip",
+      "kind": "item"
+    },
+    {
+      "id": 38,
+      "metadata": 5,
+      "name": "red_flower",
+      "displayName": "Orange Tulip",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 38,
+      "metadata": 6,
+      "name": "red_flower",
+      "displayName": "White Tulip",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 38,
+      "metadata": 7,
+      "name": "red_flower",
+      "displayName": "Pink Tulip",
+      "stackSize": 64,
+      "mineclone": "PinkTulip",
+      "kind": "item"
+    },
+    {
+      "id": 38,
+      "metadata": 8,
+      "name": "red_flower",
+      "displayName": "Oxeye Daisy",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 39,
+      "metadata": 0,
+      "name": "brown_mushroom",
+      "displayName": "Brown Mushroom",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 40,
+      "metadata": 0,
+      "name": "red_mushroom",
+      "displayName": "Red Mushroom",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 41,
+      "metadata": 0,
+      "name": "gold_block",
+      "displayName": "Block of Gold",
+      "stackSize": 64,
+      "mineclone": "BlockOfGold",
+      "kind": "item"
+    },
+    {
+      "id": 42,
+      "metadata": 0,
+      "name": "iron_block",
+      "displayName": "Block of Iron",
+      "stackSize": 64,
+      "mineclone": "BlockOfIron",
+      "kind": "item"
+    },
+    {
+      "id": 44,
+      "metadata": 0,
+      "name": "stone_slab",
+      "displayName": "Stone Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 44,
+      "metadata": 1,
+      "name": "stone_slab",
+      "displayName": "Sandstone Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 44,
+      "metadata": 2,
+      "name": "stone_slab",
+      "displayName": "Wooden Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 44,
+      "metadata": 3,
+      "name": "stone_slab",
+      "displayName": "Cobblestone Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 44,
+      "metadata": 4,
+      "name": "stone_slab",
+      "displayName": "Bricks Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 44,
+      "metadata": 5,
+      "name": "stone_slab",
+      "displayName": "Stone Bricks Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 44,
+      "metadata": 6,
+      "name": "stone_slab",
+      "displayName": "Nether Brick Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 44,
+      "metadata": 7,
+      "name": "stone_slab",
+      "displayName": "Quartz Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 45,
+      "metadata": 0,
+      "name": "brick_block",
+      "displayName": "Brick",
+      "stackSize": 64,
+      "mineclone": "Bricks",
+      "kind": "item"
+    },
+    {
+      "id": 46,
+      "metadata": 0,
+      "name": "tnt",
+      "displayName": "TNT",
+      "stackSize": 64,
+      "mineclone": "Tnt",
+      "kind": "item"
+    },
+    {
+      "id": 47,
+      "metadata": 0,
+      "name": "bookshelf",
+      "displayName": "Bookshelf",
+      "stackSize": 64,
+      "mineclone": "Bookshelf",
+      "kind": "item"
+    },
+    {
+      "id": 48,
+      "metadata": 0,
+      "name": "mossy_cobblestone",
+      "displayName": "Moss Stone",
+      "stackSize": 64,
+      "mineclone": "MossStone",
+      "kind": "item"
+    },
+    {
+      "id": 49,
+      "metadata": 0,
+      "name": "obsidian",
+      "displayName": "Obsidian",
+      "stackSize": 64,
+      "mineclone": "Obsidian",
+      "kind": "item"
+    },
+    {
+      "id": 50,
+      "metadata": 0,
+      "name": "torch",
+      "displayName": "Torch",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 52,
+      "metadata": 0,
+      "name": "mob_spawner",
+      "displayName": "Monster Spawner",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 53,
+      "metadata": 0,
+      "name": "oak_stairs",
+      "displayName": "Oak Wood Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 54,
+      "metadata": 0,
+      "name": "chest",
+      "displayName": "Chest",
+      "stackSize": 64,
+      "mineclone": "Chest",
+      "kind": "item"
+    },
+    {
+      "id": 56,
+      "metadata": 0,
+      "name": "diamond_ore",
+      "displayName": "Diamond Ore",
+      "stackSize": 64,
+      "mineclone": "DiamondOre",
+      "kind": "item"
+    },
+    {
+      "id": 57,
+      "metadata": 0,
+      "name": "diamond_block",
+      "displayName": "Block of Diamond",
+      "stackSize": 64,
+      "mineclone": "BlockOfDiamond",
+      "kind": "item"
+    },
+    {
+      "id": 58,
+      "metadata": 0,
+      "name": "crafting_table",
+      "displayName": "Crafting Table",
+      "stackSize": 64,
+      "mineclone": "CraftingTable",
+      "kind": "item"
+    },
+    {
+      "id": 60,
+      "metadata": 0,
+      "name": "farmland",
+      "displayName": "Farmland",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 61,
+      "metadata": 0,
+      "name": "furnace",
+      "displayName": "Furnace",
+      "stackSize": 64,
+      "mineclone": "Furnace",
+      "kind": "item"
+    },
+    {
+      "id": 65,
+      "metadata": 0,
+      "name": "ladder",
+      "displayName": "Ladder",
+      "stackSize": 64,
+      "mineclone": "Ladder",
+      "kind": "item"
+    },
+    {
+      "id": 66,
+      "metadata": 0,
+      "name": "rail",
+      "displayName": "Rail",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 67,
+      "metadata": 0,
+      "name": "stone_stairs",
+      "displayName": "Cobblestone Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 69,
+      "metadata": 0,
+      "name": "lever",
+      "displayName": "Lever",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 70,
+      "metadata": 0,
+      "name": "stone_pressure_plate",
+      "displayName": "Stone Pressure Plate",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 72,
+      "metadata": 0,
+      "name": "wooden_pressure_plate",
+      "displayName": "Wooden Pressure Plate",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 73,
+      "metadata": 0,
+      "name": "redstone_ore",
+      "displayName": "Redstone Ore",
+      "stackSize": 64,
+      "mineclone": "RedstoneOre",
+      "kind": "item"
+    },
+    {
+      "id": 76,
+      "metadata": 0,
+      "name": "redstone_torch",
+      "displayName": "Redstone Torch",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 77,
+      "metadata": 0,
+      "name": "stone_button",
+      "displayName": "Stone Button",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 78,
+      "metadata": 0,
+      "name": "snow_layer",
+      "displayName": "Snow",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 79,
+      "metadata": 0,
+      "name": "ice",
+      "displayName": "Ice",
+      "stackSize": 64,
+      "mineclone": "Ice",
+      "kind": "item"
+    },
+    {
+      "id": 80,
+      "metadata": 0,
+      "name": "snow",
+      "displayName": "Snow",
+      "stackSize": 64,
+      "mineclone": "Snow",
+      "kind": "item"
+    },
+    {
+      "id": 81,
+      "metadata": 0,
+      "name": "cactus",
+      "displayName": "Cactus",
+      "stackSize": 64,
+      "mineclone": "Cactus",
+      "kind": "item"
+    },
+    {
+      "id": 82,
+      "metadata": 0,
+      "name": "clay",
+      "displayName": "Clay",
+      "stackSize": 64,
+      "mineclone": "Clay",
+      "kind": "item"
+    },
+    {
+      "id": 84,
+      "metadata": 0,
+      "name": "jukebox",
+      "displayName": "Jukebox",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 85,
+      "metadata": 0,
+      "name": "fence",
+      "displayName": "Oak Fence",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 86,
+      "metadata": 0,
+      "name": "pumpkin",
+      "displayName": "Pumpkin",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 87,
+      "metadata": 0,
+      "name": "netherrack",
+      "displayName": "Netherrack",
+      "stackSize": 64,
+      "mineclone": "Netherrack",
+      "kind": "item"
+    },
+    {
+      "id": 88,
+      "metadata": 0,
+      "name": "soul_sand",
+      "displayName": "Soul Sand",
+      "stackSize": 64,
+      "mineclone": "SoulSand",
+      "kind": "item"
+    },
+    {
+      "id": 89,
+      "metadata": 0,
+      "name": "glowstone",
+      "displayName": "Glowstone",
+      "stackSize": 64,
+      "mineclone": "Glowstone",
+      "kind": "item"
+    },
+    {
+      "id": 91,
+      "metadata": 0,
+      "name": "lit_pumpkin",
+      "displayName": "Jack o'Lantern",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 0,
+      "name": "stained_glass",
+      "displayName": "White Stained Glass",
+      "stackSize": 64,
+      "mineclone": "WhiteStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 1,
+      "name": "stained_glass",
+      "displayName": "Orange Stained Glass",
+      "stackSize": 64,
+      "mineclone": "OrangeStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 2,
+      "name": "stained_glass",
+      "displayName": "Magenta Stained Glass",
+      "stackSize": 64,
+      "mineclone": "MagentaStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 3,
+      "name": "stained_glass",
+      "displayName": "Light Blue Stained Glass",
+      "stackSize": 64,
+      "mineclone": "LightBlueStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 4,
+      "name": "stained_glass",
+      "displayName": "Yellow Stained Glass",
+      "stackSize": 64,
+      "mineclone": "YellowStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 5,
+      "name": "stained_glass",
+      "displayName": "Lime Stained Glass",
+      "stackSize": 64,
+      "mineclone": "LimeStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 6,
+      "name": "stained_glass",
+      "displayName": "Pink Stained Glass",
+      "stackSize": 64,
+      "mineclone": "PinkStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 7,
+      "name": "stained_glass",
+      "displayName": "Gray Stained Glass",
+      "stackSize": 64,
+      "mineclone": "GrayStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 8,
+      "name": "stained_glass",
+      "displayName": "Light Gray Stained Glass",
+      "stackSize": 64,
+      "mineclone": "LightGrayStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 9,
+      "name": "stained_glass",
+      "displayName": "Cyan Stained Glass",
+      "stackSize": 64,
+      "mineclone": "CyanStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 10,
+      "name": "stained_glass",
+      "displayName": "Purple Stained Glass",
+      "stackSize": 64,
+      "mineclone": "PurpleStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 11,
+      "name": "stained_glass",
+      "displayName": "Blue Stained Glass",
+      "stackSize": 64,
+      "mineclone": "BlueStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 12,
+      "name": "stained_glass",
+      "displayName": "Brown Stained Glass",
+      "stackSize": 64,
+      "mineclone": "BrownStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 13,
+      "name": "stained_glass",
+      "displayName": "Green Stained Glass",
+      "stackSize": 64,
+      "mineclone": "GreenStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 14,
+      "name": "stained_glass",
+      "displayName": "Red Stained Glass",
+      "stackSize": 64,
+      "mineclone": "RedStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 95,
+      "metadata": 15,
+      "name": "stained_glass",
+      "displayName": "Black Stained Glass",
+      "stackSize": 64,
+      "mineclone": "BlackStainedGlass",
+      "kind": "item"
+    },
+    {
+      "id": 96,
+      "metadata": 0,
+      "name": "trapdoor",
+      "displayName": "Wooden Trapdoor",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 97,
+      "metadata": 0,
+      "name": "monster_egg",
+      "displayName": "Stone Monster Egg",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 97,
+      "metadata": 1,
+      "name": "monster_egg",
+      "displayName": "Cobblestone Monster Egg",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 97,
+      "metadata": 2,
+      "name": "monster_egg",
+      "displayName": "Stone Brick Monster Egg",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 97,
+      "metadata": 3,
+      "name": "monster_egg",
+      "displayName": "Mossy Stone Brick Monster Egg",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 97,
+      "metadata": 4,
+      "name": "monster_egg",
+      "displayName": "Cracked Stone Brick Monster Egg",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 97,
+      "metadata": 5,
+      "name": "monster_egg",
+      "displayName": "Chiseled Stone Brick Monster Egg",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 98,
+      "metadata": 0,
+      "name": "stonebrick",
+      "displayName": "Stone Bricks",
+      "stackSize": 64,
+      "mineclone": "StoneBricks",
+      "kind": "item"
+    },
+    {
+      "id": 98,
+      "metadata": 1,
+      "name": "stonebrick",
+      "displayName": "Mossy Stone Bricks",
+      "stackSize": 64,
+      "mineclone": "MossyStoneBricks",
+      "kind": "item"
+    },
+    {
+      "id": 98,
+      "metadata": 2,
+      "name": "stonebrick",
+      "displayName": "Cracked Stone Bricks",
+      "stackSize": 64,
+      "mineclone": "CrackedStoneBricks",
+      "kind": "item"
+    },
+    {
+      "id": 98,
+      "metadata": 3,
+      "name": "stonebrick",
+      "displayName": "Chiseled Stone Bricks",
+      "stackSize": 64,
+      "mineclone": "CarvedStone",
+      "kind": "item"
+    },
+    {
+      "id": 99,
+      "metadata": 0,
+      "name": "brown_mushroom_block",
+      "displayName": "Brown Mushroom Block",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 100,
+      "metadata": 0,
+      "name": "red_mushroom_block",
+      "displayName": "Red Mushroom Block",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 101,
+      "metadata": 0,
+      "name": "iron_bars",
+      "displayName": "Iron Bars",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 102,
+      "metadata": 0,
+      "name": "glass_pane",
+      "displayName": "Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 103,
+      "metadata": 0,
+      "name": "melon_block",
+      "displayName": "Melon",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 106,
+      "metadata": 0,
+      "name": "vine",
+      "displayName": "Vines",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 107,
+      "metadata": 0,
+      "name": "fence_gate",
+      "displayName": "Oak Fence Gate",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 108,
+      "metadata": 0,
+      "name": "brick_stairs",
+      "displayName": "Brick Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 109,
+      "metadata": 0,
+      "name": "stone_brick_stairs",
+      "displayName": "Stone Brick Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 110,
+      "metadata": 0,
+      "name": "mycelium",
+      "displayName": "Mycelium",
+      "stackSize": 64,
+      "mineclone": "Mycelium",
+      "kind": "item"
+    },
+    {
+      "id": 111,
+      "metadata": 0,
+      "name": "waterlily",
+      "displayName": "Lily Pad",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 112,
+      "metadata": 0,
+      "name": "nether_brick",
+      "displayName": "Nether Brick",
+      "stackSize": 64,
+      "mineclone": "NetherBrick",
+      "kind": "item"
+    },
+    {
+      "id": 113,
+      "metadata": 0,
+      "name": "nether_brick_fence",
+      "displayName": "Nether Brick Fence",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 114,
+      "metadata": 0,
+      "name": "nether_brick_stairs",
+      "displayName": "Nether Brick Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 116,
+      "metadata": 0,
+      "name": "enchanting_table",
+      "displayName": "Enchantment Table",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 120,
+      "metadata": 0,
+      "name": "end_portal_frame",
+      "displayName": "End Portal Frame",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 121,
+      "metadata": 0,
+      "name": "end_stone",
+      "displayName": "End Stone",
+      "stackSize": 64,
+      "mineclone": "EndStone",
+      "kind": "item"
+    },
+    {
+      "id": 122,
+      "metadata": 0,
+      "name": "dragon_egg",
+      "displayName": "Dragon Egg",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 123,
+      "metadata": 0,
+      "name": "redstone_lamp",
+      "displayName": "Redstone Lamp",
+      "stackSize": 64,
+      "mineclone": "LampOff",
+      "kind": "item"
+    },
+    {
+      "id": 126,
+      "metadata": 0,
+      "name": "wooden_slab",
+      "displayName": "Oak Wood Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 126,
+      "metadata": 1,
+      "name": "wooden_slab",
+      "displayName": "Spruce Wood Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 126,
+      "metadata": 2,
+      "name": "wooden_slab",
+      "displayName": "Birch Wood Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 126,
+      "metadata": 3,
+      "name": "wooden_slab",
+      "displayName": "Jungle Wood Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 126,
+      "metadata": 4,
+      "name": "wooden_slab",
+      "displayName": "Acacia Wood Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 126,
+      "metadata": 5,
+      "name": "wooden_slab",
+      "displayName": "Dark Oak Wood Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 128,
+      "metadata": 0,
+      "name": "sandstone_stairs",
+      "displayName": "Sandstone Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 129,
+      "metadata": 0,
+      "name": "emerald_ore",
+      "displayName": "Emerald Ore",
+      "stackSize": 64,
+      "mineclone": "EmeraldOre",
+      "kind": "item"
+    },
+    {
+      "id": 130,
+      "metadata": 0,
+      "name": "ender_chest",
+      "displayName": "Ender Chest",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 131,
+      "metadata": 0,
+      "name": "tripwire_hook",
+      "displayName": "Tripwire Hook",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 133,
+      "metadata": 0,
+      "name": "emerald_block",
+      "displayName": "Block of Emerald",
+      "stackSize": 64,
+      "mineclone": "BlockOfEmerald",
+      "kind": "item"
+    },
+    {
+      "id": 134,
+      "metadata": 0,
+      "name": "spruce_stairs",
+      "displayName": "Spruce Wood Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 135,
+      "metadata": 0,
+      "name": "birch_stairs",
+      "displayName": "Birch Wood Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 136,
+      "metadata": 0,
+      "name": "jungle_stairs",
+      "displayName": "Jungle Wood Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 137,
+      "metadata": 0,
+      "name": "command_block",
+      "displayName": "Command Block",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 138,
+      "metadata": 0,
+      "name": "beacon",
+      "displayName": "Beacon",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 139,
+      "metadata": 0,
+      "name": "cobblestone_wall",
+      "displayName": "Cobblestone Wall",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 139,
+      "metadata": 1,
+      "name": "cobblestone_wall",
+      "displayName": "Mossy Cobblestone Wall",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 143,
+      "metadata": 0,
+      "name": "wooden_button",
+      "displayName": "Wooden Button",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 145,
+      "metadata": 0,
+      "name": "anvil",
+      "displayName": "Anvil",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 145,
+      "metadata": 1,
+      "name": "anvil",
+      "displayName": "Slightly Damaged Anvil",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 145,
+      "metadata": 2,
+      "name": "anvil",
+      "displayName": "Very Damaged Anvil",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 146,
+      "metadata": 0,
+      "name": "trapped_chest",
+      "displayName": "Trapped Chest",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 147,
+      "metadata": 0,
+      "name": "light_weighted_pressure_plate",
+      "displayName": "Weighted Pressure Plate (Light)",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 148,
+      "metadata": 0,
+      "name": "heavy_weighted_pressure_plate",
+      "displayName": "Weighted Pressure Plate (Heavy)",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 151,
+      "metadata": 0,
+      "name": "daylight_detector",
+      "displayName": "Daylight Detector",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 152,
+      "metadata": 0,
+      "name": "redstone_block",
+      "displayName": "Block of Redstone",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 153,
+      "metadata": 0,
+      "name": "quartz_ore",
+      "displayName": "Nether Quartz",
+      "stackSize": 64,
+      "mineclone": "NetherQuartzOre",
+      "kind": "item"
+    },
+    {
+      "id": 154,
+      "metadata": 0,
+      "name": "hopper",
+      "displayName": "Hopper",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 155,
+      "metadata": 0,
+      "name": "quartz_block",
+      "displayName": "Block of Quartz",
+      "stackSize": 64,
+      "mineclone": "BlockOfQuartz",
+      "kind": "item"
+    },
+    {
+      "id": 155,
+      "metadata": 1,
+      "name": "quartz_block",
+      "displayName": "Chiseled Quartz Block",
+      "stackSize": 64,
+      "mineclone": "ChiseledQuartzBlock",
+      "kind": "item"
+    },
+    {
+      "id": 155,
+      "metadata": 2,
+      "name": "quartz_block",
+      "displayName": "Pillar Quartz Block",
+      "stackSize": 64,
+      "mineclone": "PillarQuartzBlock",
+      "kind": "item"
+    },
+    {
+      "id": 156,
+      "metadata": 0,
+      "name": "quartz_stairs",
+      "displayName": "Quartz Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 157,
+      "metadata": 0,
+      "name": "activator_rail",
+      "displayName": "Activator Rail",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 158,
+      "metadata": 0,
+      "name": "dropper",
+      "displayName": "Dropper",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 0,
+      "name": "stained_hardened_clay",
+      "displayName": "White Stained Clay",
+      "stackSize": 64,
+      "mineclone": "WhiteStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 1,
+      "name": "stained_hardened_clay",
+      "displayName": "Orange Stained Clay",
+      "stackSize": 64,
+      "mineclone": "OrangeStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 2,
+      "name": "stained_hardened_clay",
+      "displayName": "Magenta Stained Clay",
+      "stackSize": 64,
+      "mineclone": "MagentaStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 3,
+      "name": "stained_hardened_clay",
+      "displayName": "Light Blue Stained Clay",
+      "stackSize": 64,
+      "mineclone": "LightBlueStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 4,
+      "name": "stained_hardened_clay",
+      "displayName": "Yellow Stained Clay",
+      "stackSize": 64,
+      "mineclone": "YellowStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 5,
+      "name": "stained_hardened_clay",
+      "displayName": "Lime Stained Clay",
+      "stackSize": 64,
+      "mineclone": "LimeStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 6,
+      "name": "stained_hardened_clay",
+      "displayName": "Pink Stained Clay",
+      "stackSize": 64,
+      "mineclone": "PinkStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 7,
+      "name": "stained_hardened_clay",
+      "displayName": "Gray Stained Clay",
+      "stackSize": 64,
+      "mineclone": "GrayStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 8,
+      "name": "stained_hardened_clay",
+      "displayName": "Light Gray Stained Clay",
+      "stackSize": 64,
+      "mineclone": "LightGrayStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 9,
+      "name": "stained_hardened_clay",
+      "displayName": "Cyan Stained Clay",
+      "stackSize": 64,
+      "mineclone": "CyanStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 10,
+      "name": "stained_hardened_clay",
+      "displayName": "Purple Stained Clay",
+      "stackSize": 64,
+      "mineclone": "PurpleStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 11,
+      "name": "stained_hardened_clay",
+      "displayName": "Blue Stained Clay",
+      "stackSize": 64,
+      "mineclone": "BlueStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 12,
+      "name": "stained_hardened_clay",
+      "displayName": "Brown Stained Clay",
+      "stackSize": 64,
+      "mineclone": "BrownStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 13,
+      "name": "stained_hardened_clay",
+      "displayName": "Green Stained Clay",
+      "stackSize": 64,
+      "mineclone": "GreenStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 14,
+      "name": "stained_hardened_clay",
+      "displayName": "Red Stained Clay",
+      "stackSize": 64,
+      "mineclone": "RedStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 159,
+      "metadata": 15,
+      "name": "stained_hardened_clay",
+      "displayName": "Black Stained Clay",
+      "stackSize": 64,
+      "mineclone": "BlackStainedClay",
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 0,
+      "name": "stained_glass_pane",
+      "displayName": "White Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 1,
+      "name": "stained_glass_pane",
+      "displayName": "Orange Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 2,
+      "name": "stained_glass_pane",
+      "displayName": "Magenta Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 3,
+      "name": "stained_glass_pane",
+      "displayName": "Light Blue Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 4,
+      "name": "stained_glass_pane",
+      "displayName": "Yellow Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 5,
+      "name": "stained_glass_pane",
+      "displayName": "Lime Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 6,
+      "name": "stained_glass_pane",
+      "displayName": "Pink Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 7,
+      "name": "stained_glass_pane",
+      "displayName": "Gray Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 8,
+      "name": "stained_glass_pane",
+      "displayName": "Light Gray Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 9,
+      "name": "stained_glass_pane",
+      "displayName": "Cyan Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 10,
+      "name": "stained_glass_pane",
+      "displayName": "Purple Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 11,
+      "name": "stained_glass_pane",
+      "displayName": "Blue Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 12,
+      "name": "stained_glass_pane",
+      "displayName": "Brown Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 13,
+      "name": "stained_glass_pane",
+      "displayName": "Green Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 14,
+      "name": "stained_glass_pane",
+      "displayName": "Red Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 160,
+      "metadata": 15,
+      "name": "stained_glass_pane",
+      "displayName": "Black Stained Glass Pane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 161,
+      "metadata": 0,
+      "name": "leaves2",
+      "displayName": "Acacia Leaves",
+      "stackSize": 64,
+      "mineclone": "AcaciaLeaves",
+      "kind": "item"
+    },
+    {
+      "id": 161,
+      "metadata": 1,
+      "name": "leaves2",
+      "displayName": "Dark Oak Leaves",
+      "stackSize": 64,
+      "mineclone": "DarkOakLeaves",
+      "kind": "item"
+    },
+    {
+      "id": 162,
+      "metadata": 0,
+      "name": "log2",
+      "displayName": "Acacia Wood",
+      "stackSize": 64,
+      "mineclone": "AcaciaWood0",
+      "kind": "item"
+    },
+    {
+      "id": 162,
+      "metadata": 1,
+      "name": "log2",
+      "displayName": "Dark Oak Wood",
+      "stackSize": 64,
+      "mineclone": "DarkOakWood1",
+      "kind": "item"
+    },
+    {
+      "id": 163,
+      "metadata": 0,
+      "name": "acacia_stairs",
+      "displayName": "Acacia Wood Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 164,
+      "metadata": 0,
+      "name": "dark_oak_stairs",
+      "displayName": "Dark Oak Wood Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 165,
+      "metadata": 0,
+      "name": "slime",
+      "displayName": "Slime Block",
+      "stackSize": 64,
+      "mineclone": "Slime",
+      "kind": "item"
+    },
+    {
+      "id": 166,
+      "metadata": 0,
+      "name": "barrier",
+      "displayName": "Barrier",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 167,
+      "metadata": 0,
+      "name": "iron_trapdoor",
+      "displayName": "Iron Trapdoor",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 168,
+      "metadata": 0,
+      "name": "prismarine",
+      "displayName": "Prismarine",
+      "stackSize": 64,
+      "mineclone": "Prismarine",
+      "kind": "item"
+    },
+    {
+      "id": 168,
+      "metadata": 1,
+      "name": "prismarine",
+      "displayName": "Prismarine Bricks",
+      "stackSize": 64,
+      "mineclone": "PrismarineBricks",
+      "kind": "item"
+    },
+    {
+      "id": 168,
+      "metadata": 2,
+      "name": "prismarine",
+      "displayName": "Dark Prismarine",
+      "stackSize": 64,
+      "mineclone": "DarkPrismarine",
+      "kind": "item"
+    },
+    {
+      "id": 169,
+      "metadata": 0,
+      "name": "sea_lantern",
+      "displayName": "Sea Lantern",
+      "stackSize": 64,
+      "mineclone": "SeaLantern",
+      "kind": "item"
+    },
+    {
+      "id": 170,
+      "metadata": 0,
+      "name": "hay_block",
+      "displayName": "Hay Bale",
+      "stackSize": 64,
+      "mineclone": "HayBale",
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 0,
+      "name": "carpet",
+      "displayName": "White Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 1,
+      "name": "carpet",
+      "displayName": "Orange Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 2,
+      "name": "carpet",
+      "displayName": "Magenta Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 3,
+      "name": "carpet",
+      "displayName": "Light Blue Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 4,
+      "name": "carpet",
+      "displayName": "Yellow Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 5,
+      "name": "carpet",
+      "displayName": "Lime Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 6,
+      "name": "carpet",
+      "displayName": "Pink Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 7,
+      "name": "carpet",
+      "displayName": "Gray Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 8,
+      "name": "carpet",
+      "displayName": "Light Gray Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 9,
+      "name": "carpet",
+      "displayName": "Cyan Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 10,
+      "name": "carpet",
+      "displayName": "Purple Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 11,
+      "name": "carpet",
+      "displayName": "Blue Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 12,
+      "name": "carpet",
+      "displayName": "Brown Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 13,
+      "name": "carpet",
+      "displayName": "Green Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 14,
+      "name": "carpet",
+      "displayName": "Red Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 171,
+      "metadata": 15,
+      "name": "carpet",
+      "displayName": "Black Carpet",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 172,
+      "metadata": 0,
+      "name": "hardened_clay",
+      "displayName": "Hardened Clay",
+      "stackSize": 64,
+      "mineclone": "HardenedClay",
+      "kind": "item"
+    },
+    {
+      "id": 173,
+      "metadata": 0,
+      "name": "coal_block",
+      "displayName": "Block of Coal",
+      "stackSize": 64,
+      "mineclone": "BlockOfCoal",
+      "kind": "item"
+    },
+    {
+      "id": 174,
+      "metadata": 0,
+      "name": "packed_ice",
+      "displayName": "Packed Ice",
+      "stackSize": 64,
+      "mineclone": "PackedIce",
+      "kind": "item"
+    },
+    {
+      "id": 175,
+      "metadata": 0,
+      "name": "double_plant",
+      "displayName": "Sunflower",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 175,
+      "metadata": 1,
+      "name": "double_plant",
+      "displayName": "Lilac",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 175,
+      "metadata": 2,
+      "name": "double_plant",
+      "displayName": "Double Tallgrass",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 175,
+      "metadata": 3,
+      "name": "double_plant",
+      "displayName": "Large Fern",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 175,
+      "metadata": 4,
+      "name": "double_plant",
+      "displayName": "Rose Bush",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 175,
+      "metadata": 5,
+      "name": "double_plant",
+      "displayName": "Peony",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 179,
+      "metadata": 0,
+      "name": "red_sandstone",
+      "displayName": "Red Sandstone",
+      "stackSize": 64,
+      "mineclone": "RedSandstone",
+      "kind": "item"
+    },
+    {
+      "id": 179,
+      "metadata": 1,
+      "name": "red_sandstone",
+      "displayName": "Chiseled Red Sandstone",
+      "stackSize": 64,
+      "mineclone": "ChiseledRedSandstone",
+      "kind": "item"
+    },
+    {
+      "id": 179,
+      "metadata": 2,
+      "name": "red_sandstone",
+      "displayName": "Smooth Red Sandstone",
+      "stackSize": 64,
+      "mineclone": "SmoothRedSandstone",
+      "kind": "item"
+    },
+    {
+      "id": 180,
+      "metadata": 0,
+      "name": "red_sandstone_stairs",
+      "displayName": "Red Sandstone Stairs",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 182,
+      "metadata": 0,
+      "name": "stone_slab2",
+      "displayName": "Red Sandstone Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 183,
+      "metadata": 0,
+      "name": "spruce_fence_gate",
+      "displayName": "Spruce Fence Gate",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 184,
+      "metadata": 0,
+      "name": "birch_fence_gate",
+      "displayName": "Birch Fence Gate",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 185,
+      "metadata": 0,
+      "name": "jungle_fence_gate",
+      "displayName": "Jungle Fence Gate",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 186,
+      "metadata": 0,
+      "name": "dark_oak_fence_gate",
+      "displayName": "Dark Oak Fence Gate",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 187,
+      "metadata": 0,
+      "name": "acacia_fence_gate",
+      "displayName": "Acacia Fence Gate",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 188,
+      "metadata": 0,
+      "name": "spruce_fence",
+      "displayName": "Spruce Fence",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 189,
+      "metadata": 0,
+      "name": "birch_fence",
+      "displayName": "Birch Fence",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 190,
+      "metadata": 0,
+      "name": "jungle_fence",
+      "displayName": "Jungle Fence",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 191,
+      "metadata": 0,
+      "name": "dark_oak_fence",
+      "displayName": "Dark Oak Fence",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 192,
+      "metadata": 0,
+      "name": "acacia_fence",
+      "displayName": "Acacia Fence",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 256,
+      "metadata": 0,
+      "name": "iron_shovel",
+      "displayName": "Iron Shovel",
+      "stackSize": 1,
+      "mineclone": "IronShovel",
+      "kind": "item"
+    },
+    {
+      "id": 257,
+      "metadata": 0,
+      "name": "iron_pickaxe",
+      "displayName": "Iron Pickaxe",
+      "stackSize": 1,
+      "mineclone": "IronPickaxe",
+      "kind": "item"
+    },
+    {
+      "id": 258,
+      "metadata": 0,
+      "name": "iron_axe",
+      "displayName": "Iron Axe",
+      "stackSize": 1,
+      "mineclone": "IronAxe",
+      "kind": "item"
+    },
+    {
+      "id": 259,
+      "metadata": 0,
+      "name": "flint_and_steel",
+      "displayName": "Flint and Steel",
+      "stackSize": 1,
+      "mineclone": "FlintAndSteel",
+      "kind": "item"
+    },
+    {
+      "id": 260,
+      "metadata": 0,
+      "name": "apple",
+      "displayName": "Apple",
+      "stackSize": 64,
+      "mineclone": "Apple",
+      "kind": "item"
+    },
+    {
+      "id": 261,
+      "metadata": 0,
+      "name": "bow",
+      "displayName": "Bow",
+      "stackSize": 1,
+      "mineclone": "Bow",
+      "kind": "item"
+    },
+    {
+      "id": 262,
+      "metadata": 0,
+      "name": "arrow",
+      "displayName": "Arrow",
+      "stackSize": 64,
+      "mineclone": "Arrow",
+      "kind": "item"
+    },
+    {
+      "id": 263,
+      "metadata": 0,
+      "name": "coal",
+      "displayName": "Coal",
+      "stackSize": 64,
+      "mineclone": "Coal",
+      "kind": "item"
+    },
+    {
+      "id": 263,
+      "metadata": 1,
+      "name": "coal",
+      "displayName": "Charcoal",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 264,
+      "metadata": 0,
+      "name": "diamond",
+      "displayName": "Diamond",
+      "stackSize": 64,
+      "mineclone": "Diamond",
+      "kind": "item"
+    },
+    {
+      "id": 265,
+      "metadata": 0,
+      "name": "iron_ingot",
+      "displayName": "Iron Ingot",
+      "stackSize": 64,
+      "mineclone": "IronIngot",
+      "kind": "item"
+    },
+    {
+      "id": 266,
+      "metadata": 0,
+      "name": "gold_ingot",
+      "displayName": "Gold Ingot",
+      "stackSize": 64,
+      "mineclone": "GoldIngot",
+      "kind": "item"
+    },
+    {
+      "id": 267,
+      "metadata": 0,
+      "name": "iron_sword",
+      "displayName": "Iron Sword",
+      "stackSize": 1,
+      "mineclone": "IronSword",
+      "kind": "item"
+    },
+    {
+      "id": 268,
+      "metadata": 0,
+      "name": "wooden_sword",
+      "displayName": "Wooden Sword",
+      "stackSize": 1,
+      "mineclone": "WoodenSword",
+      "kind": "item"
+    },
+    {
+      "id": 269,
+      "metadata": 0,
+      "name": "wooden_shovel",
+      "displayName": "Wooden Shovel",
+      "stackSize": 1,
+      "mineclone": "WoodenShovel",
+      "kind": "item"
+    },
+    {
+      "id": 270,
+      "metadata": 0,
+      "name": "wooden_pickaxe",
+      "displayName": "Wooden Pickaxe",
+      "stackSize": 1,
+      "mineclone": "WoodenPickaxe",
+      "kind": "item"
+    },
+    {
+      "id": 271,
+      "metadata": 0,
+      "name": "wooden_axe",
+      "displayName": "Wooden Axe",
+      "stackSize": 1,
+      "mineclone": "WoodenAxe",
+      "kind": "item"
+    },
+    {
+      "id": 272,
+      "metadata": 0,
+      "name": "stone_sword",
+      "displayName": "Stone Sword",
+      "stackSize": 1,
+      "mineclone": "StoneSword",
+      "kind": "item"
+    },
+    {
+      "id": 273,
+      "metadata": 0,
+      "name": "stone_shovel",
+      "displayName": "Stone Shovel",
+      "stackSize": 1,
+      "mineclone": "StoneShovel",
+      "kind": "item"
+    },
+    {
+      "id": 274,
+      "metadata": 0,
+      "name": "stone_pickaxe",
+      "displayName": "Stone Pickaxe",
+      "stackSize": 1,
+      "mineclone": "StonePickaxe",
+      "kind": "item"
+    },
+    {
+      "id": 275,
+      "metadata": 0,
+      "name": "stone_axe",
+      "displayName": "Stone Axe",
+      "stackSize": 1,
+      "mineclone": "StoneAxe",
+      "kind": "item"
+    },
+    {
+      "id": 276,
+      "metadata": 0,
+      "name": "diamond_sword",
+      "displayName": "Diamond Sword",
+      "stackSize": 1,
+      "mineclone": "DiamondSword",
+      "kind": "item"
+    },
+    {
+      "id": 277,
+      "metadata": 0,
+      "name": "diamond_shovel",
+      "displayName": "Diamond Shovel",
+      "stackSize": 1,
+      "mineclone": "DiamondShovel",
+      "kind": "item"
+    },
+    {
+      "id": 278,
+      "metadata": 0,
+      "name": "diamond_pickaxe",
+      "displayName": "Diamond Pickaxe",
+      "stackSize": 1,
+      "mineclone": "DiamondPickaxe",
+      "kind": "item"
+    },
+    {
+      "id": 279,
+      "metadata": 0,
+      "name": "diamond_axe",
+      "displayName": "Diamond Axe",
+      "stackSize": 1,
+      "mineclone": "DiamondAxe",
+      "kind": "item"
+    },
+    {
+      "id": 280,
+      "metadata": 0,
+      "name": "stick",
+      "displayName": "Stick",
+      "stackSize": 64,
+      "mineclone": "Stick",
+      "kind": "item"
+    },
+    {
+      "id": 281,
+      "metadata": 0,
+      "name": "bowl",
+      "displayName": "Bowl",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 282,
+      "metadata": 0,
+      "name": "mushroom_stew",
+      "displayName": "Mushroom Stew",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 283,
+      "metadata": 0,
+      "name": "golden_sword",
+      "displayName": "Golden Sword",
+      "stackSize": 1,
+      "mineclone": "GoldenSword",
+      "kind": "item"
+    },
+    {
+      "id": 284,
+      "metadata": 0,
+      "name": "golden_shovel",
+      "displayName": "Golden Shovel",
+      "stackSize": 1,
+      "mineclone": "GoldenShovel",
+      "kind": "item"
+    },
+    {
+      "id": 285,
+      "metadata": 0,
+      "name": "golden_pickaxe",
+      "displayName": "Golden Pickaxe",
+      "stackSize": 1,
+      "mineclone": "GoldenPickaxe",
+      "kind": "item"
+    },
+    {
+      "id": 286,
+      "metadata": 0,
+      "name": "golden_axe",
+      "displayName": "Golden Axe",
+      "stackSize": 1,
+      "mineclone": "GoldenAxe",
+      "kind": "item"
+    },
+    {
+      "id": 287,
+      "metadata": 0,
+      "name": "string",
+      "displayName": "String",
+      "stackSize": 64,
+      "mineclone": "String",
+      "kind": "item"
+    },
+    {
+      "id": 288,
+      "metadata": 0,
+      "name": "feather",
+      "displayName": "Feather",
+      "stackSize": 64,
+      "mineclone": "Feather",
+      "kind": "item"
+    },
+    {
+      "id": 289,
+      "metadata": 0,
+      "name": "gunpowder",
+      "displayName": "Gunpowder",
+      "stackSize": 64,
+      "mineclone": "Gunpowder",
+      "kind": "item"
+    },
+    {
+      "id": 290,
+      "metadata": 0,
+      "name": "wooden_hoe",
+      "displayName": "Wooden Hoe",
+      "stackSize": 1,
+      "mineclone": "WoodenHoe",
+      "kind": "item"
+    },
+    {
+      "id": 291,
+      "metadata": 0,
+      "name": "stone_hoe",
+      "displayName": "Stone Hoe",
+      "stackSize": 1,
+      "mineclone": "StoneHoe",
+      "kind": "item"
+    },
+    {
+      "id": 292,
+      "metadata": 0,
+      "name": "iron_hoe",
+      "displayName": "Iron Hoe",
+      "stackSize": 1,
+      "mineclone": "IronHoe",
+      "kind": "item"
+    },
+    {
+      "id": 293,
+      "metadata": 0,
+      "name": "diamond_hoe",
+      "displayName": "Diamond Hoe",
+      "stackSize": 1,
+      "mineclone": "DiamondHoe",
+      "kind": "item"
+    },
+    {
+      "id": 294,
+      "metadata": 0,
+      "name": "golden_hoe",
+      "displayName": "Golden Hoe",
+      "stackSize": 1,
+      "mineclone": "GoldenHoe",
+      "kind": "item"
+    },
+    {
+      "id": 295,
+      "metadata": 0,
+      "name": "wheat_seeds",
+      "displayName": "Seeds",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 296,
+      "metadata": 0,
+      "name": "wheat",
+      "displayName": "Wheat",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 297,
+      "metadata": 0,
+      "name": "bread",
+      "displayName": "Bread",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 298,
+      "metadata": 0,
+      "name": "leather_helmet",
+      "displayName": "Leather Cap",
+      "stackSize": 1,
+      "mineclone": "LeatherHelmet",
+      "kind": "item"
+    },
+    {
+      "id": 299,
+      "metadata": 0,
+      "name": "leather_chestplate",
+      "displayName": "Leather Tunic",
+      "stackSize": 1,
+      "mineclone": "LeatherChestplate",
+      "kind": "item"
+    },
+    {
+      "id": 300,
+      "metadata": 0,
+      "name": "leather_leggings",
+      "displayName": "Leather Pants",
+      "stackSize": 1,
+      "mineclone": "LeatherLeggings",
+      "kind": "item"
+    },
+    {
+      "id": 301,
+      "metadata": 0,
+      "name": "leather_boots",
+      "displayName": "Leather Boots",
+      "stackSize": 1,
+      "mineclone": "LeatherBoots",
+      "kind": "item"
+    },
+    {
+      "id": 302,
+      "metadata": 0,
+      "name": "chainmail_helmet",
+      "displayName": "Chain Helmet",
+      "stackSize": 1,
+      "mineclone": "ChainmailHelmet",
+      "kind": "item"
+    },
+    {
+      "id": 303,
+      "metadata": 0,
+      "name": "chainmail_chestplate",
+      "displayName": "Chain Chestplate",
+      "stackSize": 1,
+      "mineclone": "ChainmailChestplate",
+      "kind": "item"
+    },
+    {
+      "id": 304,
+      "metadata": 0,
+      "name": "chainmail_leggings",
+      "displayName": "Chain Leggings",
+      "stackSize": 1,
+      "mineclone": "ChainmailLeggings",
+      "kind": "item"
+    },
+    {
+      "id": 305,
+      "metadata": 0,
+      "name": "chainmail_boots",
+      "displayName": "Chain Boots",
+      "stackSize": 1,
+      "mineclone": "ChainmailBoots",
+      "kind": "item"
+    },
+    {
+      "id": 306,
+      "metadata": 0,
+      "name": "iron_helmet",
+      "displayName": "Iron Helmet",
+      "stackSize": 1,
+      "mineclone": "IronHelmet",
+      "kind": "item"
+    },
+    {
+      "id": 307,
+      "metadata": 0,
+      "name": "iron_chestplate",
+      "displayName": "Iron Chestplate",
+      "stackSize": 1,
+      "mineclone": "IronChestplate",
+      "kind": "item"
+    },
+    {
+      "id": 308,
+      "metadata": 0,
+      "name": "iron_leggings",
+      "displayName": "Iron Leggings",
+      "stackSize": 1,
+      "mineclone": "IronLeggings",
+      "kind": "item"
+    },
+    {
+      "id": 309,
+      "metadata": 0,
+      "name": "iron_boots",
+      "displayName": "Iron Boots",
+      "stackSize": 1,
+      "mineclone": "IronBoots",
+      "kind": "item"
+    },
+    {
+      "id": 310,
+      "metadata": 0,
+      "name": "diamond_helmet",
+      "displayName": "Diamond Helmet",
+      "stackSize": 1,
+      "mineclone": "DiamondHelmet",
+      "kind": "item"
+    },
+    {
+      "id": 311,
+      "metadata": 0,
+      "name": "diamond_chestplate",
+      "displayName": "Diamond Chestplate",
+      "stackSize": 1,
+      "mineclone": "DiamondChestplate",
+      "kind": "item"
+    },
+    {
+      "id": 312,
+      "metadata": 0,
+      "name": "diamond_leggings",
+      "displayName": "Diamond Leggings",
+      "stackSize": 1,
+      "mineclone": "DiamondLeggings",
+      "kind": "item"
+    },
+    {
+      "id": 313,
+      "metadata": 0,
+      "name": "diamond_boots",
+      "displayName": "Diamond Boots",
+      "stackSize": 1,
+      "mineclone": "DiamondBoots",
+      "kind": "item"
+    },
+    {
+      "id": 314,
+      "metadata": 0,
+      "name": "golden_helmet",
+      "displayName": "Golden Helmet",
+      "stackSize": 1,
+      "mineclone": "GoldenHelmet",
+      "kind": "item"
+    },
+    {
+      "id": 315,
+      "metadata": 0,
+      "name": "golden_chestplate",
+      "displayName": "Golden Chestplate",
+      "stackSize": 1,
+      "mineclone": "GoldenChestplate",
+      "kind": "item"
+    },
+    {
+      "id": 316,
+      "metadata": 0,
+      "name": "golden_leggings",
+      "displayName": "Golden Leggings",
+      "stackSize": 1,
+      "mineclone": "GoldenLeggings",
+      "kind": "item"
+    },
+    {
+      "id": 317,
+      "metadata": 0,
+      "name": "golden_boots",
+      "displayName": "Golden Boots",
+      "stackSize": 1,
+      "mineclone": "GoldenBoots",
+      "kind": "item"
+    },
+    {
+      "id": 318,
+      "metadata": 0,
+      "name": "flint",
+      "displayName": "Flint",
+      "stackSize": 64,
+      "mineclone": "Flint",
+      "kind": "item"
+    },
+    {
+      "id": 319,
+      "metadata": 0,
+      "name": "porkchop",
+      "displayName": "Raw Porkchop",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 320,
+      "metadata": 0,
+      "name": "cooked_porkchop",
+      "displayName": "Cooked Porkchop",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 321,
+      "metadata": 0,
+      "name": "painting",
+      "displayName": "Painting",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 322,
+      "metadata": 0,
+      "name": "golden_apple",
+      "displayName": "Golden Apple",
+      "stackSize": 64,
+      "mineclone": "GoldenApple",
+      "kind": "item"
+    },
+    {
+      "id": 322,
+      "metadata": 1,
+      "name": "golden_apple",
+      "displayName": "Enchanted Golden Apple",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 323,
+      "metadata": 0,
+      "name": "sign",
+      "displayName": "Sign",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 324,
+      "metadata": 0,
+      "name": "wooden_door",
+      "displayName": "Oak Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 325,
+      "metadata": 0,
+      "name": "bucket",
+      "displayName": "Bucket",
+      "stackSize": 16,
+      "mineclone": "Bucket",
+      "kind": "item"
+    },
+    {
+      "id": 326,
+      "metadata": 0,
+      "name": "water_bucket",
+      "displayName": "Water Bucket",
+      "stackSize": 1,
+      "mineclone": "WaterBucket",
+      "kind": "item"
+    },
+    {
+      "id": 327,
+      "metadata": 0,
+      "name": "lava_bucket",
+      "displayName": "Lava Bucket",
+      "stackSize": 1,
+      "mineclone": "LavaBucket",
+      "kind": "item"
+    },
+    {
+      "id": 328,
+      "metadata": 0,
+      "name": "minecart",
+      "displayName": "Minecart",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 329,
+      "metadata": 0,
+      "name": "saddle",
+      "displayName": "Saddle",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 330,
+      "metadata": 0,
+      "name": "iron_door",
+      "displayName": "Iron Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 331,
+      "metadata": 0,
+      "name": "redstone",
+      "displayName": "Redstone",
+      "stackSize": 64,
+      "mineclone": "Redstone",
+      "kind": "item"
+    },
+    {
+      "id": 332,
+      "metadata": 0,
+      "name": "snowball",
+      "displayName": "Snowball",
+      "stackSize": 16,
+      "mineclone": "Snowball",
+      "kind": "item"
+    },
+    {
+      "id": 333,
+      "metadata": 0,
+      "name": "boat",
+      "displayName": "Boat",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 334,
+      "metadata": 0,
+      "name": "leather",
+      "displayName": "Leather",
+      "stackSize": 64,
+      "mineclone": "Leather",
+      "kind": "item"
+    },
+    {
+      "id": 335,
+      "metadata": 0,
+      "name": "milk_bucket",
+      "displayName": "Milk",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 336,
+      "metadata": 0,
+      "name": "brick",
+      "displayName": "Brick",
+      "stackSize": 64,
+      "mineclone": "Brick",
+      "kind": "item"
+    },
+    {
+      "id": 337,
+      "metadata": 0,
+      "name": "clay_ball",
+      "displayName": "Clay",
+      "stackSize": 64,
+      "mineclone": "ClayBall",
+      "kind": "item"
+    },
+    {
+      "id": 338,
+      "metadata": 0,
+      "name": "reeds",
+      "displayName": "Sugar Canes",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 339,
+      "metadata": 0,
+      "name": "paper",
+      "displayName": "Paper",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 340,
+      "metadata": 0,
+      "name": "book",
+      "displayName": "Book",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 341,
+      "metadata": 0,
+      "name": "slime_ball",
+      "displayName": "Slimeball",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 342,
+      "metadata": 0,
+      "name": "chest_minecart",
+      "displayName": "Minecart with Chest",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 343,
+      "metadata": 0,
+      "name": "furnace_minecart",
+      "displayName": "Minecart with Furnace",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 344,
+      "metadata": 0,
+      "name": "egg",
+      "displayName": "Egg",
+      "stackSize": 16,
+      "mineclone": "Egg",
+      "kind": "item"
+    },
+    {
+      "id": 345,
+      "metadata": 0,
+      "name": "compass",
+      "displayName": "Compass",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 346,
+      "metadata": 0,
+      "name": "fishing_rod",
+      "displayName": "Fishing Rod",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 347,
+      "metadata": 0,
+      "name": "clock",
+      "displayName": "Clock",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 348,
+      "metadata": 0,
+      "name": "glowstone_dust",
+      "displayName": "Glowstone Dust",
+      "stackSize": 64,
+      "mineclone": "GlowstoneDust",
+      "kind": "item"
+    },
+    {
+      "id": 349,
+      "metadata": 0,
+      "name": "fish",
+      "displayName": "Raw Fish",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 349,
+      "metadata": 1,
+      "name": "fish",
+      "displayName": "Raw Salmon",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 349,
+      "metadata": 2,
+      "name": "fish",
+      "displayName": "Clownfish",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 349,
+      "metadata": 3,
+      "name": "fish",
+      "displayName": "Pufferfish",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 350,
+      "metadata": 0,
+      "name": "cooked_fish",
+      "displayName": "Cooked Fish",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 350,
+      "metadata": 1,
+      "name": "cooked_fish",
+      "displayName": "Cooked Salmon",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 0,
+      "name": "dye",
+      "displayName": "Ink Sac",
+      "stackSize": 64,
+      "mineclone": "InkSac",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 1,
+      "name": "dye",
+      "displayName": "Rose Red",
+      "stackSize": 64,
+      "mineclone": "RoseRed",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 2,
+      "name": "dye",
+      "displayName": "Cactus Green",
+      "stackSize": 64,
+      "mineclone": "CactusGreen",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 3,
+      "name": "dye",
+      "displayName": "Cocoa Beans",
+      "stackSize": 64,
+      "mineclone": "CocoaBeans",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 4,
+      "name": "dye",
+      "displayName": "Lapis Lazuli",
+      "stackSize": 64,
+      "mineclone": "LapisLazuli",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 5,
+      "name": "dye",
+      "displayName": "Purple Dye",
+      "stackSize": 64,
+      "mineclone": "PurpleDye",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 6,
+      "name": "dye",
+      "displayName": "Cyan Dye",
+      "stackSize": 64,
+      "mineclone": "CyanDye",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 7,
+      "name": "dye",
+      "displayName": "Light Gray Dye",
+      "stackSize": 64,
+      "mineclone": "LightGrayDye",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 8,
+      "name": "dye",
+      "displayName": "Gray Dye",
+      "stackSize": 64,
+      "mineclone": "GrayDye",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 9,
+      "name": "dye",
+      "displayName": "Pink Dye",
+      "stackSize": 64,
+      "mineclone": "PinkDye",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 10,
+      "name": "dye",
+      "displayName": "Lime Dye",
+      "stackSize": 64,
+      "mineclone": "LimeDye",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 11,
+      "name": "dye",
+      "displayName": "Dandelion Yellow",
+      "stackSize": 64,
+      "mineclone": "DandelionYellow",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 12,
+      "name": "dye",
+      "displayName": "Light Blue Dye",
+      "stackSize": 64,
+      "mineclone": "LightBlueDye",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 13,
+      "name": "dye",
+      "displayName": "Magenta Dye",
+      "stackSize": 64,
+      "mineclone": "MagentaDye",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 14,
+      "name": "dye",
+      "displayName": "Orange Dye",
+      "stackSize": 64,
+      "mineclone": "OrangeDye",
+      "kind": "item"
+    },
+    {
+      "id": 351,
+      "metadata": 15,
+      "name": "dye",
+      "displayName": "Bone Meal",
+      "stackSize": 64,
+      "mineclone": "BoneMeal",
+      "kind": "item"
+    },
+    {
+      "id": 352,
+      "metadata": 0,
+      "name": "bone",
+      "displayName": "Bone",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 353,
+      "metadata": 0,
+      "name": "sugar",
+      "displayName": "Sugar",
+      "stackSize": 64,
+      "mineclone": "Sugar",
+      "kind": "item"
+    },
+    {
+      "id": 354,
+      "metadata": 0,
+      "name": "cake",
+      "displayName": "Cake",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 355,
+      "metadata": 0,
+      "name": "bed",
+      "displayName": "Bed",
+      "stackSize": 1,
+      "mineclone": "Bed",
+      "kind": "item"
+    },
+    {
+      "id": 356,
+      "metadata": 0,
+      "name": "repeater",
+      "displayName": "Redstone Repeater",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 357,
+      "metadata": 0,
+      "name": "cookie",
+      "displayName": "Cookie",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 358,
+      "metadata": 0,
+      "name": "filled_map",
+      "displayName": "Map",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 359,
+      "metadata": 0,
+      "name": "shears",
+      "displayName": "Shears",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 360,
+      "metadata": 0,
+      "name": "melon",
+      "displayName": "Melon",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 361,
+      "metadata": 0,
+      "name": "pumpkin_seeds",
+      "displayName": "Pumpkin Seeds",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 362,
+      "metadata": 0,
+      "name": "melon_seeds",
+      "displayName": "Melon Seeds",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 363,
+      "metadata": 0,
+      "name": "beef",
+      "displayName": "Raw Beef",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 364,
+      "metadata": 0,
+      "name": "cooked_beef",
+      "displayName": "Steak",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 365,
+      "metadata": 0,
+      "name": "chicken",
+      "displayName": "Raw Chicken",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 366,
+      "metadata": 0,
+      "name": "cooked_chicken",
+      "displayName": "Cooked Chicken",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 367,
+      "metadata": 0,
+      "name": "rotten_flesh",
+      "displayName": "Rotten Flesh",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 368,
+      "metadata": 0,
+      "name": "ender_pearl",
+      "displayName": "Ender Pearl",
+      "stackSize": 16,
+      "mineclone": "EnderPearl",
+      "kind": "item"
+    },
+    {
+      "id": 369,
+      "metadata": 0,
+      "name": "blaze_rod",
+      "displayName": "Blaze Rod",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 370,
+      "metadata": 0,
+      "name": "ghast_tear",
+      "displayName": "Ghast Tear",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 371,
+      "metadata": 0,
+      "name": "gold_nugget",
+      "displayName": "Gold Nugget",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 372,
+      "metadata": 0,
+      "name": "nether_wart",
+      "displayName": "Nether Wart",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 373,
+      "metadata": 0,
+      "name": "potion",
+      "displayName": "Potion",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 374,
+      "metadata": 0,
+      "name": "glass_bottle",
+      "displayName": "Glass Bottle",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 375,
+      "metadata": 0,
+      "name": "spider_eye",
+      "displayName": "Spider Eye",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 376,
+      "metadata": 0,
+      "name": "fermented_spider_eye",
+      "displayName": "Fermented Spider Eye",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 377,
+      "metadata": 0,
+      "name": "blaze_powder",
+      "displayName": "Blaze Powder",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 378,
+      "metadata": 0,
+      "name": "magma_cream",
+      "displayName": "Magma Cream",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 379,
+      "metadata": 0,
+      "name": "brewing_stand",
+      "displayName": "Brewing Stand",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 380,
+      "metadata": 0,
+      "name": "cauldron",
+      "displayName": "Cauldron",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 381,
+      "metadata": 0,
+      "name": "ender_eye",
+      "displayName": "Eye of Ender",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 382,
+      "metadata": 0,
+      "name": "speckled_melon",
+      "displayName": "Glistering Melon",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 0,
+      "name": "spawn_egg",
+      "displayName": "Spawn",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 1,
+      "name": "spawn_egg",
+      "displayName": "Spawn Dropped item",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 7,
+      "name": "spawn_egg",
+      "displayName": "Spawn Thrown egg",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 8,
+      "name": "spawn_egg",
+      "displayName": "Spawn Lead knot",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 10,
+      "name": "spawn_egg",
+      "displayName": "Spawn Shot arrow",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 11,
+      "name": "spawn_egg",
+      "displayName": "Spawn Thrown snowball",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 12,
+      "name": "spawn_egg",
+      "displayName": "Spawn Ghast fireball",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 13,
+      "name": "spawn_egg",
+      "displayName": "Spawn Blaze fireball",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 14,
+      "name": "spawn_egg",
+      "displayName": "Spawn Thrown Ender Pearl",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 15,
+      "name": "spawn_egg",
+      "displayName": "Spawn Thrown Eye of Ender",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 16,
+      "name": "spawn_egg",
+      "displayName": "Spawn Thrown splash potion",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 17,
+      "name": "spawn_egg",
+      "displayName": "Spawn Thrown Bottle o' Enchanting",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 18,
+      "name": "spawn_egg",
+      "displayName": "Spawn Item Frame",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 19,
+      "name": "spawn_egg",
+      "displayName": "Spawn Wither Skull",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 20,
+      "name": "spawn_egg",
+      "displayName": "Spawn Primed TNT",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 21,
+      "name": "spawn_egg",
+      "displayName": "Spawn Falling block",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 21,
+      "name": "spawn_egg",
+      "displayName": "Spawn Falling block",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 22,
+      "name": "spawn_egg",
+      "displayName": "Spawn Firework Rocket",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 30,
+      "name": "spawn_egg",
+      "displayName": "Spawn Armor Stand",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 41,
+      "name": "spawn_egg",
+      "displayName": "Spawn Boat",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 42,
+      "name": "spawn_egg",
+      "displayName": "Spawn Minecart",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 42,
+      "name": "spawn_egg",
+      "displayName": "Spawn Minecart",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 42,
+      "name": "spawn_egg",
+      "displayName": "Spawn Minecart",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 48,
+      "name": "spawn_egg",
+      "displayName": "Spawn Mob",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 49,
+      "name": "spawn_egg",
+      "displayName": "Spawn Monster",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 50,
+      "name": "spawn_egg",
+      "displayName": "Spawn Creeper",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 51,
+      "name": "spawn_egg",
+      "displayName": "Spawn Skeleton",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 52,
+      "name": "spawn_egg",
+      "displayName": "Spawn Spider",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 53,
+      "name": "spawn_egg",
+      "displayName": "Spawn Giant",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 54,
+      "name": "spawn_egg",
+      "displayName": "Spawn Zombie",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 55,
+      "name": "spawn_egg",
+      "displayName": "Spawn Slime",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 56,
+      "name": "spawn_egg",
+      "displayName": "Spawn Ghast",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 57,
+      "name": "spawn_egg",
+      "displayName": "Spawn Zombie Pigman",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 58,
+      "name": "spawn_egg",
+      "displayName": "Spawn Enderman",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 59,
+      "name": "spawn_egg",
+      "displayName": "Spawn Cave Spider",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 60,
+      "name": "spawn_egg",
+      "displayName": "Spawn Silverfish",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 61,
+      "name": "spawn_egg",
+      "displayName": "Spawn Blaze",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 62,
+      "name": "spawn_egg",
+      "displayName": "Spawn Magma Cube",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 63,
+      "name": "spawn_egg",
+      "displayName": "Spawn Ender Dragon",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 64,
+      "name": "spawn_egg",
+      "displayName": "Spawn Wither",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 65,
+      "name": "spawn_egg",
+      "displayName": "Spawn Bat",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 66,
+      "name": "spawn_egg",
+      "displayName": "Spawn Witch",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 67,
+      "name": "spawn_egg",
+      "displayName": "Spawn Endermite",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 68,
+      "name": "spawn_egg",
+      "displayName": "Spawn Guardian",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 90,
+      "name": "spawn_egg",
+      "displayName": "Spawn Pig",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 91,
+      "name": "spawn_egg",
+      "displayName": "Spawn Sheep",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 92,
+      "name": "spawn_egg",
+      "displayName": "Spawn Cow",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 93,
+      "name": "spawn_egg",
+      "displayName": "Spawn Chicken",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 94,
+      "name": "spawn_egg",
+      "displayName": "Spawn Squid",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 95,
+      "name": "spawn_egg",
+      "displayName": "Spawn Wolf",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 96,
+      "name": "spawn_egg",
+      "displayName": "Spawn Mooshroom",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 97,
+      "name": "spawn_egg",
+      "displayName": "Spawn Snow Golem",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 98,
+      "name": "spawn_egg",
+      "displayName": "Spawn Ocelot",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 99,
+      "name": "spawn_egg",
+      "displayName": "Spawn Iron Golem",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 100,
+      "name": "spawn_egg",
+      "displayName": "Spawn Horse",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 101,
+      "name": "spawn_egg",
+      "displayName": "Spawn Rabbit",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 120,
+      "name": "spawn_egg",
+      "displayName": "Spawn Villager",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 383,
+      "metadata": 200,
+      "name": "spawn_egg",
+      "displayName": "Spawn Ender Crystal",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 384,
+      "metadata": 0,
+      "name": "experience_bottle",
+      "displayName": "Bottle o' Enchanting",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 385,
+      "metadata": 0,
+      "name": "fire_charge",
+      "displayName": "Fire Charge",
+      "stackSize": 64,
+      "mineclone": "Fireball",
+      "kind": "item"
+    },
+    {
+      "id": 386,
+      "metadata": 0,
+      "name": "writable_book",
+      "displayName": "Book and Quill",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 387,
+      "metadata": 0,
+      "name": "written_book",
+      "displayName": "Written Book",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 388,
+      "metadata": 0,
+      "name": "emerald",
+      "displayName": "Emerald",
+      "stackSize": 64,
+      "mineclone": "Emerald",
+      "kind": "item"
+    },
+    {
+      "id": 389,
+      "metadata": 0,
+      "name": "item_frame",
+      "displayName": "Item Frame",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 390,
+      "metadata": 0,
+      "name": "flower_pot",
+      "displayName": "Flower Pot",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 391,
+      "metadata": 0,
+      "name": "carrot",
+      "displayName": "Carrot",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 392,
+      "metadata": 0,
+      "name": "potato",
+      "displayName": "Potato",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 393,
+      "metadata": 0,
+      "name": "baked_potato",
+      "displayName": "Baked Potato",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 394,
+      "metadata": 0,
+      "name": "poisonous_potato",
+      "displayName": "Poisonous Potato",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 395,
+      "metadata": 0,
+      "name": "map",
+      "displayName": "Empty Map",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 396,
+      "metadata": 0,
+      "name": "golden_carrot",
+      "displayName": "Golden Carrot",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 397,
+      "metadata": 0,
+      "name": "skull",
+      "displayName": "Skeleton Skull",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 397,
+      "metadata": 1,
+      "name": "skull",
+      "displayName": "Wither Skeleton Skull",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 397,
+      "metadata": 2,
+      "name": "skull",
+      "displayName": "Zombie Head",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 397,
+      "metadata": 3,
+      "name": "skull",
+      "displayName": "Head",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 397,
+      "metadata": 4,
+      "name": "skull",
+      "displayName": "Creeper Head",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 398,
+      "metadata": 0,
+      "name": "carrot_on_a_stick",
+      "displayName": "Carrot on a Stick",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 399,
+      "metadata": 0,
+      "name": "nether_star",
+      "displayName": "Nether Star",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 400,
+      "metadata": 0,
+      "name": "pumpkin_pie",
+      "displayName": "Pumpkin Pie",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 401,
+      "metadata": 0,
+      "name": "fireworks",
+      "displayName": "Firework Rocket",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 402,
+      "metadata": 0,
+      "name": "firework_charge",
+      "displayName": "Firework Star",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 403,
+      "metadata": 0,
+      "name": "enchanted_book",
+      "displayName": "Enchanted Book",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 404,
+      "metadata": 0,
+      "name": "comparator",
+      "displayName": "Redstone Comparator",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 405,
+      "metadata": 0,
+      "name": "netherbrick",
+      "displayName": "Nether Brick",
+      "stackSize": 64,
+      "mineclone": "NetherBrickItem",
+      "kind": "item"
+    },
+    {
+      "id": 406,
+      "metadata": 0,
+      "name": "quartz",
+      "displayName": "Nether Quartz",
+      "stackSize": 64,
+      "mineclone": "Quartz",
+      "kind": "item"
+    },
+    {
+      "id": 407,
+      "metadata": 0,
+      "name": "tnt_minecart",
+      "displayName": "Minecart with TNT",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 408,
+      "metadata": 0,
+      "name": "hopper_minecart",
+      "displayName": "Minecart with Hopper",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 409,
+      "metadata": 0,
+      "name": "prismarine_shard",
+      "displayName": "Prismarine Shard",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 410,
+      "metadata": 0,
+      "name": "prismarine_crystals",
+      "displayName": "Prismarine Crystals",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 411,
+      "metadata": 0,
+      "name": "rabbit",
+      "displayName": "Raw Rabbit",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 412,
+      "metadata": 0,
+      "name": "cooked_rabbit",
+      "displayName": "Cooked Rabbit",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 413,
+      "metadata": 0,
+      "name": "rabbit_stew",
+      "displayName": "Rabbit Stew",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 414,
+      "metadata": 0,
+      "name": "rabbit_foot",
+      "displayName": "Rabbit's Foot",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 415,
+      "metadata": 0,
+      "name": "rabbit_hide",
+      "displayName": "Rabbit Hide",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 416,
+      "metadata": 0,
+      "name": "armor_stand",
+      "displayName": "Armor Stand",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 417,
+      "metadata": 0,
+      "name": "iron_horse_armor",
+      "displayName": "Iron Horse Armor",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 418,
+      "metadata": 0,
+      "name": "golden_horse_armor",
+      "displayName": "Gold Horse Armor",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 419,
+      "metadata": 0,
+      "name": "diamond_horse_armor",
+      "displayName": "Diamond Horse Armor",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 420,
+      "metadata": 0,
+      "name": "lead",
+      "displayName": "Lead",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 421,
+      "metadata": 0,
+      "name": "name_tag",
+      "displayName": "Name Tag",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 422,
+      "metadata": 0,
+      "name": "command_block_minecart",
+      "displayName": "Minecart with Command Block",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 423,
+      "metadata": 0,
+      "name": "mutton",
+      "displayName": "Raw Mutton",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 424,
+      "metadata": 0,
+      "name": "cooked_mutton",
+      "displayName": "Cooked Mutton",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 0,
+      "name": "banner",
+      "displayName": "Black Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 1,
+      "name": "banner",
+      "displayName": "Red Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 2,
+      "name": "banner",
+      "displayName": "Green Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 3,
+      "name": "banner",
+      "displayName": "Brown Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 4,
+      "name": "banner",
+      "displayName": "Blue Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 5,
+      "name": "banner",
+      "displayName": "Purple Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 6,
+      "name": "banner",
+      "displayName": "Cyan Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 7,
+      "name": "banner",
+      "displayName": "Light Gray Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 8,
+      "name": "banner",
+      "displayName": "Gray Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 9,
+      "name": "banner",
+      "displayName": "Pink Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 10,
+      "name": "banner",
+      "displayName": "Lime Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 11,
+      "name": "banner",
+      "displayName": "Yellow Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 12,
+      "name": "banner",
+      "displayName": "Light Blue Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 13,
+      "name": "banner",
+      "displayName": "Magenta Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 14,
+      "name": "banner",
+      "displayName": "Orange Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 425,
+      "metadata": 15,
+      "name": "banner",
+      "displayName": "White Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 427,
+      "metadata": 0,
+      "name": "spruce_door",
+      "displayName": "Spruce Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 428,
+      "metadata": 0,
+      "name": "birch_door",
+      "displayName": "Birch Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 429,
+      "metadata": 0,
+      "name": "jungle_door",
+      "displayName": "Jungle Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 430,
+      "metadata": 0,
+      "name": "acacia_door",
+      "displayName": "Acacia Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 431,
+      "metadata": 0,
+      "name": "dark_oak_door",
+      "displayName": "Dark Oak Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 2256,
+      "metadata": 0,
+      "name": "record_13",
+      "displayName": "13 Disc",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 2257,
+      "metadata": 0,
+      "name": "record_cat",
+      "displayName": "Cat Disc",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 2258,
+      "metadata": 0,
+      "name": "record_blocks",
+      "displayName": "Blocks Disc",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 2259,
+      "metadata": 0,
+      "name": "record_chirp",
+      "displayName": "Chirp Disc",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 2260,
+      "metadata": 0,
+      "name": "record_far",
+      "displayName": "Far Disc",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 2261,
+      "metadata": 0,
+      "name": "record_mall",
+      "displayName": "Mall Disc",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 2262,
+      "metadata": 0,
+      "name": "record_mellohi",
+      "displayName": "Mellohi Disc",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 2263,
+      "metadata": 0,
+      "name": "record_stal",
+      "displayName": "Stal Disc",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 2264,
+      "metadata": 0,
+      "name": "record_strad",
+      "displayName": "Strad Disc",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 2265,
+      "metadata": 0,
+      "name": "record_ward",
+      "displayName": "Ward Disc",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 2266,
+      "metadata": 0,
+      "name": "record_11",
+      "displayName": "11 Disc",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 2267,
+      "metadata": 0,
+      "name": "record_wait",
+      "displayName": "Wait Disc",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "item"
+    },
+    {
+      "id": 0,
+      "metadata": 0,
+      "name": "air",
+      "displayName": "Air",
+      "stackSize": 0,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 8,
+      "metadata": 0,
+      "name": "flowing_water",
+      "displayName": "Water",
+      "stackSize": 64,
+      "mineclone": "Water",
+      "kind": "world_block"
+    },
+    {
+      "id": 9,
+      "metadata": 0,
+      "name": "water",
+      "displayName": "Stationary Water",
+      "stackSize": 64,
+      "mineclone": "Water",
+      "kind": "world_block"
+    },
+    {
+      "id": 10,
+      "metadata": 0,
+      "name": "flowing_lava",
+      "displayName": "Lava",
+      "stackSize": 64,
+      "mineclone": "Lava",
+      "kind": "world_block"
+    },
+    {
+      "id": 11,
+      "metadata": 0,
+      "name": "lava",
+      "displayName": "Stationary Lava",
+      "stackSize": 64,
+      "mineclone": "Lava",
+      "kind": "world_block"
+    },
+    {
+      "id": 26,
+      "metadata": 0,
+      "name": "bed",
+      "displayName": "Bed",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 34,
+      "metadata": 0,
+      "name": "piston_head",
+      "displayName": "Piston Head",
+      "stackSize": 0,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 36,
+      "metadata": 0,
+      "name": "piston_extension",
+      "displayName": "Block moved by Piston",
+      "stackSize": 0,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 43,
+      "metadata": 0,
+      "name": "double_stone_slab",
+      "displayName": "Double Stone Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 51,
+      "metadata": 0,
+      "name": "fire",
+      "displayName": "Fire",
+      "stackSize": 0,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 55,
+      "metadata": 0,
+      "name": "redstone_wire",
+      "displayName": "Redstone Wire",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 59,
+      "metadata": 0,
+      "name": "wheat",
+      "displayName": "Wheat",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 62,
+      "metadata": 0,
+      "name": "lit_furnace",
+      "displayName": "Burning Furnace",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 63,
+      "metadata": 0,
+      "name": "standing_sign",
+      "displayName": "Standing Sign",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 64,
+      "metadata": 0,
+      "name": "wooden_door",
+      "displayName": "Oak Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 68,
+      "metadata": 0,
+      "name": "wall_sign",
+      "displayName": "Wall Sign",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 71,
+      "metadata": 0,
+      "name": "iron_door",
+      "displayName": "Iron Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 74,
+      "metadata": 0,
+      "name": "lit_redstone_ore",
+      "displayName": "Glowing Redstone Ore",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 75,
+      "metadata": 0,
+      "name": "unlit_redstone_torch",
+      "displayName": "Redstone Torch (inactive)",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 83,
+      "metadata": 0,
+      "name": "reeds",
+      "displayName": "Sugar Cane",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 90,
+      "metadata": 0,
+      "name": "portal",
+      "displayName": "Nether Portal",
+      "stackSize": 0,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 92,
+      "metadata": 0,
+      "name": "cake",
+      "displayName": "Cake",
+      "stackSize": 1,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 93,
+      "metadata": 0,
+      "name": "unpowered_repeater",
+      "displayName": "Redstone Repeater (inactive)",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 94,
+      "metadata": 0,
+      "name": "powered_repeater",
+      "displayName": "Redstone Repeater (active)",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 104,
+      "metadata": 0,
+      "name": "pumpkin_stem",
+      "displayName": "Pumpkin Stem",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 105,
+      "metadata": 0,
+      "name": "melon_stem",
+      "displayName": "Melon Stem",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 115,
+      "metadata": 0,
+      "name": "nether_wart",
+      "displayName": "Nether Wart",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 117,
+      "metadata": 0,
+      "name": "brewing_stand",
+      "displayName": "Brewing Stand",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 118,
+      "metadata": 0,
+      "name": "cauldron",
+      "displayName": "Cauldron",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 119,
+      "metadata": 0,
+      "name": "end_portal",
+      "displayName": "End Portal",
+      "stackSize": 0,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 124,
+      "metadata": 0,
+      "name": "lit_redstone_lamp",
+      "displayName": "Redstone Lamp (active)",
+      "stackSize": 64,
+      "mineclone": "LampOn",
+      "kind": "world_block"
+    },
+    {
+      "id": 125,
+      "metadata": 0,
+      "name": "double_wooden_slab",
+      "displayName": "Double Wooden Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 127,
+      "metadata": 0,
+      "name": "cocoa",
+      "displayName": "Cocoa",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 132,
+      "metadata": 0,
+      "name": "tripwire",
+      "displayName": "Tripwire",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 140,
+      "metadata": 0,
+      "name": "flower_pot",
+      "displayName": "Flower Pot",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 141,
+      "metadata": 0,
+      "name": "carrots",
+      "displayName": "Carrot",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 142,
+      "metadata": 0,
+      "name": "potatoes",
+      "displayName": "Potato",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 144,
+      "metadata": 0,
+      "name": "skull",
+      "displayName": "Mob head",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 149,
+      "metadata": 0,
+      "name": "unpowered_comparator",
+      "displayName": "Redstone Comparator",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 150,
+      "metadata": 0,
+      "name": "powered_comparator",
+      "displayName": "Redstone Comparator (deprecated)",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 176,
+      "metadata": 0,
+      "name": "standing_banner",
+      "displayName": "Standing Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 177,
+      "metadata": 0,
+      "name": "wall_banner",
+      "displayName": "Wall Banner",
+      "stackSize": 16,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 178,
+      "metadata": 0,
+      "name": "daylight_detector_inverted",
+      "displayName": "Inverted Daylight Sensor",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 181,
+      "metadata": 0,
+      "name": "double_stone_slab2",
+      "displayName": "Double Red Sandstone Slab",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 193,
+      "metadata": 0,
+      "name": "spruce_door",
+      "displayName": "Spruce Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 194,
+      "metadata": 0,
+      "name": "birch_door",
+      "displayName": "Birch Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 195,
+      "metadata": 0,
+      "name": "jungle_door",
+      "displayName": "Jungle Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 196,
+      "metadata": 0,
+      "name": "acacia_door",
+      "displayName": "Acacia Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    },
+    {
+      "id": 197,
+      "metadata": 0,
+      "name": "dark_oak_door",
+      "displayName": "Dark Oak Door",
+      "stackSize": 64,
+      "mineclone": null,
+      "kind": "world_block"
+    }
+  ]
+}

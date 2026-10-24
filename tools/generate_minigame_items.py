@@ -1,0 +1,10 @@
+from pathlib import Path
+# Existing IDs remain untouched; append the gameplay items after the 1.8 material set.
+rows=[('EnderPearl','Perola do End',False,16,0,0x29968b),('Fireball','Bola de fogo',False,64,0,0xff7d20),('Tnt','TNT',True,64,0,0xc74632),('GoldenApple','Maca dourada',False,64,0,0xefbf35),('Bucket','Balde',False,16,0,0xbac2c8),('WaterBucket','Balde de agua',False,1,0,0x438ace),('LavaBucket','Balde de lava',False,1,0,0xf88b25),('Bow','Arco',False,1,384,0x9b7044),('Arrow','Flecha',False,64,0,0xc8c6bc),('Snowball','Bola de neve',False,16,0,0xebf3f8),('Egg','Ovo',False,16,0,0xdfd4bd),('FlintAndSteel','Isqueiro',False,1,64,0xa1a7a9),('Ladder','Escada de mao',True,64,0,0xa57d48),('Bed','Cama',True,1,0,0xb64034),('BedHead','Cabeceira',True,1,0,0xb64034)]
+for material,label,color,durs in [('Leather','Couro',0x9c663b,[55,80,75,65]),('Chainmail','Malha',0x969b9b,[165,240,225,195]),('Iron','Ferro',0xc6c9c9,[165,240,225,195]),('Golden','Ouro',0xdfc250,[77,112,105,91]),('Diamond','Diamante',0x54c9c4,[363,528,495,429])]:
+ for piece,pt,dur in zip(['Helmet','Chestplate','Leggings','Boots'],['Capacete','Peitoral','Calcas','Botas'],durs):rows.append((material+piece,pt+' '+label,False,1,dur,color))
+rows.extend([('String','Linha',False,64,0,0xe3e0d6),('Gunpowder','Polvora',False,64,0,0x555650),('Apple','Maca',False,64,0,0xbe342a),('Feather','Pena',False,64,0,0xe8e9dc),('Leather','Couro',False,64,0,0x9c663b)])
+rows.append(('FilledMap','Mapa',False,64,0,0xdbcf9d))
+Path('include/minigame_ids.inc').write_text(''.join(f'    {r[0]} = {206+i},\n' for i,r in enumerate(rows)))
+Path('include/minigame_properties.inc').write_text(''.join('    {"'+name+'",'+str(place and token!='Ladder').lower()+','+str(not place or token=='Ladder').lower()+','+str(place).lower()+f',{stack},{dur},0,0,0,0,0x{color:06x},255,.8f'+'},\n' for token,name,place,stack,dur,color in rows))
+Path('include/minigame_colors.inc').write_text(''.join(f'    {{{color>>16},{color>>8&255},{color&255},255}},\n' for token,name,place,stack,dur,color in rows))

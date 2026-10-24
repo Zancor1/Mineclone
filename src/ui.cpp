@@ -1,11 +1,38 @@
 #include "ui.h"
+#include "bedwars.h"
 #include "renderer.h"
 #include "settings.h"
+#include "chest.h"
+#include "crafting.h"
+#include "survival.h"
+#include "items.h"
+#include "network.h"
 #include <cmath>
 #include <algorithm>
 #include <utility>
 namespace game {
 namespace {
+struct RemoteSlot {int index;Rectangle rect;};
+std::vector<RemoteSlot> RemoteSlots(){
+    std::vector<RemoteSlot> list;bool own=net::PlayerInventoryOpen();int count=int(net::WindowSlots().size());
+    int top=own?0:std::max(0,count-36),topRows=(top+8)/9;
+    float size=std::min(40.f,float(GetScreenHeight()-100)/(own?10:topRows+6));
+    float x=GetScreenWidth()/2.f-size*4.5f,y=GetScreenHeight()/2.f-(own?8:topRows+4)*size*.5f;
+    auto add=[&](int index,float col,float row){if(index<count)list.push_back({index,{x+col*size,y+row*size,size-2,size-2}});};
+    if(own){
+        for(int i=0;i<4;++i)add(5+i,0,float(i));
+        for(int i=0;i<4;++i)add(1+i,5+i%2,float(i/2));
+        add(0,8,.5f);
+        for(int i=0;i<27;++i)add(9+i,float(i%9),float(4+i/9));
+        for(int i=0;i<9;++i)add(36+i,float(i),7.3f);
+    }else{
+        for(int i=0;i<top;++i)add(i,float(i%9),float(i/9));
+        for(int i=0;i<27;++i)add(top+i,float(i%9),topRows+.4f+i/9);
+        for(int i=0;i<9;++i)add(top+27+i,float(i),topRows+3.7f);
+    }
+    return list;
+}
+Rectangle MainButton(int i){return {GetScreenWidth()/2.f-150,GetScreenHeight()/2.f-65+i*46.f,300,40};}
 Rectangle Panel() {return {GetScreenWidth()/2.f-330,GetScreenHeight()/2.f-215,660,430};}
 Rectangle Slot(int i,float y,float left) {return {left+i*68,y,62,70};}
 void Icon(Texture2D atlas,Rectangle slot,Block b) {
@@ -13,7 +40,16 @@ void Icon(Texture2D atlas,Rectangle slot,Block b) {
     int tile=BlockTile(b);
     DrawRectangle(int(slot.x+14),int(slot.y+9),34,34,{68,72,75,255});
     DrawTexturePro(atlas,{float(tile*TileSize),0,TileSize,TileSize},{slot.x+14,slot.y+9,34,34},{0,0},0,WHITE);
-    DrawText(Names[b],int(slot.x+(slot.width-MeasureText(Names[b],12))/2),int(slot.y+50),12,RAYWHITE);
+    const char* label=Names[b];
+    if(b>=WoodenSword&&b<=IronSword) label=b==WoodenSword?"Esp. madeira":(b==StoneSword?"Esp. pedra":"Esp. ferro");
+    if(b>=WoodenPickaxe&&b<=IronPickaxe) label=b==WoodenPickaxe?"Pic. madeira":(b==StonePickaxe?"Pic. pedra":"Pic. ferro");
+    int font=12;while(font>9&&MeasureText(label,font)>slot.width-4) --font;
+    std::string caption=label;
+    if(MeasureText(caption.c_str(),font)>slot.width-4) {
+        while(!caption.empty()&&MeasureText((caption+"...").c_str(),font)>slot.width-4) caption.pop_back();
+        caption+="...";
+    }
+    DrawText(caption.c_str(),int(slot.x+(slot.width-MeasureText(caption.c_str(),font))/2),int(slot.y+50),font,RAYWHITE);
 }
 bool Hover(Rectangle r) {return CheckCollisionPointRec(GetMousePosition(),r);}
 int VisibleWorldRows() {return std::max(1,(GetScreenHeight()-230)/52);}
@@ -27,19 +63,47 @@ Rectangle WorldButton(bool back) {
 Rectangle PauseButton(int i) {
     return {GetScreenWidth()/2.f-210,GetScreenHeight()/2.f-60+i*64.f,420,48};
 }
-Rectangle OptionsPanel() {return {GetScreenWidth()/2.f-300,GetScreenHeight()/2.f-195,600,390};}
-Rectangle OptionControl(int i) {
-    Rectangle p=OptionsPanel();
-    if(i==0) return {p.x+40,p.y+65,520,44};
-    if(i==1) return {p.x+40,p.y+154,520,26};
-    if(i==2) return {p.x+40,p.y+252,520,26};
-    return {p.x+140,p.y+325,320,44};
-}
+Rectangle OptionsPanel() {return {GetScreenWidth()/2.f-320,GetScreenHeight()/2.f-224,640,448};}
+Rectangle OptionControl(int i){auto p=OptionsPanel();if(i==0)return {p.x+20,p.y+48,292,36};if(i==4)return {p.x+328,p.y+48,292,36};if(i==1)return {p.x+20,p.y+122,292,24};if(i==2)return {p.x+328,p.y+122,292,24};if(i==7)return {p.x+20,p.y+205,292,24};if(i==6)return {p.x+328,p.y+205,292,24};if(i==5)return {p.x+20,p.y+288,600,24};if(i==9)return {p.x+20,p.y+321,600,32};if(i==8)return {p.x+20,p.y+365,292,40};return {p.x+328,p.y+365,292,40};}
+Rectangle BindingRow(int i){return {GetScreenWidth()/2.f-300,90.f+i*38,600,34};}
 void Slider(Rectangle r,float value) {
     DrawRectangleRec(r,{29,29,29,255});DrawRectangleLinesEx(r,2,{105,105,105,255});
     DrawRectangle(int(r.x+3),int(r.y+r.height/2-2),int((r.width-6)*value),4,{148,163,186,255});
     Rectangle knob{r.x+3+value*(r.width-20),r.y+2,14,r.height-4};
     DrawRectangleRec(knob,Hover(r)?RAYWHITE:LIGHTGRAY);DrawRectangleLinesEx(knob,1,GRAY);
+}
+Rectangle ChestPanel() {return {GetScreenWidth()/2.f-214,GetScreenHeight()/2.f-214,428,428};}
+Rectangle ChestSlot(int i,int group) {
+    Rectangle p=ChestPanel();float top=group==0?38.f:(group==1?204.f:344.f);
+    return {p.x+16+(i%9)*44,p.y+top+(i/9)*44,40,40};
+}
+Rectangle InventoryPanel() {return ChestPanel();}
+Rectangle PlayerSlot(int i,bool bar) {
+    Rectangle p=InventoryPanel();return {p.x+16+(i%9)*44,p.y+(bar?344.f:204.f+(i/9)*44),40,40};
+}
+Rectangle CraftSlot(int i,int width) {
+    Rectangle p=ChestPanel();return {p.x+(width==2?205.f:50.f)+(i%width)*44,p.y+(width==2?64.f:38.f)+(i/width)*44,40,40};
+}
+Rectangle CraftOutput(int width) {Rectangle p=ChestPanel();return {p.x+(width==2?345.f:310.f),p.y+82,40,40};}
+Rectangle FurnaceSlot(int i) {Rectangle p=ChestPanel();return {p.x+(i==2?310.f:130.f),p.y+(i==0?38.f:(i==1?126.f:82.f)),40,40};}
+void TakeFurnaceOutput(ItemStack& slot,bool right) {
+    if(!slot.count||(CursorStack.count&&CursorStack.block!=slot.block)) return;
+    int amount=std::min(right?1:int(slot.count),StackCapacity(slot.block)-int(CursorStack.count));
+    if(amount<=0) return;
+    CursorStack.block=slot.block;CursorStack.count+=amount;slot.count-=amount;
+    if(!slot.count) slot={};
+}
+void StackIcon(Texture2D atlas,Rectangle r,ItemStack stack) {
+    if(!stack.count) return;
+    DrawTexturePro(atlas,{float(BlockTile(stack.block)*TileSize),0,TileSize,TileSize},
+        {r.x+5,r.y+4,r.width-10,r.height-10},{0,0},0,WHITE);
+    if(ToolDurability(stack.block)>0&&stack.damage) {
+        float left=1.f-float(stack.damage)/ToolDurability(stack.block);
+        DrawRectangle(int(r.x+4),int(r.y+r.height-5),int(r.width-8),3,BLACK);
+        DrawRectangle(int(r.x+4),int(r.y+r.height-5),int((r.width-8)*left),2,Color{static_cast<unsigned char>(255*(1-left)),static_cast<unsigned char>(220*left),30,255});
+    }
+    const char* count=TextFormat("%d",stack.count);
+    DrawText(count,int(r.x+r.width-MeasureText(count,14)-2),int(r.y+r.height-15),14,WHITE);
 }
 void ClassicButton(Rectangle r,const char* text,bool enabled) {
     bool hovered=enabled&&Hover(r);
@@ -49,7 +113,7 @@ void ClassicButton(Rectangle r,const char* text,bool enabled) {
     DrawLineEx({r.x+2,r.y+2},{r.x+r.width-3,r.y+2},2,highlight);
     DrawLineEx({r.x+2,r.y+2},{r.x+2,r.y+r.height-3},2,highlight);
     DrawLineEx({r.x+3,r.y+r.height-3},{r.x+r.width-3,r.y+r.height-3},2,{45,45,45,255});
-    int x=int(r.x+(r.width-MeasureText(text,20))/2),y=int(r.y+14);
+    int x=int(r.x+(r.width-MeasureText(text,20))/2),y=int(r.y+(r.height-20)/2);
     DrawText(text,x+2,y+2,20,Fade(BLACK,.65f));
     DrawText(text,x,y,20,enabled?(hovered?Color{255,245,169,255}:RAYWHITE):GRAY);
 }
@@ -57,14 +121,168 @@ void ClassicButton(Rectangle r,const char* text,bool enabled) {
 void UI::SetWorlds(std::vector<WorldSave> saves) {
     worlds=std::move(saves);worldScroll=0;selectedWorldPath.clear();
 }
-void UI::Notify(const std::string& text) {message=text;}
-void UI::ResetInteraction() {draggingSlider=0;held=Air;message.clear();}
+void UI::Notify(const std::string& text) {message=text;messageUntil=GetTime()+4;}
+void UI::OpenChest(int x,int y,int z) {chestX=x;chestY=y;chestZ=z;}
+void UI::ResetInteraction() {capturingBinding=-1;bindingMessage.clear();draggingSlider=0;catalogOpen=false;message.clear();}
+UI::~UI(){for(auto preview:mapPreviews)if(preview.id)UnloadRenderTexture(preview);}
 UiAction UI::Update(GameState state) {
+    if(state==GameState::Keyboard){
+        int visible=std::max(1,(GetScreenHeight()-200)/38);
+        if(capturingBinding>=0){int key=GetKeyPressed();if(key==KEY_ESCAPE){capturingBinding=-1;bindingMessage.clear();return UiAction::None;}if(key==KEY_BACKSPACE||key==KEY_DELETE)key=0;else if(!key){for(int button=0;button<7;++button)if(IsMouseButtonPressed(button)){key=-button-1;break;}if(!key)return UiAction::None;}
+            if(SetBinding(BindingAction(capturingBinding),key)){capturingBinding=-1;bindingMessage="Bind alterada";}else bindingMessage="Tecla ja usada. Escolha outra ou ESC para cancelar.";return UiAction::None;
+        }
+        bindingScroll=std::clamp(bindingScroll-int(GetMouseWheelMove()),0,std::max(0,BindingCount-visible));
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            float x=GetScreenWidth()/2.f-300,y=float(GetScreenHeight()-70);
+            if(Hover({x,y,290,40})){Settings.bindings=DefaultBindings;bindingMessage="Binds restauradas ao padrao";return UiAction::None;}
+            if(Hover({x+310,y,290,40}))return UiAction::CloseKeyboard;
+            for(int i=0;i<visible&&bindingScroll+i<BindingCount;++i)if(Hover(BindingRow(i))){capturingBinding=bindingScroll+i;bindingMessage="Pressione uma tecla ou botao do mouse. Backspace limpa; ESC cancela.";return UiAction::None;}
+        }
+        return UiAction::None;
+    }
+
+    if(state==GameState::BedwarsMode){float x=GetScreenWidth()/2.f-220,y=GetScreenHeight()/2.f-60;if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))for(int i=0;i<2;++i)if(Hover({x,y+i*65,440,50})){teamCapacity=i+1;return UiAction::ChooseRush;}return UiAction::None;}
+    if(state==GameState::BedwarsTeams){
+        float x=GetScreenWidth()/2.f-220,y=GetScreenHeight()/2.f-145;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            for(const auto& team:bw::TeamChoices())if(team.available&&Hover({x,y+team.id*58,440,46})){bw::SelectTeam(team.id);return UiAction::None;}
+            if(Hover({x,y+250,440,42}))return UiAction::Resume;
+        }return UiAction::None;
+    }
+    if(state==GameState::BedwarsMaps){
+        if(previewGap!=rushGap){for(int i=0;i<bw::MapCount;++i){if(mapPreviews[i].id)UnloadRenderTexture(mapPreviews[i]);mapPreviews[i]=bw::CreateMapPreview(i,rushGap);}previewGap=rushGap;}
+        float width=std::min(1100.f,float(GetScreenWidth()-40)),card=(width-12*(bw::MapCount-1))/bw::MapCount,x=(GetScreenWidth()-width)/2,y=GetScreenHeight()/2.f-120;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))for(int i=0;i<bw::MapCount;++i)if(Hover({x+i*(card+12),y,card,290})){mapChoice=i;return UiAction::HostBedwars;}
+        return UiAction::None;
+    }
+
+    if(state==GameState::BedwarsDiscovery){
+        float x=GetScreenWidth()/2.f-280;int visible=std::max(1,(GetScreenHeight()-220)/48);const auto& rooms=bw::Rooms();
+        lanScroll=std::clamp(lanScroll-int(GetMouseWheelMove()),0,std::max(0,int(rooms.size())-visible));
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            if(Hover({x,float(GetScreenHeight()-95),275,38})){lanScroll=0;return UiAction::SearchBedwars;}
+            if(Hover({x+285,float(GetScreenHeight()-95),275,38}))return UiAction::OpenBedwars;
+            for(int i=0;i<visible&&lanScroll+i<int(rooms.size());++i)if(Hover({x,100.f+i*48,560,44})&&rooms[lanScroll+i].joinable){bedwarsAddress=rooms[lanScroll+i].address;return UiAction::JoinBedwars;}
+        }
+        return UiAction::None;
+    }
+
+    if(state==GameState::BedwarsRush){float x=GetScreenWidth()/2.f-220,y=GetScreenHeight()/2.f-100;if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))for(int i=0;i<3;++i)if(Hover({x,y+i*60,440,48})){rushGap=16<<i;return UiAction::ChooseMap;}return UiAction::None;}
+
+    if(state==GameState::BedwarsShop){bw::ShopInput();return UiAction::None;}
+    if(state==GameState::BedwarsInventory||state==GameState::BedwarsChest){bw::InventoryInput(state==GameState::BedwarsChest);return UiAction::None;}
+    if(state==GameState::BedwarsMenu){
+        float x=GetScreenWidth()/2.f-280,y=GetScreenHeight()/2.f-180;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            if(Hover({x,y+55,560,38}))serverField=0;
+            if(Hover({x,y+130,560,38}))serverField=1;
+            if(Hover({x,y+190,560,40}))return UiAction::ChooseMode;
+            if(Hover({x,y+238,560,40}))return UiAction::JoinBedwars;
+            if(Hover({x,y+286,370,40}))return UiAction::SearchBedwars;
+            if(Hover({x+380,y+286,180,40}))return UiAction::BackToMenu;
+        }
+        if(IsKeyPressed(KEY_TAB))serverField=1-serverField;
+        auto& field=serverField?playerName:bedwarsAddress;
+        if(IsKeyDown(KEY_LEFT_CONTROL)||IsKeyDown(KEY_RIGHT_CONTROL)){
+            if(IsKeyPressed(KEY_A))field.clear();
+            if(IsKeyPressed(KEY_V)){const char* text=GetClipboardText();if(text)for(;*text&&field.size()<(serverField?16u:64u);++text)if(*text>=33&&*text<=126)field.push_back(*text);}
+        }
+
+        for(int c=GetCharPressed();c;c=GetCharPressed())if(c>=33&&c<=126&&field.size()<(serverField?16u:64u))field.push_back(char(c));
+        if(IsKeyPressed(KEY_BACKSPACE)&&!field.empty())field.pop_back();
+        return UiAction::None;
+    }
+
+    if(state==GameState::Multiplayer) {
+        float x=GetScreenWidth()/2.f-280,y=GetScreenHeight()/2.f-150;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if(Hover({x,y+55,560,38}))serverField=0;
+            if(Hover({x,y+130,560,38}))serverField=1;
+            if(Hover({x,y+262,270,40}))return net::Active()?UiAction::DisconnectServer:UiAction::ConnectServer;
+            if(Hover({x+290,y+262,270,40}))return UiAction::BackToMenu;
+        }
+        if(IsKeyPressed(KEY_TAB))serverField=1-serverField;
+        std::string& field=serverField?playerName:serverAddress;
+        for(int c=GetCharPressed();c;c=GetCharPressed())if(c>=33&&c<=126&&field.size()<(serverField?16u:253u))field.push_back(char(c));
+        if(IsKeyPressed(KEY_BACKSPACE)&&!field.empty())field.pop_back();
+        return UiAction::None;
+    }
+    if(state==GameState::ServerInventory) {
+        bool left=IsMouseButtonPressed(MOUSE_BUTTON_LEFT),right=IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+        if(left||right)for(const auto& slot:RemoteSlots())if(Hover(slot.rect))net::ClickSlot(slot.index,right,ActionDown(BindingAction::Sneak));
+        return UiAction::None;
+    }
+    if(state==GameState::Playing&&(net::Active()||bw::Ready())) {
+        if(!chatOpen&&(ActionPressed(BindingAction::Chat)||ActionPressed(BindingAction::Command))) {chatOpen=true;chatText=ActionPressed(BindingAction::Command)?"/":"";EnableCursor();return UiAction::None;}
+        if(chatOpen) {
+            for(int c=GetCharPressed();c;c=GetCharPressed())if(c>=32&&c<127&&chatText.size()<100)chatText.push_back(char(c));
+            if(IsKeyPressed(KEY_BACKSPACE)&&!chatText.empty())chatText.pop_back();
+            if(IsKeyPressed(KEY_ENTER)){if(bw::Ready())bw::Chat(chatText);else net::Chat(chatText);chatText.clear();chatOpen=false;DisableCursor();}
+            return UiAction::None;
+        }
+    }
+    if(state==GameState::Dead) {
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if(Hover(PauseButton(0))) return UiAction::Respawn;
+            if(Hover(PauseButton(1))) return UiAction::SaveAndReturn;
+        }
+        return UiAction::None;
+    }
+    if(state==GameState::CraftScreen||state==GameState::FurnaceScreen) {
+        Rectangle p=ChestPanel();bool left=IsMouseButtonPressed(MOUSE_BUTTON_LEFT),right=IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+        if(left&&Hover({p.x+390,p.y+8,26,23})) return UiAction::CloseChest;
+        if(state==GameState::CraftScreen) {
+            if(left||right) {
+                for(int i=0;i<9;++i) if(Hover(CraftSlot(i,3))) {ClickStack(WorkbenchCrafting[i],right);return UiAction::None;}
+                if(Hover(CraftOutput(3))) {TakeCraft(WorkbenchCrafting.data(),3);return UiAction::None;}
+            }
+        } else {
+            auto* furnace=FurnaceAt(chestX,chestY,chestZ);if(!furnace) return UiAction::CloseChest;
+            if(left||right) for(int i=0;i<3;++i) if(Hover(FurnaceSlot(i))) {
+                if(i==2) TakeFurnaceOutput(furnace->slots[i],right);
+                else if(!CursorStack.count||(i==0?FurnaceAccepts(CursorStack.block):FuelDuration(CursorStack.block)>0)) ClickStack(furnace->slots[i],right);
+                return UiAction::None;
+            }
+        }
+        if(left||right) for(int group=0;group<2;++group) for(int i=0;i<(group?9:27);++i)
+            if(Hover(ChestSlot(i,group?2:1))) {ClickStack(group?Hotbar[i]:Backpack[i],right);return UiAction::None;}
+        return UiAction::None;
+    }
+    if(state==GameState::ChestScreen) {
+        auto* slots=ChestAt(chestX,chestY,chestZ);
+        if(!slots) return UiAction::CloseChest;
+        Rectangle p=ChestPanel();
+        bool left=IsMouseButtonPressed(MOUSE_BUTTON_LEFT),right=IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+        if(left&&Hover({p.x+390,p.y+8,26,23})) return UiAction::CloseChest;
+        if(left||right) {
+            for(int i=0;i<27;++i) {
+                if(Hover(ChestSlot(i,0))) {ClickStack((*slots)[i],right,left&&ActionDown(BindingAction::Sneak));return UiAction::None;}
+                if(Hover(ChestSlot(i,1))) {
+                    if(left&&ActionDown(BindingAction::Sneak)) TransferStack(Backpack[i],slots->data(),slots->size());
+                    else ClickStack(Backpack[i],right);
+                    return UiAction::None;
+                }
+            }
+            for(int i=0;i<9;++i) if(Hover(ChestSlot(i,2))) {
+                selected=i;
+                if(left&&ActionDown(BindingAction::Sneak)) TransferStack(Hotbar[i],slots->data(),slots->size());
+                else ClickStack(Hotbar[i],right);
+                return UiAction::None;
+            }
+        }
+        return UiAction::None;
+    }
     if(state==GameState::Options) {
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             if(Hover(OptionControl(0))) Settings.freezeTime=!Settings.freezeTime;
             else if(Hover(OptionControl(1))) draggingSlider=1;
             else if(Hover(OptionControl(2))) draggingSlider=2;
+            else if(Hover(OptionControl(4))) Settings.fogEnabled=!Settings.fogEnabled;
+            else if(Hover(OptionControl(5))) draggingSlider=5;
+            else if(Hover(OptionControl(6))) draggingSlider=6;
+            else if(Hover(OptionControl(7))) draggingSlider=7;
+            else if(Hover(OptionControl(9))) Settings.toggleSprint=!Settings.toggleSprint;
+            else if(Hover(OptionControl(8))) return UiAction::OpenKeyboard;
             else if(Hover(OptionControl(3))) return UiAction::CloseOptions;
         }
         if(!IsMouseButtonDown(MOUSE_BUTTON_LEFT)) draggingSlider=0;
@@ -74,19 +292,28 @@ UiAction UI::Update(GameState state) {
             if(draggingSlider==1) {
                 Settings.newWorldMinute=int(std::lround(value*1439));
                 SetClockMinute(Settings.newWorldMinute);
-            } else Settings.mouseSensitivity=.1f+2.9f*value;
+            } else if(draggingSlider==2) Settings.mouseSensitivity=.1f+2.9f*value;
+            else if(draggingSlider==7) Settings.fov=40+70*value;
+            else if(draggingSlider==5) Settings.fogDistance=8+184*value;
+            else if(draggingSlider==6) Settings.renderChunks=MinRenderChunks+int(std::lround(value*(MaxRenderChunks-MinRenderChunks)));
         }
         return UiAction::None;
     }
     if(state==GameState::MainMenu) {
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            if(Hover(PauseButton(0))) return UiAction::OpenWorlds;
-            if(Hover(PauseButton(1))) return UiAction::OpenOptions;
-            if(Hover(PauseButton(2))) return UiAction::QuitApplication;
+            if(Hover(MainButton(0))) return UiAction::OpenWorlds;
+            if(Hover(MainButton(1))) return UiAction::OpenMultiplayer;
+            if(Hover(MainButton(2))) return UiAction::OpenBedwars;
+            if(Hover(MainButton(3))) return UiAction::OpenOptions;
+            if(Hover(MainButton(4))) return UiAction::QuitApplication;
         }
         return UiAction::None;
     }
     if(state==GameState::WorldSelection) {
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)&&Hover({GetScreenWidth()/2.f+35,70,275,28})) {
+            NewWorldMode=NewWorldMode==GameMode::Creative?GameMode::Survival:GameMode::Creative;
+            return UiAction::None;
+        }
         float wheel=GetMouseWheelMove();
         worldScroll=std::clamp(worldScroll+(wheel>0?-1:wheel<0?1:0),0,
             std::max(0,int(worlds.size())-VisibleWorldRows()));
@@ -110,54 +337,253 @@ UiAction UI::Update(GameState state) {
         }
         return UiAction::None;
     }
-    if(inventory) {
-        int pages=(int(BlockCount)-2)/21+1;
-        if(IsKeyPressed(KEY_RIGHT)||IsKeyPressed(KEY_PAGE_DOWN)) inventoryPage=(inventoryPage+1)%pages;
-        if(IsKeyPressed(KEY_LEFT)||IsKeyPressed(KEY_PAGE_UP)) inventoryPage=(inventoryPage+pages-1)%pages;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            Rectangle p=Panel();
-            if(Hover({p.x+24,p.y+264,105,22})) inventoryPage=(inventoryPage+pages-1)%pages;
-            if(Hover({p.x+520,p.y+264,115,22})) inventoryPage=(inventoryPage+1)%pages;
+    if(inventory&&!catalogOpen) {
+        Rectangle p=InventoryPanel();
+        bool left=IsMouseButtonPressed(MOUSE_BUTTON_LEFT),right=IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+        if(Mode==GameMode::Creative&&left&&Hover({p.x+254,p.y+8,158,27})) {catalogOpen=true;return UiAction::None;}
+        if(left||right)for(int i=0;i<4;++i)if(Hover({p.x+16+i*44.f,p.y+112,40,40})) {
+            if(!CursorStack.count||(Armor(CursorStack.block)&&ArmorSlot(CursorStack.block)==i))ClickStack(EquippedArmor[i],right);
+            return UiAction::None;
+        }
+        if(left||right) {
+            for(int i=0;i<4;++i) if(Hover(CraftSlot(i,2))) {
+                if(Mode==GameMode::Creative&&left&&ActionDown(BindingAction::Sneak)) PersonalCrafting[i]={};else ClickStack(PersonalCrafting[i],right);
+                return UiAction::None;
+            }
+            if(Hover(CraftOutput(2))) {TakeCraft(PersonalCrafting.data(),2);return UiAction::None;}
+        }
+        if(left||right) for(int group=0;group<2;++group) for(int i=0;i<(group?9:27);++i) {
+            if(!Hover(PlayerSlot(i,group!=0))) continue;
+            ItemStack& slot=group?Hotbar[i]:Backpack[i];
+            if(right&&Armor(slot.block)) {EquipArmor(slot);return UiAction::None;}
+            if(left&&ActionDown(BindingAction::Sneak)) {
+                if(Mode==GameMode::Creative) slot={};
+                else if(group) TransferStack(slot,Backpack.data(),Backpack.size());
+                else TransferStack(slot,Hotbar.data(),Hotbar.size());
+            } else ClickStack(slot,right);
+            if(group) selected=i;
+            return UiAction::None;
         }
     }
-    for(int i=0;i<9;++i) if(IsKeyPressed(KEY_ONE+i)) {
+    for(int i=0;i<9;++i) if(ActionPressed(BindingAction(int(BindingAction::Hotbar1)+i))) {
         selected=i;
-        if(inventory&&held!=Air) hotbar[i]=held;
+        if(inventory&&CursorStack.count) ClickStack(Hotbar[i],false);
     }
     float wheel=GetMouseWheelMove();
     if(wheel!=0) selected=(selected+(wheel>0?8:1))%9;
-    if(!inventory||!IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) return UiAction::None;
-    Rectangle p=Panel();
-    for(int i=1+inventoryPage*21;i<BlockCount&&i<=inventoryPage*21+21;++i) {
-        Rectangle r{p.x+30+((i-1)%7)*86.f,p.y+52+(((i-1)%21)/7)*72.f,78,66};
-        if(Hover(r)) {held=static_cast<Block>(i);return UiAction::None;}
-    }
-    for(int i=0;i<9;++i) if(Hover(Slot(i,p.y+318,p.x+24))) {
-        selected=i;
-        if(held!=Air) hotbar[i]=held; else held=hotbar[i];
-        return UiAction::None;
+    if(inventory&&catalogOpen&&Mode==GameMode::Creative) {
+        int pages=(int(BlockCount)-2)/21+1;
+        if(IsKeyPressed(KEY_RIGHT)||IsKeyPressed(KEY_PAGE_DOWN)) inventoryPage=(inventoryPage+1)%pages;
+        if(IsKeyPressed(KEY_LEFT)||IsKeyPressed(KEY_PAGE_UP)) inventoryPage=(inventoryPage+pages-1)%pages;
+        Rectangle p=Panel();
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if(Hover({p.x+440,p.y+12,195,28})) {catalogOpen=false;return UiAction::None;}
+            if(Hover({p.x+24,p.y+264,105,22})) inventoryPage=(inventoryPage+pages-1)%pages;
+            if(Hover({p.x+520,p.y+264,115,22})) inventoryPage=(inventoryPage+1)%pages;
+            for(int i=1+inventoryPage*21;i<BlockCount&&i<=inventoryPage*21+21;++i) {
+                if(i==BedHead)continue;
+                Rectangle r{p.x+30+((i-1)%7)*86.f,p.y+52+(((i-1)%21)/7)*72.f,78,66};
+                if(Hover(r)) {
+                    if(ActionDown(BindingAction::Sneak)) CursorStack={};
+                    else if(!CursorStack.count) CursorStack={static_cast<Block>(i),static_cast<unsigned char>(StackCapacity(static_cast<Block>(i)))};
+                    return UiAction::None;
+                }
+            }
+        }
+        bool left=IsMouseButtonPressed(MOUSE_BUTTON_LEFT),right=IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+        if(left||right) for(int i=0;i<9;++i) if(Hover(Slot(i,p.y+318,p.x+24))) {
+            selected=i;
+            if(left&&ActionDown(BindingAction::Sneak)) Hotbar[i]={};else ClickStack(Hotbar[i],right);
+            return UiAction::None;
+        }
     }
     return UiAction::None;
 }
 void UI::Draw(Texture2D atlas,GameState state) const {
+    if(state==GameState::Keyboard){
+        ClearBackground({36,37,44,255});float x=GetScreenWidth()/2.f-300;DrawText("KEYBOARD",GetScreenWidth()/2-MeasureText("KEYBOARD",28)/2,24,28,GOLD);DrawText("Clique na acao para trocar a tecla ou o botao do mouse",int(x),65,16,WHITE);
+        int visible=std::max(1,(GetScreenHeight()-200)/38);for(int i=0;i<visible&&bindingScroll+i<BindingCount;++i){int index=bindingScroll+i;auto row=BindingRow(i);DrawRectangleRec(row,capturingBinding==index?Color{101,91,49,255}:Hover(row)?Color{79,84,96,255}:Color{54,58,69,255});DrawText(BindingLabel(BindingAction(index)),int(row.x+10),int(row.y+9),16,WHITE);auto key=capturingBinding==index?std::string("Pressione..."):BindingKeyName(Settings.bindings[index]);DrawText(key.c_str(),int(row.x+row.width-10-MeasureText(key.c_str(),16)),int(row.y+9),16,GOLD);}
+        DrawText(bindingMessage.empty()?"Roda: mais acoes | ESC: voltar":bindingMessage.c_str(),int(x),GetScreenHeight()-105,14,GOLD);ClassicButton({x,float(GetScreenHeight()-70),290,40},"Reset",true);ClassicButton({x+310,float(GetScreenHeight()-70),290,40},"Concluido",true);return;
+    }
+
+    if(state==GameState::BedwarsMode){
+        ClearBackground({34,35,43,255});float x=GetScreenWidth()/2.f-220,y=GetScreenHeight()/2.f-60;
+        DrawText("MODO DE JOGO",GetScreenWidth()/2-MeasureText("MODO DE JOGO",28)/2,int(y-65),28,GOLD);
+        ClassicButton({x,y,440,50},"Solo - 1 jogador por time",true);ClassicButton({x,y+65,440,50},"Dupla - 2 jogadores por time",true);return;
+    }
+    if(state==GameState::BedwarsTeams){
+        DrawRectangle(0,0,GetScreenWidth(),GetScreenHeight(),Fade(BLACK,.65f));float x=GetScreenWidth()/2.f-220,y=GetScreenHeight()/2.f-145;
+        DrawRectangle(int(x-18),int(y-70),476,400,{42,43,48,255});
+        DrawText("ESCOLHA SEU TIME",int(x),int(y-48),26,GOLD);
+        for(const auto& team:bw::TeamChoices()){
+            Rectangle rect{x,y+team.id*58,440,46};
+            ClassicButton(rect,TextFormat("%s - %d/%d%s",team.name,team.players,team.capacity,team.id==bw::LocalTeam()?" (seu time)":""),team.available);
+            DrawRectangle(int(x+7),int(rect.y+10),8,26,team.color);
+        }
+        ClassicButton({x,y+250,440,42},"Voltar ao jogo",true);
+        DrawText("Times equilibrados; com 2 jogadores, times diferentes.",int(x),int(y+305),14,LIGHTGRAY);return;
+    }
+    if(state==GameState::BedwarsMaps){
+        ClearBackground({34,35,43,255});float width=std::min(1100.f,float(GetScreenWidth()-40)),card=(width-12*(bw::MapCount-1))/bw::MapCount,x=(GetScreenWidth()-width)/2,y=GetScreenHeight()/2.f-120;const char* title="ESCOLHA O MAPA";DrawText(title,(GetScreenWidth()-MeasureText(title,28))/2,int(y-65),28,GOLD);
+        for(int i=0;i<bw::MapCount;++i){Rectangle rect{x+i*(card+12),y,card,290};DrawRectangleRec(rect,Hover(rect)?Color{76,80,91,255}:Color{47,50,60,255});DrawRectangleLinesEx(rect,2,Hover(rect)?GOLD:GRAY);if(mapPreviews[i].id)DrawTexturePro(mapPreviews[i].texture,{0,0,360,-210},{rect.x+7,rect.y+7,rect.width-14,(rect.width-14)*210/360},{0,0},0,WHITE);DrawText(bw::MapName(i),int(rect.x+12),int(rect.y+rect.height-72),20,WHITE);DrawText(bw::MapDescription(i),int(rect.x+12),int(rect.y+rect.height-48),12,LIGHTGRAY);DrawText(i==3?"2 times | Layout original":TextFormat("Rush %d | Clique para criar",rushGap+6),int(rect.x+12),int(rect.y+rect.height-30),14,LIGHTGRAY);}
+        DrawText("ESC para voltar",GetScreenWidth()/2-80,int(y+315),16,WHITE);return;
+    }
+
+    if(state==GameState::BedwarsDiscovery){
+        ClearBackground({34,35,43,255});float x=GetScreenWidth()/2.f-280;
+        DrawText("SALAS NA REDE LOCAL",int(x),30,26,GOLD);
+        DrawText(bw::DiscoveryStatus().c_str(),int(x),68,14,WHITE);
+        int visible=std::max(1,(GetScreenHeight()-220)/48);const auto& rooms=bw::Rooms();
+        for(int i=0;i<visible&&lanScroll+i<int(rooms.size());++i){const auto& room=rooms[lanScroll+i];Rectangle row{x,100.f+i*48,560,44};DrawRectangleRec(row,Hover(row)&&room.joinable?Color{90,94,106,255}:Color{53,57,66,255});DrawRectangleLinesEx(row,1,GRAY);
+            DrawText(TextFormat("%s - %d/%d jogadores - Rush %d",room.name.c_str(),room.players,room.capacity,room.gap+6),int(x+10),int(row.y+5),17,room.joinable?WHITE:GRAY);
+            DrawText(room.address.c_str(),int(x+10),int(row.y+26),14,LIGHTGRAY);const char* action=room.joinable?"Entrar":room.players>=4?"Cheia":"Em partida";DrawText(action,int(x+550-MeasureText(action,16)),int(row.y+26),16,room.joinable?GREEN:GRAY);
+        }
+        ClassicButton({x,float(GetScreenHeight()-95),275,38},bw::SearchingRooms()?"Buscar novamente...":"Atualizar busca",true);ClassicButton({x+285,float(GetScreenHeight()-95),275,38},"Voltar",true);
+        DrawText("Wi-Fi, cabo e VPN | Se nao aparecer, use o IP manualmente",int(x),GetScreenHeight()-40,14,LIGHTGRAY);return;
+    }
+
+    if(state==GameState::BedwarsRush){ClearBackground({34,35,43,255});float x=GetScreenWidth()/2.f-220,y=GetScreenHeight()/2.f-100;DrawText("RUSH",int(x+174),int(y-55),32,GOLD);const char* labels[]={"Rapido (22 blocos)","Medio (38 blocos)","Lento (70 blocos)"};for(int i=0;i<3;++i)ClassicButton({x,y+i*60,440,48},labels[i],true);return;}
+
+    if(state==GameState::BedwarsShop){bw::DrawShop(atlas);return;}
+    if(state==GameState::BedwarsInventory||state==GameState::BedwarsChest){bw::DrawInventory(atlas,state==GameState::BedwarsChest);return;}
+    if(state==GameState::BedwarsMenu){
+        ClearBackground({34,35,43,255});float x=GetScreenWidth()/2.f-280,y=GetScreenHeight()/2.f-180;
+        DrawText("BEDWARS LAN - MineClone",int(x),int(y),26,GOLD);
+        DrawText("IP do host:porta (padrao 25566)",int(x),int(y+32),17,WHITE);DrawRectangle(int(x),int(y+55),560,38,BLACK);DrawText(bedwarsAddress.c_str(),int(x+8),int(y+65),18,WHITE);
+        DrawText("Seu nick",int(x),int(y+108),17,WHITE);DrawRectangle(int(x),int(y+130),560,38,BLACK);DrawText(playerName.c_str(),int(x+8),int(y+140),18,WHITE);
+        ClassicButton({x,y+190,560,40},"Criar mapa e abrir LAN :25566",!bw::Active());ClassicButton({x,y+238,560,40},"Entrar no BedWars do amigo",!bw::Active());ClassicButton({x,y+286,370,40},"Procurar na rede local",!bw::Active());ClassicButton({x+380,y+286,180,40},"Voltar",true);
+        DrawText(bw::Status().c_str(),int(x),int(y+337),15,WHITE);return;
+    }
+
+    if(state==GameState::Multiplayer) {
+        ClearBackground({39,39,44,255});float x=GetScreenWidth()/2.f-280,y=GetScreenHeight()/2.f-150;
+        DrawText("MULTIPLAYER JAVA 1.8",int(x),int(y),26,WHITE);
+        DrawText("Servidor (endereco:porta)",int(x),int(y+32),17,LIGHTGRAY);
+        DrawRectangleRec({x,y+55,560,38},BLACK);DrawRectangleLinesEx({x,y+55,560,38},2,serverField==0?GOLD:GRAY);DrawText(serverAddress.c_str(),int(x+9),int(y+66),18,WHITE);
+        DrawText("Nome do jogador",int(x),int(y+108),17,LIGHTGRAY);
+        DrawRectangleRec({x,y+130,560,38},BLACK);DrawRectangleLinesEx({x,y+130,560,38},2,serverField==1?GOLD:GRAY);DrawText(playerName.c_str(),int(x+9),int(y+141),18,WHITE);
+        DrawText("Experimental: servidores 1.8 sem autenticacao Microsoft.",int(x),int(y+184),15,GOLD);
+        std::string status=net::Status();
+        BeginScissorMode(int(x),int(y+204),560,52);
+        for(int line=0;line<3&&!status.empty();++line){
+            size_t length=status.size();while(length>0&&MeasureText(status.substr(0,length).c_str(),15)>550)--length;
+            if(length==0)break;
+            if(length<status.size()){size_t space=status.rfind(' ',length);if(space!=std::string::npos&&space>0)length=space;}
+            std::string part=status.substr(0,length);DrawText(part.c_str(),int(x),int(y+207+line*16),15,RAYWHITE);
+            status.erase(0,length);while(!status.empty()&&status.front()==' ')status.erase(0,1);
+        }
+        EndScissorMode();
+        ClassicButton({x,y+262,270,40},net::Active()?"Cancelar":"Conectar",true);ClassicButton({x+290,y+262,270,40},"Voltar",true);return;
+    }
+    if(state==GameState::ServerInventory) {
+        DrawRectangle(0,0,GetScreenWidth(),GetScreenHeight(),Fade(BLACK,.65f));
+        const auto layout=RemoteSlots();const auto& slots=net::WindowSlots();
+        if(!layout.empty()){
+            float left=layout[0].rect.x,top=layout[0].rect.y,right=left,bottom=top;
+            for(const auto& slot:layout){left=std::min(left,slot.rect.x);top=std::min(top,slot.rect.y);right=std::max(right,slot.rect.x+slot.rect.width);bottom=std::max(bottom,slot.rect.y+slot.rect.height);}
+            DrawRectangle(int(left-10),int(top-32),int(right-left+20),int(bottom-top+65),{178,174,165,255});DrawText(net::WindowTitle().c_str(),int(left),int(top-24),18,DARKGRAY);
+            for(const auto& slot:layout){DrawRectangleRec(slot.rect,Hover(slot.rect)?LIGHTGRAY:GRAY);const auto& item=slots[slot.index];if(item.count)StackIcon(atlas,slot.rect,{net::LocalItem(item),item.count});}
+            DrawText("E / ESC: fechar",int(left),int(bottom+12),14,DARKGRAY);
+        }
+        if(net::Cursor().count){auto m=GetMousePosition();StackIcon(atlas,{m.x-18,m.y-18,40,40},{net::LocalItem(net::Cursor()),net::Cursor().count});}return;
+    }
+    if(state==GameState::Dead) {
+        DrawRectangle(0,0,GetScreenWidth(),GetScreenHeight(),{65,5,5,180});
+        const char* title="Voce morreu!";DrawText(title,(GetScreenWidth()-MeasureText(title,36))/2,GetScreenHeight()/2-135,36,WHITE);
+        ClassicButton(PauseButton(0),"Renascer",true);ClassicButton(PauseButton(1),"Salvar e voltar ao menu",true);return;
+    }
+    if(state==GameState::CraftScreen||state==GameState::FurnaceScreen) {
+        Rectangle p=ChestPanel();DrawRectangle(0,0,GetScreenWidth(),GetScreenHeight(),Fade(BLACK,.6f));
+        DrawRectangleRec(p,{190,185,174,255});DrawRectangleLinesEx(p,3,DARKGRAY);
+        DrawText(state==GameState::CraftScreen?"Mesa de trabalho":"Fornalha",int(p.x+16),int(p.y+12),20,DARKGRAY);
+        DrawText("X",int(p.x+397),int(p.y+10),20,MAROON);Block hovered=Air;
+        auto drawSlot=[&](Rectangle r,ItemStack slot) {DrawRectangleRec(r,Hover(r)?LIGHTGRAY:GRAY);DrawRectangleLinesEx(r,2,DARKGRAY);StackIcon(atlas,r,slot);if(Hover(r)) hovered=slot.block;};
+        if(state==GameState::CraftScreen) {
+            for(int i=0;i<9;++i) drawSlot(CraftSlot(i,3),WorkbenchCrafting[i]);
+            drawSlot(CraftOutput(3),CraftResult(WorkbenchCrafting.data(),3));
+            DrawText("->",int(p.x+235),int(p.y+94),24,DARKGRAY);
+        } else if(auto* furnace=FurnaceAt(chestX,chestY,chestZ)) {
+            for(int i=0;i<3;++i) drawSlot(FurnaceSlot(i),furnace->slots[i]);
+            DrawText(furnace->fuel>0?"ACESO":"APAGADO",int(p.x+117),int(p.y+91),13,furnace->fuel>0?ORANGE:DARKGRAY);
+            DrawRectangle(int(p.x+215),int(p.y+94),70,14,DARKGRAY);
+            DrawRectangle(int(p.x+215),int(p.y+94),int(70*furnace->progress/10),14,ORANGE);
+        }
+        DrawText("Inventario",int(p.x+16),int(p.y+180),18,DARKGRAY);
+        for(int group=0;group<2;++group) for(int i=0;i<(group?9:27);++i) drawSlot(ChestSlot(i,group?2:1),group?Hotbar[i]:Backpack[i]);
+        DrawText("E / ESC: fechar",int(p.x+16),int(p.y+405),14,DARKGRAY);
+        if(CursorStack.count) {Vector2 m=GetMousePosition();StackIcon(atlas,{m.x-18,m.y-18,40,40},CursorStack);}
+        else if(hovered!=Air) {Vector2 m=GetMousePosition();DrawRectangle(int(m.x+12),int(m.y-28),MeasureText(Names[hovered],16)+16,25,{29,24,36,245});DrawText(Names[hovered],int(m.x+20),int(m.y-23),16,WHITE);}
+        return;
+    }
+    if(state==GameState::ChestScreen) {
+        Rectangle p=ChestPanel();DrawRectangle(0,0,GetScreenWidth(),GetScreenHeight(),Fade(BLACK,.55f));
+        DrawRectangleRec(p,{190,185,174,255});DrawRectangleLinesEx(p,3,{60,54,43,255});
+        DrawText("Bau",int(p.x+16),int(p.y+12),20,{40,36,29,255});
+        DrawText("X",int(p.x+397),int(p.y+10),20,MAROON);
+        DrawText("Inventario",int(p.x+16),int(p.y+180),18,{40,36,29,255});
+        auto* slots=ChestAt(chestX,chestY,chestZ);Block hovered=Air;
+        for(int group=0;group<3;++group) for(int i=0;i<(group==2?9:27);++i) {
+            Rectangle r=ChestSlot(i,group);DrawRectangleRec(r,Hover(r)?Color{157,155,144,255}:Color{112,109,100,255});
+            DrawRectangleLinesEx(r,2,{66,63,57,255});
+            ItemStack stack=group==0?(slots?(*slots)[i]:ItemStack{}):(group==1?Backpack[i]:Hotbar[i]);
+            StackIcon(atlas,r,stack);if(Hover(r)) hovered=stack.block;
+        }
+        DrawText("Shift: transferir pilha | E / ESC: fechar",int(p.x+12),int(p.y+405),14,{45,40,31,255});
+        if(CursorStack.count) {
+            Vector2 mouse=GetMousePosition();StackIcon(atlas,{mouse.x-18,mouse.y-18,40,40},CursorStack);
+        } else if(hovered!=Air) {
+            Vector2 mouse=GetMousePosition();int width=MeasureText(Names[hovered],16)+16;
+            DrawRectangle(int(mouse.x+12),int(mouse.y-28),width,25,{29,24,36,245});
+            DrawText(Names[hovered],int(mouse.x+20),int(mouse.y-23),16,WHITE);
+        }
+        return;
+    }
+    if(state==GameState::Playing&&!message.empty()&&GetTime()<messageUntil) {
+        int width=MeasureText(message.c_str(),18)+20;
+        DrawRectangle((GetScreenWidth()-width)/2,GetScreenHeight()-128,width,27,Fade(BLACK,.7f));
+        DrawText(message.c_str(),(GetScreenWidth()-width)/2+10,GetScreenHeight()-123,18,WHITE);
+    }
+    if(state==GameState::Inventory&&!catalogOpen) {
+        Rectangle p=InventoryPanel();
+        DrawRectangle(0,0,GetScreenWidth(),GetScreenHeight(),Fade(BLACK,.6f));
+        DrawRectangleRec(p,{190,185,174,255});DrawRectangleLinesEx(p,3,{60,54,43,255});
+        DrawText("Inventario",int(p.x+16),int(p.y+14),20,{40,36,29,255});
+        Rectangle button{p.x+254,p.y+8,158,27};DrawRectangleRec(button,Hover(button)?GRAY:DARKGRAY);
+        DrawText(Mode==GameMode::Creative?"Todos os itens":"Sobrevivencia",int(button.x+9),int(button.y+7),16,WHITE);
+        DrawText("Fabricacao",int(p.x+205),int(p.y+42),16,DARKGRAY);
+        DrawText("Armadura",int(p.x+16),int(p.y+92),16,DARKGRAY);
+        for(int i=0;i<4;++i) {Rectangle r{p.x+16+i*44.f,p.y+112,40,40};DrawRectangleRec(r,GRAY);DrawRectangleLinesEx(r,2,DARKGRAY);StackIcon(atlas,r,EquippedArmor[i]);}
+        Block hovered=Air;
+        for(int i=0;i<4;++i) {Rectangle r=CraftSlot(i,2);DrawRectangleRec(r,GRAY);DrawRectangleLinesEx(r,2,DARKGRAY);StackIcon(atlas,r,PersonalCrafting[i]);if(Hover(r)) hovered=PersonalCrafting[i].block;}
+        Rectangle output=CraftOutput(2);DrawRectangleRec(output,GRAY);DrawRectangleLinesEx(output,2,DARKGRAY);StackIcon(atlas,output,CraftResult(PersonalCrafting.data(),2));
+        DrawText("->",int(p.x+306),int(p.y+94),20,DARKGRAY);
+        DrawText("Inventario",int(p.x+16),int(p.y+180),18,DARKGRAY);
+        for(int group=0;group<2;++group) for(int i=0;i<(group?9:27);++i) {
+            Rectangle r=PlayerSlot(i,group!=0);DrawRectangleRec(r,Hover(r)?Color{157,155,144,255}:Color{112,109,100,255});
+            DrawRectangleLinesEx(r,2,group&&i==selected?GOLD:Color{66,63,57,255});
+            ItemStack slot=group?Hotbar[i]:Backpack[i];StackIcon(atlas,r,slot);
+            if(Hover(r)) hovered=slot.block;
+        }
+        DrawText(Mode==GameMode::Creative?"Shift + clique: descartar | E / ESC: fechar":"Shift: mover pilha | E / ESC: fechar",int(p.x+16),int(p.y+405),14,{45,40,31,255});
+        if(CursorStack.count) {Vector2 m=GetMousePosition();StackIcon(atlas,{m.x-18,m.y-18,40,40},CursorStack);}
+        else if(hovered!=Air) {Vector2 m=GetMousePosition();int width=MeasureText(Names[hovered],16)+16;
+            DrawRectangle(int(m.x+12),int(m.y-28),width,25,{29,24,36,245});DrawText(Names[hovered],int(m.x+20),int(m.y-23),16,WHITE);}
+        return;
+    }
     if(state==GameState::Options) {
         int w=GetScreenWidth(),h=GetScreenHeight();Rectangle p=OptionsPanel();
         DrawRectangle(0,0,w,h,Fade(BLACK,.55f));
         DrawRectangleRec(p,{48,46,42,255});DrawRectangleLinesEx(p,3,{155,151,138,255});
-        DrawText("OPCOES",int(p.x+(p.width-MeasureText("OPCOES",26))/2),int(p.y+19),26,RAYWHITE);
-        ClassicButton(OptionControl(0),Settings.freezeTime?"Travar horario: LIGADO":"Travar horario: DESLIGADO",true);
-        int minute=ClockMinute();
-        DrawText(TextFormat("Horario: %02d:%02d",minute/60,minute%60),int(p.x+40),int(p.y+123),20,RAYWHITE);
-        Slider(OptionControl(1),minute/1439.f);
-        DrawText("00:00",int(p.x+40),int(p.y+185),15,LIGHTGRAY);
-        DrawText("12:00",int(p.x+280),int(p.y+185),15,LIGHTGRAY);
-        DrawText("23:59",int(p.x+515),int(p.y+185),15,LIGHTGRAY);
-        DrawText(TextFormat("Sensibilidade do mouse: %.0f%%",Settings.mouseSensitivity*100),int(p.x+40),int(p.y+221),20,RAYWHITE);
-        Slider(OptionControl(2),(Settings.mouseSensitivity-.1f)/2.9f);
-        DrawText("10%",int(p.x+40),int(p.y+284),15,LIGHTGRAY);
-        DrawText("300%",int(p.x+515),int(p.y+284),15,LIGHTGRAY);
-        ClassicButton(OptionControl(3),"Concluido",true);
-        if(!message.empty()) DrawText(message.c_str(),int(p.x+12),int(p.y+370),14,GOLD);
+        DrawText("OPCOES",int(p.x+(p.width-MeasureText("OPCOES",26))/2),int(p.y+14),26,RAYWHITE);
+        ClassicButton(OptionControl(0),Settings.freezeTime?"Horario: travado":"Horario: livre",true);ClassicButton(OptionControl(4),Settings.fogEnabled?"Neblina: ligada":"Neblina: desligada",true);
+        int minute=ClockMinute();DrawText(TextFormat("Horario: %02d:%02d",minute/60,minute%60),int(p.x+20),int(p.y+97),17,WHITE);Slider(OptionControl(1),minute/1439.f);
+        DrawText(TextFormat("Sensibilidade: %.0f%%",Settings.mouseSensitivity*100),int(p.x+328),int(p.y+97),17,WHITE);Slider(OptionControl(2),(Settings.mouseSensitivity-.1f)/2.9f);
+        DrawText(TextFormat("FOV: %.0f",Settings.fov),int(p.x+20),int(p.y+180),17,WHITE);Slider(OptionControl(7),(Settings.fov-40)/70.f);
+        DrawText(TextFormat("Visao: %d chunks (%d blocos)",Settings.renderChunks,Settings.renderChunks*16),int(p.x+328),int(p.y+180),17,WHITE);Slider(OptionControl(6),float(Settings.renderChunks-MinRenderChunks)/(MaxRenderChunks-MinRenderChunks));
+        DrawText(TextFormat("Distancia da neblina: %.0f blocos",Settings.fogDistance),int(p.x+20),int(p.y+263),17,WHITE);Slider(OptionControl(5),(Settings.fogDistance-8)/184.f);
+        ClassicButton(OptionControl(9),Settings.toggleSprint?"Toggle Sprint: LIGADO":"Toggle Sprint: DESLIGADO",true);
+        ClassicButton(OptionControl(8),"Keyboard",true);ClassicButton(OptionControl(3),"Concluido",true);
+        if(!message.empty())DrawText(message.c_str(),int(p.x+12),int(p.y+423),12,GOLD);
         return;
     }
     const bool paused=state==GameState::Paused;
@@ -172,9 +598,11 @@ void UI::Draw(Texture2D atlas,GameState state) const {
         const char* title="MineClone";
         DrawText(title,(w-MeasureText(title,44))/2+3,h/2-150+3,44,BLACK);
         DrawText(title,(w-MeasureText(title,44))/2,h/2-150,44,RAYWHITE);
-        ClassicButton(PauseButton(0),"Jogar",true);
-        ClassicButton(PauseButton(1),"Opcoes...",true);
-        ClassicButton(PauseButton(2),"Sair",true);
+        ClassicButton(MainButton(0),"Jogar",true);
+        ClassicButton(MainButton(1),"Multiplayer",true);
+        ClassicButton(MainButton(2),"BedWars LAN",true);
+        ClassicButton(MainButton(3),"Opcoes...",true);
+        ClassicButton(MainButton(4),"Sair",true);
         if(!message.empty()) DrawText(message.c_str(),(w-MeasureText(message.c_str(),16))/2,h/2+160,16,RAYWHITE);
         return;
     }
@@ -183,7 +611,9 @@ void UI::Draw(Texture2D atlas,GameState state) const {
         ClearBackground({43,41,37,255});
         const char* title="Selecionar Mundo";
         DrawText(title,(w-MeasureText(title,30))/2,34,30,RAYWHITE);
-        DrawText(TextFormat("%d mundos | Use a roda para rolar",int(worlds.size())),w/2-190,76,17,LIGHTGRAY);
+        DrawText(TextFormat("%d mundos",int(worlds.size())),w/2-300,78,17,LIGHTGRAY);
+        Rectangle modeButton{w/2.f+35,70,275,28};DrawRectangleRec(modeButton,Hover(modeButton)?GRAY:DARKGRAY);
+        DrawText(NewWorldMode==GameMode::Creative?"Novo mundo: Criativo":"Novo mundo: Sobrevivencia",int(modeButton.x+9),int(modeButton.y+6),16,WHITE);
         if(worlds.empty()) DrawText("Nenhum mundo salvo. Crie seu primeiro mundo.",w/2-235,130,20,LIGHTGRAY);
         for(int i=0;i<VisibleWorldRows()&&worldScroll+i<int(worlds.size());++i) {
             const WorldSave& save=worlds[worldScroll+i];
@@ -215,38 +645,95 @@ void UI::Draw(Texture2D atlas,GameState state) const {
             Rectangle r=Slot(i,float(h-87),left);
             DrawRectangleRec(r,{48,46,42,235});
             DrawRectangleLinesEx(r,selected==i?3.f:1.f,selected==i?GOLD:GRAY);
-            Icon(atlas,r,hotbar[i]); DrawText(TextFormat("%d",i+1),int(r.x+5),int(r.y+4),14,WHITE);
+            Icon(atlas,r,Hotbar[i].block);
+            if(ToolDurability(Hotbar[i].block)>0&&Hotbar[i].damage) {
+                float remaining=1.f-float(Hotbar[i].damage)/ToolDurability(Hotbar[i].block);
+                DrawRectangle(int(r.x+10),int(r.y+48),44,4,BLACK);
+                DrawRectangle(int(r.x+10),int(r.y+48),int(44*remaining),3,remaining>.25f?GREEN:RED);
+            }
+            if(Hotbar[i].count) DrawText(TextFormat("%d",Hotbar[i].count),int(r.x+43),int(r.y+33),14,WHITE);
+            DrawText(TextFormat("%d",i+1),int(r.x+5),int(r.y+4),14,WHITE);
         }
     }
+    if(state==GameState::Playing&&Mode==GameMode::Survival) {
+        int left=w/2-300;
+        for(int i=0;i<10;++i) {
+            int x=left+i*18,y=h-115;float units=Health-i*2;
+            Color color=units>=2?Color{214,42,48,255}:(units>0?Color{145,31,40,255}:Color{43,24,26,255});
+            DrawRectangle(x,y,5,5,color);DrawRectangle(x+6,y,5,5,color);
+            DrawRectangle(x+1,y+4,9,5,color);DrawRectangle(x+3,y+9,5,3,color);
+        }
+        for(int i=0;i<10;++i)DrawRectangle(left+i*18,h-130,11,8,DefensePoints()>i*2?LIGHTGRAY:Color{43,43,45,255});
+        for(int i=0;i<int(std::ceil(Absorption/2));++i){int x=left+185+i*18,y=h-115;Color c=Absorption-i*2>=2?GOLD:Color{173,133,30,255};DrawRectangle(x,y,5,5,c);DrawRectangle(x+6,y,5,5,c);DrawRectangle(x+1,y+4,9,5,c);DrawRectangle(x+3,y+9,5,3,c);}
+        if(Breath<20) for(int i=0;i<10;++i) DrawCircle(left+i*18+5,h-144,4,Breath>i*2?SKYBLUE:DARKGRAY);
+        if(miningProgress>0) {DrawRectangle(w/2-44,h/2+22,88,6,Fade(BLACK,.7f));DrawRectangle(w/2-43,h/2+23,int(86*miningProgress),4,RAYWHITE);}
+    }
+    if(net::Active()||bw::Ready()) {
+        int y=GetScreenHeight()-170;
+        const auto& messages=bw::Ready()?bw::Messages():net::Messages();
+        for(auto it=messages.rbegin();it!=messages.rend();++it){DrawRectangle(8,y-2,GetScreenWidth()-16,20,Fade(BLACK,.45f));DrawText(it->c_str(),12,y,14,WHITE);y-=21;}
+        if(chatOpen){DrawRectangle(6,GetScreenHeight()-30,GetScreenWidth()-12,24,Fade(BLACK,.8f));DrawText(("<"+(bw::Ready()?bw::Nickname():net::Nickname())+"> "+chatText+"_").c_str(),12,GetScreenHeight()-25,17,WHITE);}
+    }
+    if(state==GameState::Playing&&net::Joined()&&ActionDown(BindingAction::PlayerList)&&!chatOpen)DrawPlayerList();
     DrawFPS(w-100,16);
     if(inventory) {
         DrawRectangle(0,0,w,h,Fade(BLACK,.6f));Rectangle p=Panel();
         DrawRectangleRec(p,{45,43,39,255});DrawRectangleLinesEx(p,3,{155,151,138,255});
-        DrawText("INVENTARIO CRIATIVO",int(p.x+24),int(p.y+16),22,RAYWHITE);
+        DrawText("BLOCOS CRIATIVOS",int(p.x+24),int(p.y+16),22,RAYWHITE);
+        DrawRectangleRec({p.x+440,p.y+12,195,28},DARKGRAY);
+        DrawText("Voltar ao inventario",int(p.x+448),int(p.y+18),16,WHITE);
         for(int i=1+inventoryPage*21;i<BlockCount&&i<=inventoryPage*21+21;++i) {
+                if(i==BedHead)continue;
             Rectangle r{p.x+30+((i-1)%7)*86.f,p.y+52+(((i-1)%21)/7)*72.f,78,66};
             DrawRectangleRec(r,Hover(r)?Color{95,91,78,255}:Color{60,58,52,255});
-            DrawRectangleLinesEx(r,held==i?2.f:1.f,held==i?GOLD:GRAY);Icon(atlas,r,static_cast<Block>(i));
+            DrawRectangleLinesEx(r,CursorStack.block==i?2.f:1.f,CursorStack.block==i?GOLD:GRAY);Icon(atlas,r,static_cast<Block>(i));
         }
         DrawText("< Anterior",int(p.x+24),int(p.y+264),17,RAYWHITE);
         DrawText(TextFormat("Pagina %d / %d",inventoryPage+1,(int(BlockCount)-2)/21+1),int(p.x+270),int(p.y+264),17,LIGHTGRAY);
         DrawText("Proxima >",int(p.x+520),int(p.y+264),17,RAYWHITE);
-        DrawText(held==Air?"Escolha um bloco, depois clique em uma posicao da hotbar.":
-            TextFormat("%s selecionado: clique na hotbar ou aperte 1-9.",Names[held]),int(p.x+24),int(p.y+287),16,RAYWHITE);
+        DrawText(CursorStack.block==Air?"Escolha um bloco para pegar uma pilha de 64.":
+            TextFormat("%s: deposite na hotbar ou volte ao inventario.",Names[CursorStack.block]),int(p.x+24),int(p.y+287),16,RAYWHITE);
         for(int i=0;i<9;++i) {
             Rectangle r=Slot(i,p.y+318,p.x+24); DrawRectangleRec(r,{61,59,53,255});
-            DrawRectangleLinesEx(r,selected==i?3.f:1.f,selected==i?GOLD:GRAY);Icon(atlas,r,hotbar[i]);
+            DrawRectangleLinesEx(r,selected==i?3.f:1.f,selected==i?GOLD:GRAY);Icon(atlas,r,Hotbar[i].block);
             DrawText(TextFormat("%d",i+1),int(r.x+4),int(r.y+4),14,WHITE);
         }
         DrawText("E / ESC: fechar inventario",int(p.x+24),int(p.y+402),15,LIGHTGRAY);
+        if(CursorStack.count) {Vector2 m=GetMousePosition();StackIcon(atlas,{m.x-18,m.y-18,40,40},CursorStack);}
     } else if(paused) {
         DrawRectangle(0,0,w,h,Fade(BLACK,.55f));
         const char* title="Menu do Jogo";
         DrawText(title,(w-MeasureText(title,32))/2,h/2-130,32,RAYWHITE);
         ClassicButton(PauseButton(0),"Voltar ao Jogo",true);
         ClassicButton(PauseButton(1),"Opcoes...",true);
-        ClassicButton(PauseButton(2),"Salvar e Voltar ao Menu",true);
+        ClassicButton(PauseButton(2),net::Active()?"Desconectar":bw::Active()?"Sair do BedWars":"Salvar e Voltar ao Menu",true);
         if(!message.empty()) DrawText(message.c_str(),(w-MeasureText(message.c_str(),16))/2,h/2+160,16,RAYWHITE);
     }
 }
+}
+
+void game::UI::DrawPlayerList() const {
+    int w=GetScreenWidth();
+    auto lines=[](const std::string& text){return text.empty()?0:std::min(4,1+int(std::count(text.begin(),text.end(),'\n')));};
+    int bannerHeight=22*(lines(net::TabHeader())+lines(net::TabFooter()));
+
+        auto players=net::PlayerList();int visible=std::min(int(players.size()),80),rows=std::max(1,std::min(20,visible));
+        int columns=std::max(1,(visible+rows-1)/rows),columnWidth=std::min(240,(w-40)/columns);
+        int rowHeight=std::clamp((GetScreenHeight()-80-bannerHeight)/rows,12,22);
+        int fontSize=std::min(16,rowHeight-2);
+        int width=columns*columnWidth,x=(w-width)/2,y=26;
+        auto banner=[&](const std::string& text) {
+            size_t start=0;int count=0;
+            while(start<text.size()&&count++<4){size_t end=text.find('\n',start);std::string line=text.substr(start,end==std::string::npos?std::string::npos:end-start);
+                DrawRectangle(x,y,width,22,{22,24,29,220});BeginScissorMode(x,y,width,22);DrawText(line.c_str(),x+(width-MeasureText(line.c_str(),16))/2,y+3,16,WHITE);EndScissorMode();y+=22;if(end==std::string::npos)break;start=end+1;}
+        };
+        banner(net::TabHeader());DrawRectangle(x,y,width,24,{22,24,29,230});DrawText(TextFormat("Jogadores: %d",int(players.size())),x+8,y+4,16,WHITE);y+=26;
+        std::string own=net::Nickname();
+        for(int i=0;i<visible;++i){const auto& player=players[i];int px=x+(i/rows)*columnWidth,py=y+(i%rows)*rowHeight;
+            DrawRectangle(px+1,py,columnWidth-2,rowHeight-1,{49,53,61,220});BeginScissorMode(px+5,py,columnWidth-39,rowHeight-1);
+            DrawText(player.displayName.c_str(),px+6,py+1,fontSize,player.gameMode==3?GRAY:player.name==own?GOLD:WHITE);EndScissorMode();
+            int bars=player.ping<0?0:player.ping<150?5:player.ping<300?4:player.ping<600?3:player.ping<1000?2:1;
+            for(int b=0;b<5;++b)DrawRectangle(px+columnWidth-26+b*4,py+rowHeight-6-b*2,3,3+b*2,b<bars?LIME:DARKGRAY);
+        }
+        y+=rows*rowHeight+2;banner(net::TabFooter());
 }

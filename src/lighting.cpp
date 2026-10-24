@@ -1,14 +1,20 @@
+#include "map_blocks.h"
 #include "lighting.h"
 #include <algorithm>
 #include <array>
 #include <vector>
 #include <cmath>
 #include <limits>
+#include <set>
 namespace game {
 namespace {
 constexpr int Count=Width*Height*Width;
 std::vector<unsigned char> sky(Count),lamp(Count),direct(Count);
-bool dirty=true;
+bool dirty=true,fullDirty=true;
+int editMinX=Width,editMaxX=-1,editMinZ=Width,editMaxZ=-1;
+int minX=0,maxX=Width-1,minZ=0,maxZ=Width-1;
+std::set<int> emitters;
+bool InRegion(int x,int z){return x>=minX&&x<=maxX&&z>=minZ&&z<=maxZ;}
 int Index(int x,int y,int z) {return (x*Height+y)*Width+z;}
 struct Node {int x,y,z;};
 constexpr int directions[6][3]={{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
@@ -34,12 +40,13 @@ bool Visible(Node from,Node to) {
     return true;
 }
 void CastLamp(Node source) {
-    int emission=Emission(At(source.x,source.y,source.z));
-    direct[Index(source.x,source.y,source.z)]=static_cast<unsigned char>(emission);
+    int emission=BlockEmissionAt(source.x,source.y,source.z);
+    if(InRegion(source.x,source.z))direct[Index(source.x,source.y,source.z)]=static_cast<unsigned char>(emission);
     int r=emission-1;
-    for(int x=std::max(0,source.x-r);x<=std::min(Width-1,source.x+r);++x)
+    if(source.x+r<minX||source.x-r>maxX||source.z+r<minZ||source.z-r>maxZ)return;
+    for(int x=std::max(minX,source.x-r);x<=std::min(maxX,source.x+r);++x)
         for(int y=std::max(0,source.y-r);y<=std::min(Height-1,source.y+r);++y)
-            for(int z=std::max(0,source.z-r);z<=std::min(Width-1,source.z+r);++z) {
+            for(int z=std::max(minZ,source.z-r);z<=std::min(maxZ,source.z+r);++z) {
                 int strength=emission-std::abs(x-source.x)-std::abs(y-source.y)-std::abs(z-source.z);
                 if(strength<=0||!LightPassable(At(x,y,z))) continue;
                 auto& value=direct[Index(x,y,z)];
@@ -53,14 +60,17 @@ void Flood(std::vector<unsigned char>& light,std::vector<Node>& queue) {
         if(next<=0) continue;
         for(const auto& d:directions) {
             int x=n.x+d[0],y=n.y+d[1],z=n.z+d[2];
-            if(!Inside(x,y,z)||!LightPassable(At(x,y,z))) continue;
+            if(!Inside(x,y,z)||!InRegion(x,z)||!LightPassable(At(x,y,z))) continue;
             auto& value=light[Index(x,y,z)];
             if(value<next) {value=static_cast<unsigned char>(next);queue.push_back({x,y,z});}
         }
     }
 }
 }
-void InvalidateLighting() {dirty=true;}
+void InvalidateLighting() {dirty=fullDirty=true;}
+void InvalidateLighting(int x,int,int z) {
+    dirty=true;editMinX=std::min(editMinX,x);editMaxX=std::max(editMaxX,x);editMinZ=std::min(editMinZ,z);editMaxZ=std::max(editMaxZ,z);
+}
 unsigned char SkyLightAt(int x,int y,int z) {
     return Inside(x,y,z)?sky[Index(x,y,z)]:24;
 }
@@ -80,7 +90,7 @@ VertexLight SampleCornerLighting(int x,int y,int z,int normalAxis,int sideA,int 
     bool open[4];
     for(int i=0;i<4;++i) {
         Block block=At(cells[i][0],cells[i][1],cells[i][2]);
-        open[i]=LightPassable(block)||Emission(block)>0;
+        open[i]=LightPassable(block)||BlockEmissionAt(cells[i][0],cells[i][1],cells[i][2])>0;
     }
     if(!open[0]) return result;
     // Never gather diagonal light across two touching opaque side cells.
@@ -100,35 +110,47 @@ VertexLight SampleCornerLighting(int x,int y,int z,int normalAxis,int sideA,int 
 void UpdateLighting() {
     if(!dirty) return;
     dirty=false;
-    auto oldSky=sky,oldLamp=lamp,oldDirect=direct;
-    std::fill(direct.begin(),direct.end(),0);
-    std::fill(sky.begin(),sky.end(),0);std::fill(lamp.begin(),lamp.end(),0);
+    minX=fullDirty?0:std::max(0,editMinX-24);maxX=fullDirty?Width-1:std::min(Width-1,editMaxX+24);
+    minZ=fullDirty?0:std::max(0,editMinZ-24);maxZ=fullDirty?Width-1:std::min(Width-1,editMaxZ+24);
+    if(fullDirty)emitters.clear();
+    fullDirty=false;editMinX=editMinZ=Width;editMaxX=editMaxZ=-1;
+    std::vector<unsigned char> oldSky,oldLamp,oldDirect;
+    size_t cells=size_t(maxX-minX+1)*Height*(maxZ-minZ+1);oldSky.reserve(cells);oldLamp.reserve(cells);oldDirect.reserve(cells);
+    for(int x=minX;x<=maxX;++x)for(int y=0;y<Height;++y)for(int z=minZ;z<=maxZ;++z){int i=Index(x,y,z);oldSky.push_back(sky[i]);oldLamp.push_back(lamp[i]);oldDirect.push_back(direct[i]);sky[i]=lamp[i]=direct[i]=0;}
     std::vector<Node> skyQueue,lampQueue;
     // Direct skylight is unattenuated; only boundary cells seed lateral propagation.
-    for(int x=0;x<Width;++x) for(int z=0;z<Width;++z) {
+    for(int x=minX;x<=maxX;++x) for(int z=minZ;z<=maxZ;++z) {
         bool open=true;
         for(int y=Height-1;y>=0;--y) {
             Block b=At(x,y,z);int id=Index(x,y,z);
             if(!LightPassable(b)) open=false;
             if(open) sky[id]=24;
-            if(Emission(b)) {lamp[id]=Emission(b);lampQueue.push_back({x,y,z});}
+            if(BlockEmissionAt(x,y,z)) {lamp[id]=BlockEmissionAt(x,y,z);lampQueue.push_back({x,y,z});emitters.insert(id);}else emitters.erase(id);
         }
     }
-    for(int x=0;x<Width;++x) for(int y=0;y<Height;++y) for(int z=0;z<Width;++z) {
-        if(sky[Index(x,y,z)]!=24) continue;
-        for(const auto& d:directions) {
-            int nx=x+d[0],ny=y+d[1],nz=z+d[2];
-            if(Inside(nx,ny,nz)&&LightPassable(At(nx,ny,nz))&&!sky[Index(nx,ny,nz)]) {
-                skyQueue.push_back({x,y,z});break;
-            }
+    for(int x=minX;x<=maxX;++x) for(int y=0;y<Height;++y) for(int z=minZ;z<=maxZ;++z) {
+        int id=Index(x,y,z);
+        if(sky[id]==24||!LightPassable(At(x,y,z)))continue;
+        for(const auto& d:directions){int nx=x+d[0],ny=y+d[1],nz=z+d[2];
+            if(Inside(nx,ny,nz)&&sky[Index(nx,ny,nz)]==24){sky[id]=23;skyQueue.push_back({x,y,z});break;}
         }
     }
-    for(Node source:lampQueue) CastLamp(source);
+    for(int id:emitters){int z=id%Width,y=(id/Width)%Height,x=id/(Width*Height);CastLamp({x,y,z});}
+    for(int x=minX;x<=maxX;++x)for(int y=0;y<Height;++y)for(int z=minZ;z<=maxZ;++z){
+        if(x!=minX&&x!=maxX&&z!=minZ&&z!=maxZ)continue;
+        if(!LightPassable(At(x,y,z)))continue;
+        for(const auto& d:directions){int nx=x+d[0],ny=y+d[1],nz=z+d[2];if(!Inside(nx,ny,nz)||InRegion(nx,nz))continue;
+            int id=Index(x,y,z),outside=Index(nx,ny,nz);
+            if(sky[outside]>sky[id]+1){sky[id]=sky[outside]-1;skyQueue.push_back({x,y,z});}
+            if(lamp[outside]>lamp[id]+1){lamp[id]=lamp[outside]-1;lampQueue.push_back({x,y,z});}
+        }
+    }
     Flood(sky,skyQueue);Flood(lamp,lampQueue);
     std::array<bool,ChunkCount*ChunkCount> changed{};
-    for(int x=0;x<Width;++x) for(int y=0;y<Height;++y) for(int z=0;z<Width;++z) {
-        int i=Index(x,y,z);
-        if(sky[i]==oldSky[i]&&lamp[i]==oldLamp[i]&&direct[i]==oldDirect[i]) continue;
+    size_t previous=0;
+    for(int x=minX;x<=maxX;++x) for(int y=0;y<Height;++y) for(int z=minZ;z<=maxZ;++z) {
+        int i=Index(x,y,z);size_t old=previous++;
+        if(sky[i]==oldSky[old]&&lamp[i]==oldLamp[old]&&direct[i]==oldDirect[old]) continue;
         for(int dx=-1;dx<=1;++dx) for(int dz=-1;dz<=1;++dz) {
             int nx=x+dx,nz=z+dz;
             if(nx>=0&&nx<Width&&nz>=0&&nz<Width) changed[(nx/ChunkSize)*ChunkCount+nz/ChunkSize]=true;

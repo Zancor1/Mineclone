@@ -63,5 +63,13 @@ int main() {
     std::filesystem::remove(path);
     Check(WorldTime==savedTime&&loaded.position.x==pose.position.x&&loaded.yaw==pose.yaw,"time and player round trip exactly");
     for(int b=1;b<BlockCount;++b) Check(Names[b]&&Names[b][0],"every block has inventory label");
+    std::memset(World,0,sizeof(World));InvalidateLighting();UpdateLighting();
+    auto checksum=[](){uint64_t hash=1469598103934665603ull;for(int x=0;x<Width;++x)for(int y=0;y<Height;++y)for(int z=0;z<Width;++z){hash=(hash^SkyLightAt(x,y,z))*1099511628211ull;hash=(hash^BlockLightAt(x,y,z))*1099511628211ull;hash=(hash^DirectBlockLightAt(x,y,z))*1099511628211ull;}return hash;};
+    struct Edit{int x,y,z;Block block;};
+    const Edit edits[]={{128,40,128,LampOn},{145,40,128,LampOn},{129,40,128,Stone},{128,40,128,Air},{129,40,128,Air},{145,40,128,Air},{0,60,0,Stone},{0,60,0,Air}};
+    double regionalMs=0,fullMs=0;
+    for(const auto& edit:edits){Change(edit.x,edit.y,edit.z,edit.block);auto begin=std::chrono::steady_clock::now();UpdateLighting();regionalMs+=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-begin).count();uint64_t incremental=checksum();
+        InvalidateLighting();begin=std::chrono::steady_clock::now();UpdateLighting();fullMs+=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-begin).count();Check(checksum()==incremental,"regional lighting equals full rebuild after blockers, overlapping lamps, removal and boundary edits");}
+    std::printf("Lighting edits: regional %.2f ms, full %.2f ms average\n",regionalMs/8,fullMs/8);
     std::printf("PASS: lighting propagation, occlusion, removal, day/night, saves and %d inventory blocks\n",int(BlockCount)-1);
 }
