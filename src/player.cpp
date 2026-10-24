@@ -130,9 +130,13 @@ void Player::Update(const PlayerInput& input,float dt) {
         motionZ+=(-std::cos(yaw)*f+std::sin(yaw)*s)*acceleration*20.f;
         vx=motionX;vz=motionZ;
     }else{
-        vx=(std::sin(yaw)*f+std::cos(yaw)*s)*speed;
-        vz=(-std::cos(yaw)*f+std::sin(yaw)*s)*speed;
-        motionX=motionZ=0;
+        float desiredX=(std::sin(yaw)*f+std::cos(yaw)*s)*speed,desiredZ=(-std::cos(yaw)*f+std::sin(yaw)*s)*speed;
+        bool hasInput=length>0;float response=flying||swimming?12.f:grounded?(hasInput?18.f:22.f):(hasInput?6.f:1.8f);
+        float blend=1-std::exp(-response*dt);
+        float average=dt>0?blend/(response*dt):1;
+        vx=desiredX+(motionX-desiredX)*average;vz=desiredZ+(motionZ-desiredZ)*average;
+        motionX=Lerp(motionX,desiredX,blend);motionZ=Lerp(motionZ,desiredZ,blend);
+        if(!hasInput&&std::hypot(motionX,motionZ)<.015f)motionX=motionZ=0;
     }
     if(flying) {
         velocityY=(float(input.swimUp||input.jump)-float(input.swimDown))*(sprintRequested?16.f:8.f);
@@ -149,7 +153,8 @@ void Player::Update(const PlayerInput& input,float dt) {
     }
     Block atBody=At(int(std::floor(position.x)),int(std::floor(position.y+.5f)),int(std::floor(position.z)));
     if(atBody==Ladder&&!flying) {velocityY=input.swimDown?-2.f:((input.forward>0||input.jump)?3.f:0.f);FallDistance=0;}
-    vx+=impulse.x;vz+=impulse.z;impulse=Vector3Scale(impulse,std::exp(-dt*(meleeMotion?4.5f:6.f)));
+    float impulseAverage=meleeMotion||dt<=0?1.f:-std::expm1(-6.f*dt)/(6.f*dt);
+    vx+=impulse.x*impulseAverage;vz+=impulse.z*impulseAverage;impulse=Vector3Scale(impulse,std::exp(-dt*(meleeMotion?4.5f:6.f)));
     if(sneaking&&grounded){
         auto floorBelow=[](Vector3 p){p.y-=1.f;for(int x=int(std::floor(p.x-PlayerRadius()));x<=int(std::floor(p.x+PlayerRadius()));++x)for(int y=int(std::floor(p.y));y<=int(std::floor(p.y+BodyHeight));++y)for(int z=int(std::floor(p.z-PlayerRadius()));z<=int(std::floor(p.z+PlayerRadius()));++z)if(CellSolid(x,y,z)&&Overlap(p,x,y,z))return true;return false;};
         float dx=vx*dt,dz=vz*dt;

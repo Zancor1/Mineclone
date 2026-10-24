@@ -21,15 +21,15 @@ int main() {
     PlayerState pose;pose.valid=true;pose.position={64.5f,75,64.5f};
     Check(SaveWorld(path.string(),pose),"write expanded save");
     std::ifstream in(path,std::ios::binary);std::vector<unsigned char> current((std::istreambuf_iterator<char>(in)),{});in.close();
-    constexpr size_t oldWidth=128,cells=size_t(Width)*Height*Width;
+    constexpr size_t oldWidth=128,oldHeight=80,cells=size_t(Width)*Height*Width;
     std::vector<unsigned char> old(current.begin(),current.begin()+24);
-    Word(old,8,oldWidth);
+    Word(old,8,oldWidth);Word(old,12,oldHeight);
     for(size_t component=0;component<3;++component)
-        for(size_t x=0;x<oldWidth;++x)for(size_t y=0;y<Height;++y)for(size_t z=0;z<oldWidth;++z)
+        for(size_t x=0;x<oldWidth;++x)for(size_t y=0;y<oldHeight;++y)for(size_t z=0;z<oldWidth;++z)
             old.push_back(current[24+component*cells+(x*Height+y)*Width+z]);
     old.insert(old.end(),current.begin()+24+cells*3,current.end());Word(old,20,Sum(old,24));Write(path,old);
     auto chunks=std::filesystem::path(path.string()+".chunks");std::filesystem::create_directories(chunks);
-    std::vector<unsigned char> archive(20+ChunkSize*Height*ChunkSize*3,0);
+    std::vector<unsigned char> archive(20+ChunkSize*oldHeight*ChunkSize*3,0);
     archive[0]='M';archive[1]='C';archive[2]='C';archive[3]='1';Word(archive,4,Seed);Word(archive,8,8);Word(archive,12,0);
     archive[20+(70*ChunkSize+8)*3]=PinkWool;Word(archive,16,Sum(archive,20));Write(chunks/"8_0.chunk",archive);
     Change(8,70,8,Air);

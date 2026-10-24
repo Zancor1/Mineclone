@@ -54,11 +54,12 @@ int RunGame() {
         if(!ui.CapturingBinding()&&menuKey&&ui.chatOpen){ui.chatOpen=false;ui.chatText.clear();DisableCursor();}
         else if(!ui.CapturingBinding()&&menuKey) {
             if(state==GameState::BedwarsTeams||state==GameState::BedwarsShop||state==GameState::BedwarsInventory||state==GameState::BedwarsChest){enter(GameState::Playing);}
-            else if(state==GameState::BedwarsMaps)enter(GameState::BedwarsRush);
-            else if(state==GameState::BedwarsDiscovery)enter(GameState::BedwarsMenu);
+            else if(state==GameState::BedwarsMaps)enter(ui.standardLayout?GameState::BedwarsRush:GameState::BedwarsMode);
+            else if(state==GameState::BedwarsDiscovery)enter(GameState::Minigames);
             else if(state==GameState::BedwarsRush)enter(GameState::BedwarsMode);
             else if(state==GameState::BedwarsMode)enter(GameState::BedwarsMenu);
-            else if(state==GameState::BedwarsMenu){bw::Stop();enter(GameState::MainMenu);}
+            else if(state==GameState::BedwarsMenu){bw::Stop();enter(GameState::Minigames);}
+            else if(state==GameState::Minigames)enter(GameState::MainMenu);
             else if(state==GameState::ServerInventory){net::CloseWindow();enter(GameState::Playing);}
             else if(state==GameState::Multiplayer){net::Disconnect();online=false;hasWorld=false;enter(GameState::MainMenu);}
             else if(state==GameState::Keyboard)enter(GameState::Options);
@@ -80,7 +81,8 @@ int RunGame() {
         if(!transition&&IsWindowFocused()) action=ui.Update(state);
         switch(action) {
             case UiAction::SearchBedwars:bw::SearchRooms();enter(GameState::BedwarsDiscovery);break;
-            case UiAction::OpenBedwars:enter(GameState::BedwarsMenu);break;
+            case UiAction::OpenMinigames:enter(GameState::Minigames);break;
+            case UiAction::OpenBedwars:if(!bw::Active())bw::SearchRooms();enter(GameState::BedwarsMenu);break;
             case UiAction::ChooseMap:enter(GameState::BedwarsMaps);break;
             case UiAction::ChooseMode:enter(GameState::BedwarsMode);break;
             case UiAction::ChooseRush:enter(GameState::BedwarsRush);break;
@@ -89,7 +91,7 @@ int RunGame() {
                 if(bw::Active())break;
                 if(hasWorld&&!activeSave.empty()&&!SaveWorld(activeSave,player.CaptureState())){ui.Notify("Falha ao salvar o mundo local");break;}
                 net::Disconnect();online=false;activeSave.clear();hasWorld=false;
-                bool ok=action==UiAction::HostBedwars?bw::Host(ui.playerName,25566,ui.rushGap,ui.mapChoice,ui.teamCapacity):bw::Join(ui.bedwarsAddress,ui.playerName);
+                bool ok=action==UiAction::HostBedwars?bw::Host(ui.playerName,25566,ui.rushGap,ui.mapChoice,ui.teamCapacity,ui.roomName):bw::Join(ui.bedwarsAddress,ui.playerName);
                 if(!ok){enter(GameState::BedwarsMenu);ui.Notify(bw::Status());}
                 else {ui.selected=0;Settings.playerName=ui.playerName;if(!SaveSettings())ui.Notify("Nao foi possivel salvar o nick");enter(GameState::BedwarsMenu);}
                 break;
@@ -255,7 +257,7 @@ int RunGame() {
                         if(bw::NearChest(player)&&hit.found&&(At(hit.x,hit.y,hit.z)==Chest||(MapStateAt(hit.x,hit.y,hit.z).shape==MapShape::Cube&&MapStateAt(hit.x,hit.y,hit.z).block==MapDecoration&&MapStateAt(hit.x,hit.y,hit.z).material==Obsidian)))enter(GameState::BedwarsChest);
                         else if(bw::AimedShop(player))enter(GameState::BedwarsShop);
                         else if(ui.SelectedBlock()==Tnt)bw::Use(ui.selected);
-                        else if(hit.found&&Placeable(ui.SelectedBlock()))bw::Place(hit.x+hit.nx,hit.y+hit.ny,hit.z+hit.nz,ui.selected);
+                        else if(hit.found&&Placeable(ui.SelectedBlock()))bw::Place(hit.x+hit.nx,hit.y+hit.ny,hit.z+hit.nz,ui.selected,&player);
                         else bw::Use(ui.selected);
                     }
                     }

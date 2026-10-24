@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "bedwars.h"
 #include "ui.h"
 #include "chest.h"
 #include "crafting.h"
@@ -67,8 +68,14 @@ int main() {
             BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Keyboard);rlDrawRenderBatchActive();Image keyboard=LoadImageFromScreen();ExportImage(keyboard,"build/keyboard-options.png");UnloadImage(keyboard);EndDrawing();
             BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Options);
             rlDrawRenderBatchActive();Image options=LoadImageFromScreen();ExportImage(options,"build/options-preview.png");UnloadImage(options);EndDrawing();
-            BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Multiplayer);
-            rlDrawRenderBatchActive();Image multiplayer=LoadImageFromScreen();ExportImage(multiplayer,"build/multiplayer-preview.png");UnloadImage(multiplayer);EndDrawing();
+            ui.Update(GameState::Minigames);
+            BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Minigames);
+            rlDrawRenderBatchActive();Image multiplayer=LoadImageFromScreen();ExportImage(multiplayer,"build/minigames-preview.png");UnloadImage(multiplayer);EndDrawing();
+            LanDiscovery sample;LanRoom room;room.name="LocalHost";room.players=2;room.map="NC";room.playerNames={"LocalHost","Friend"};sample.Advertise(room);bw::SearchRooms();
+            for(int i=0;i<8;++i){sample.Poll();bw::UpdateDiscovery();}
+            BeginDrawing();ui.Draw(renderer.Atlas(),GameState::BedwarsMenu);rlDrawRenderBatchActive();Image browser=LoadImageFromScreen();ExportImage(browser,"build/server-browser.png");UnloadImage(browser);EndDrawing();sample.StopHosting();
+            for(int basic=0;basic<2;++basic){ui.standardLayout=basic!=0;ui.Update(GameState::BedwarsMaps);BeginDrawing();ui.Draw(renderer.Atlas(),GameState::BedwarsMaps);rlDrawRenderBatchActive();Image maps=LoadImageFromScreen();ExportImage(maps,basic?"build/basic-maps.png":"build/advanced-maps.png");UnloadImage(maps);EndDrawing();}
+            BeginDrawing();ui.Draw(renderer.Atlas(),GameState::BedwarsMode);rlDrawRenderBatchActive();Image create=LoadImageFromScreen();ExportImage(create,"build/create-room-layout.png");UnloadImage(create);EndDrawing();
             ui.OpenChest(9,5,9);
             BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::ChestScreen);
             rlDrawRenderBatchActive();

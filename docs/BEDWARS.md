@@ -1,18 +1,19 @@
 # BedWars LAN
 
-Partida local com quatro equipes: **Solo**, até quatro jogadores (um por time),
-ou **Dupla**, até oito jogadores (dois por time). Todos
+Partida local com oito equipes: **Solo**, até oito jogadores (um por time),
+ou **Dupla**, até dezesseis jogadores (dois por time). Todos
 precisam usar a mesma versão do MineClone. Este modo usa um protocolo próprio;
 a conexão Java 1.8 do menu Multiplayer não participa da partida.
 
 ## Hospedar e entrar
 
-1. No menu principal, abra **BedWars LAN**.
-2. Informe seu nick e clique em **Criar mapa e abrir LAN :25566** escolha **Solo** ou **Dupla** e depois o modo **Rush**:
+1. No menu principal, abra **Multiplayer → BedWars**.
+2. Informe seu nick e clique em **Criar sala**. Escolha o **nome do servidor**
+   (até 32 caracteres), **Solo** ou **Dupla** e depois o modo **Rush**:
    rápido (22), médio (38) ou lento (70 blocos de vazio entre as bordas das
    ilhas vizinhas).
 3. Seus amigos abrem a mesma tela, informam o IPv4 do seu computador seguido
-   de `:25566` e clicam em **Entrar no BedWars do amigo**.
+   de `:25566` e clicam em **Conectar**, ou selecionam a sala descoberta na lista.
 4. Todos chegam ao lobby de vidro acima das ilhas. O host pressiona **P**
    com pelo menos dois jogadores conectados para uma contagem regressiva de
    cinco segundos na tela de todos; cada jogador vai à ilha do seu time. Se restar
@@ -94,7 +95,7 @@ pelos jogadores e camas adversárias podem ser destruídos.
 O item selecionado e a armadura de cada jogador são exibidos aos adversários.
 Bolas de fogo aplicam impulso reforçado e permitem saltos com explosão sem
 dano ao lançador; adversários recebem dano e empurrão. Todos devem usar a
-mesma versão do MineClone (protocolo BedWars LAN 8).
+mesma versão do MineClone (protocolo BedWars LAN 11).
 
 Golpes corpo a corpo têm alcance máximo de 3,3 blocos, medidos dos olhos até
 a caixa de colisão do adversário, e são bloqueados pelo terreno. O impulso
@@ -102,7 +103,12 @@ horizontal dos golpes é limitado para evitar lançamentos excessivos; a cabeça
 
 ## Descoberta de salas
 
-Na tela BedWars LAN, **Procurar na rede local** abre a lista de hosts MineClone.
+Em **Multiplayer → BedWars**, a busca de hosts MineClone começa automaticamente.
+Use **Atualizar** para repetir a busca. À esquerda, filtre por nome, mapa,
+ping máximo e vagas. A lista central mostra mapa, ocupação e ping medido.
+Selecione uma sala para consultar os jogadores à direita; **Conectar** usa
+o endereço exibido embaixo, que também aceita edição manual.
+**Criar sala** abre a seleção de modo, distância e mapa.
 A busca dura cinco segundos e consulta as interfaces IPv4 ativas por broadcast
 por sub-rede e multicast `239.255.77.67`, incluindo Wi-Fi, cabo e interfaces
 virtuais de VPN. A lista mostra nick do host, jogadores, distância Rush e estado
@@ -120,7 +126,7 @@ em Wi-Fi e redes de convidados também pode impedir a descoberta e a conexão.
 
 ## Mapas e criação da sala
 
-Depois de escolher Rush rápido, médio ou lento, escolha uma das três prévias:
+Depois de escolher Rush rápido, médio ou lento, escolha uma das cinco prévias:
 
 - **Fortaleza:** torres e muralhas sobre ilhas de grama.
 - **Ruínas:** terreno de pedra com colinas, plataformas e arcos.
@@ -159,7 +165,7 @@ Os efeitos somem ao morrer e seus tempos são sincronizados pelo host. O
 agachamento também é sincronizado: o modelo se abaixa e inclina o corpo, e o
 nome fica oculto enquanto o jogador está agachado.
 
-Estas mudanças usam o protocolo BedWars LAN **8**. Todos os participantes
+Estas mudanças usam o protocolo BedWars LAN **11**. Todos os participantes
 precisam atualizar o jogo, tanto no Linux quanto no Windows.
 
 ## Resposta dos ataques
@@ -255,7 +261,7 @@ python3 tools/import_nc_map.py 'NC Bedwars 1v1'
 make -j"$(nproc)"
 ```
 
-Todos os participantes precisam usar o protocolo BedWars LAN **8**.
+Todos os participantes precisam usar o protocolo BedWars LAN **11**.
 
 A compra de espada substitui a espada segurada; se outra categoria estiver
 selecionada, substitui a primeira espada do inventário. A loja indica recursos
@@ -280,3 +286,37 @@ host ao aterrissar.
 
 Construção e mineração no BedWars têm alcance máximo de quatro blocos dos
 olhos até o bloco. O alcance de combate continua sendo 3,3 blocos.
+
+### Disposição das arenas
+
+As equipes são Vermelho, Azul, Verde, Amarelo, Ciano, Branco, Rosa e Cinza.
+Fortaleza, Ruínas e Jardins têm oito bases no contorno da arena, com ilhas
+de diamante entre vizinhos e esmeralda no centro. Cada cenário tem contorno,
+relevo e construções próprios. As distâncias Rush só alteram os mapas gerados.
+
+Airshow foi convertido de `mapas externos/Airshow/`: 120.067 blocos e 86
+estados legados, incluindo as oito camas, balões, aviões, escadas invertidas,
+lajes, cercas, vidros e argilas coloridos. As barreiras originais permanecem
+invisíveis e com colisão. O fogo decorativo usa geometria cruzada iluminada.
+Há oito geradores de base, quatro de diamante e quatro de esmeralda.
+A geometria original é mantida; as lojas e regras são executadas pelo MineClone.
+
+NC foi reimportado de `mapas externos/NC Bedwars 1v1/` e mantém duas equipes,
+pois é uma arena 1v1. Os arquivos convertidos ficam incorporados ao executável;
+os jogadores não precisam copiar as pastas de mundos Java.
+
+```sh
+python3 tools/import_nc_map.py "mapas externos/NC Bedwars 1v1"
+python3 tools/import_nc_map.py "mapas externos/Airshow" --airshow --output include/airshow_map_data.inc
+```
+
+A altura ativa passou de 80 para 128 blocos para preservar o Airshow completo.
+Saves e arquivos de chunks antigos com altura 80 são migrados ao carregar.
+Todos na sala precisam usar esta mesma versão do protocolo LAN (11).
+
+### Escolha do layout na criação
+
+Abaixo de **Dupla**, **Layout padrão** começa ligado. Com ele ligado,
+a escolha de Solo/Dupla leva à tela Rush e depois mostra apenas Fortaleza,
+Ruínas e Jardins. Desligado, a escolha leva diretamente a **Mapas avançados**,
+com NC e Airshow, que mantêm suas distâncias originais.

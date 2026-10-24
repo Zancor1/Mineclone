@@ -46,6 +46,7 @@ const std::vector<Slot>& WindowSlots();
 const Slot& Cursor();
 const std::string& WindowTitle();
 void ClickSlot(int slot,bool right,bool shift);
+void SwapHotbar(int slot,int hotbar);
 void CloseWindow();
 void Respawn();
 Block LocalItem(const Slot& slot);

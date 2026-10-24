@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 namespace game {
-constexpr int Width=256, Height=80, ChunkSize=16, ChunkCount=Width/ChunkSize;
+constexpr int Width=256, Height=128, ChunkSize=16, ChunkCount=Width/ChunkSize;
 constexpr int SeaLevel=23;
 enum class Biome { Plains, Forest, Desert, Mountains };
 extern unsigned char World[Width][Height][Width];

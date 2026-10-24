@@ -33,11 +33,12 @@ BlockBoxes MapShapeBoxes(int x,int y,int z){
     case MapShape::Hopper:add(0,.625f,0,1,1,1);add(.25f,.25f,.25f,.75f,.625f,.75f);add(.375f,0,.375f,.625f,.25f,.625f);break;
     case MapShape::Sign:add(.0625f,.4f,.4375f,.9375f,.95f,.5625f);add(.4375f,0,.4375f,.5625f,.4f,.5625f);break;
     case MapShape::Portal:add(0,0,.375f,1,1,.625f);break;
-    case MapShape::Web:add(0,0,.48f,1,1,.52f);add(.48f,0,0,.52f,1,1);break;
+    case MapShape::Barrier:add(0,0,0,1,1,1);break;
+    case MapShape::Fire:case MapShape::Web:add(0,0,.48f,1,1,.52f);add(.48f,0,0,.52f,1,1);break;
     default:add(0,0,0,1,CollisionHeight(state.block),1);break;
     }
     return result;
 }
-unsigned char BlockEmissionAt(int x,int y,int z){auto state=MapStateAt(x,y,z);if(state.block==MapDecoration)return state.shape==MapShape::Torch?14:0;return Emission(state.block);}
-BlockBoxes CollisionBoxesAt(int x,int y,int z){auto state=MapStateAt(x,y,z);bool solid=Solid(state.block)||(state.shape==MapShape::Cube&&Solid(state.material))||state.shape==MapShape::Pot||state.shape==MapShape::Plate||state.shape==MapShape::Hopper;return solid?MapShapeBoxes(x,y,z):BlockBoxes{};}
+unsigned char BlockEmissionAt(int x,int y,int z){auto state=MapStateAt(x,y,z);if(state.block==MapDecoration)return (state.shape==MapShape::Torch||state.shape==MapShape::Fire)?14:0;return Emission(state.block);}
+BlockBoxes CollisionBoxesAt(int x,int y,int z){auto state=MapStateAt(x,y,z);bool solid=state.shape==MapShape::Barrier||Solid(state.block)||(state.shape==MapShape::Cube&&Solid(state.material))||state.shape==MapShape::Pot||state.shape==MapShape::Plate||state.shape==MapShape::Hopper;return solid?MapShapeBoxes(x,y,z):BlockBoxes{};}
 }

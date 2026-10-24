@@ -4,7 +4,7 @@
 #include "lan_transport.h"
 #include <string>
 namespace game::bw {
-bool Host(const std::string& name,unsigned short port=25566,int gap=64,int map=0,int capacity=1);
+bool Host(const std::string& name,unsigned short port=25566,int gap=64,int map=0,int capacity=1,const std::string& serverName="");
 struct GeneratorInfo {Vector3 position;Block item;int stock,level;float interval,remaining;};
 int ResourceLevel(Block item,float elapsed);
 float ResourceInterval(Block item,float elapsed);
@@ -34,18 +34,20 @@ bool CanControl();
 void Chat(const std::string& text);
 const std::vector<std::string>& Messages();
 std::string Nickname();
+struct PlayerEntry {std::string name;int team;bool eliminated;};
+std::vector<PlayerEntry> PlayerList();
 const std::string& Status();
 void Update(Player& player,float dt,bool playing,int selected);
 void StartRound();
 void Restart();
 bool CanMine(const Hit& hit);
 void Dig(const Hit& hit,int stage,int selected);
-void Place(int x,int y,int z,int selected);
+void Place(int x,int y,int z,int selected,const Player* player=nullptr);
 void Attack(int selected,const Player* player=nullptr);
 void Use(int selected);
 void HoldUse(int selected,bool held);
 void Buy(int offer);
-void SwapSlots(int from,int to,bool chest);
+void SwapSlots(int from,int to,bool chest,bool exact=false);
 bool NearShop(const Player& player);
 bool AimedShop(const Player& player);
 bool NearChest(const Player& player);
@@ -55,4 +57,6 @@ void DrawShop(Texture2D atlas);
 void ShopInput();
 void DrawInventory(Texture2D atlas,bool chest);
 void InventoryInput(bool chest);
+void InventoryClick(int slot,bool right,bool chest=false);
+void Craft(int target=254);
 }

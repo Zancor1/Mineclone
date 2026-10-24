@@ -435,6 +435,7 @@ bool WindowOpen(){return windowOpen;}
 const std::vector<Slot>& WindowSlots(){return windowSlots;}
 const Slot& Cursor(){return cursor;}
 const std::string& WindowTitle(){return title;}
+void SwapHotbar(int slot,int hotbar){if(slot<0||slot>=int(windowSlots.size())||hotbar<0||hotbar>8)return;auto w=Packet(0x0e);w.byte(windowId);w.word(slot);w.byte(hotbar);w.word(++transaction);w.byte(2);w.word(-1);Send(std::move(w));}
 void ClickSlot(int slot,bool right,bool shift){if(slot<0||slot>=int(windowSlots.size()))return;auto w=Packet(0x0e);w.byte(windowId);w.word(slot);w.byte(right?1:0);w.word(++transaction);w.byte(shift?1:0);const auto& raw=windowSlots[slot].wire;if(raw.empty())w.word(-1);else w.b.insert(w.b.end(),raw.begin(),raw.end());Send(std::move(w));}
 void CloseWindow(){auto w=Packet(0x0d);w.byte(windowId);Send(std::move(w));windowOpen=false;windowId=0;}
 void Respawn(){auto w=Packet(0x16);w.var(0);Send(std::move(w));}

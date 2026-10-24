@@ -45,7 +45,7 @@ int TransferStack(ItemStack& source,ItemStack* destination,size_t count) {
     for(int pass=0;pass<2&&source.count;++pass) for(size_t i=0;i<count&&source.count;++i) {
         ItemStack& target=destination[i];
         if(&target==&source) continue;
-        if(pass==0?(target.block!=source.block||!target.count):target.count!=0) continue;
+        if(pass==0?(target.block!=source.block||target.damage!=source.damage||!target.count):target.count!=0) continue;
         int moved=std::min(int(source.count),StackCapacity(source.block)-int(target.count));
         if(!moved) continue;
         if(!target.count) target.damage=source.damage;
@@ -69,7 +69,7 @@ void ClickStack(ItemStack& slot,bool right,bool shift) {
         int amount=right?(slot.count+1)/2:slot.count;
         CursorStack=slot;CursorStack.count=static_cast<unsigned char>(amount);slot.count-=amount;
         if(!slot.count) slot={};
-    } else if(!slot.count||slot.block==CursorStack.block) {
+    } else if(!slot.count||(slot.block==CursorStack.block&&slot.damage==CursorStack.damage)) {
         int amount=std::min(right?1:int(CursorStack.count),StackCapacity(CursorStack.block)-int(slot.count));
         if(amount) {if(!slot.count) slot.damage=CursorStack.damage;slot.block=CursorStack.block;slot.count+=amount;CursorStack.count-=amount;}
         if(!CursorStack.count) CursorStack={};

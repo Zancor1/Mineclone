@@ -18,7 +18,7 @@ void LanTransport::Send(int peer,const std::vector<unsigned char>& data){if(data
 void LanTransport::Broadcast(const std::vector<unsigned char>& data){for(auto& p:peers)Send(p.id,data);}
 std::vector<LanTransport::Event> LanTransport::Poll(){
     std::vector<Event> events;
-    if(listener!=netio::Invalid)for(int count=0;count<8;++count){netio::Socket fd=accept(listener,nullptr,nullptr);if(fd==netio::Invalid)break;if(peers.size()>=7){netio::Close(fd);continue;}Configure(fd);int id=nextId++;peers.push_back({id,fd,false,Now(),{},{},0});events.push_back({Event::Connected,id,{}});}
+    if(listener!=netio::Invalid)for(int count=0;count<8;++count){netio::Socket fd=accept(listener,nullptr,nullptr);if(fd==netio::Invalid)break;if(peers.size()>=15){netio::Close(fd);continue;}Configure(fd);int id=nextId++;peers.push_back({id,fd,false,Now(),{},{},0});events.push_back({Event::Connected,id,{}});}
     for(auto it=peers.begin();it!=peers.end();){auto& p=*it;bool dead=false;
         if(p.connecting){sockaddr_in address{};netio::SocketLength size=sizeof(address);if(getpeername(p.fd,reinterpret_cast<sockaddr*>(&address),&size)==0){p.connecting=false;events.push_back({Event::Connected,p.id,{}});}else {int value=netio::SocketError(p.fd);if(value||Now()-p.started>8){dead=true;error="Host LAN sem resposta. Confira IP, porta e firewall.";}else {++it;continue;}}}
         for(int i=0;!dead&&!p.closing&&i<8;++i){unsigned char bytes[8192];int n=netio::Receive(p.fd,bytes,sizeof(bytes));if(n>0){p.input.insert(p.input.end(),bytes,bytes+n);if(p.input.size()>MaxQueue)dead=true;}else {if(n==0||(!netio::Temporary(netio::LastError())))dead=true;break;}}
@@ -47,7 +47,7 @@ namespace game {
 namespace {
 constexpr unsigned short DiscoveryPort=25567;
 constexpr uint32_t MulticastAddress=0xefff4d43; // 239.255.77.67
-constexpr char QueryMagic[]="MCLAN08?",ReplyMagic[]="MCLAN08!";
+constexpr char QueryMagic[]="MCLAN11?",ReplyMagic[]="MCLAN11!";
 bool BindDiscovery(netio::Socket fd,unsigned short port){sockaddr_in address{};address.sin_family=AF_INET;address.sin_addr.s_addr=INADDR_ANY;address.sin_port=htons(port);return bind(fd,reinterpret_cast<sockaddr*>(&address),sizeof(address))==0&&netio::SetNonblocking(fd,true);}
 }
 LanDiscovery::~LanDiscovery(){StopHosting();CancelSearch();}
@@ -94,6 +94,7 @@ bool LanDiscovery::Search(){
 }
 bool LanDiscovery::Searching() const{return scanner!=netio::Invalid&&Now()<deadline;}
 void LanDiscovery::Probe(){
+    ++nonce;probeSentAt=Now();
     unsigned char query[12];std::memcpy(query,QueryMagic,8);for(int i=0;i<4;++i)query[8+i]=static_cast<unsigned char>(nonce>>(i*8));
     auto send=[&](uint32_t ip){sockaddr_in address{};address.sin_family=AF_INET;address.sin_addr.s_addr=ip;address.sin_port=htons(DiscoveryPort);sendto(scanner,reinterpret_cast<const char*>(query),sizeof(query),0,reinterpret_cast<sockaddr*>(&address),sizeof(address));};
     send(htonl(INADDR_LOOPBACK));send(INADDR_BROADCAST);
@@ -101,14 +102,21 @@ void LanDiscovery::Probe(){
     nextProbe=Now()+1;
 }
 void LanDiscovery::Poll(){
-    if(server!=netio::Invalid)for(int count=0;count<32;++count){unsigned char data[128];sockaddr_in source{};netio::SocketLength length=sizeof(source);int n=recvfrom(server,reinterpret_cast<char*>(data),sizeof(data),0,reinterpret_cast<sockaddr*>(&source),&length);if(n<0)break;if(n!=12||std::memcmp(data,QueryMagic,8))continue;
-        unsigned char reply[82]{};std::memcpy(reply,ReplyMagic,8);std::memcpy(reply+8,data+8,4);reply[12]=advertised.port>>8;reply[13]=advertised.port&255;reply[14]=static_cast<unsigned char>(advertised.players);reply[15]=static_cast<unsigned char>(advertised.gap);reply[16]=advertised.joinable;size_t size=std::min(size_t(32),advertised.name.size());reply[17]=static_cast<unsigned char>(size);for(int i=0;i<8;++i)reply[18+i]=static_cast<unsigned char>(instance>>(i*8));reply[26]=static_cast<unsigned char>(advertised.capacity);std::memcpy(reply+27,advertised.name.data(),size);sendto(server,reinterpret_cast<const char*>(reply),int(27+size),0,reinterpret_cast<sockaddr*>(&source),length);
+    if(server!=netio::Invalid)for(int count=0;count<32;++count){unsigned char data[512];sockaddr_in source{};netio::SocketLength length=sizeof(source);int n=recvfrom(server,reinterpret_cast<char*>(data),sizeof(data),0,reinterpret_cast<sockaddr*>(&source),&length);if(n<0)break;if(n!=12||std::memcmp(data,QueryMagic,8))continue;
+        unsigned char reply[512]{};std::memcpy(reply,ReplyMagic,8);std::memcpy(reply+8,data+8,4);reply[12]=advertised.port>>8;reply[13]=advertised.port&255;reply[14]=static_cast<unsigned char>(advertised.players);reply[15]=static_cast<unsigned char>(advertised.gap);reply[16]=advertised.joinable;size_t size=std::min(size_t(32),advertised.name.size());reply[17]=static_cast<unsigned char>(size);for(int i=0;i<8;++i)reply[18+i]=static_cast<unsigned char>(instance>>(i*8));reply[26]=static_cast<unsigned char>(advertised.capacity);std::memcpy(reply+27,advertised.name.data(),size);size_t used=27+size;
+        auto text=[&](const std::string& value,size_t limit){size_t count=std::min(value.size(),limit);reply[used++]=static_cast<unsigned char>(count);std::memcpy(reply+used,value.data(),count);used+=count;};
+        text(advertised.map,64);size_t players=std::min(size_t(16),advertised.playerNames.size());reply[used++]=static_cast<unsigned char>(players);for(size_t i=0;i<players;++i)text(advertised.playerNames[i],16);
+        sendto(server,reinterpret_cast<const char*>(reply),int(used),0,reinterpret_cast<sockaddr*>(&source),length);
     }
     if(scanner==netio::Invalid)return;
-    if(Now()>=deadline){CancelSearch();status=rooms.empty()?"Nenhuma sala encontrada. Voce ainda pode informar o IP manualmente.":"Busca concluida. Clique em uma sala para entrar.";return;}
+    if(Now()>=deadline){CancelSearch();status=rooms.empty()?"Nenhuma sala encontrada. Voce ainda pode informar o IP manualmente.":"Busca concluida. Selecione uma sala para ver os detalhes.";return;}
     if(Now()>=nextProbe)Probe();
-    for(int count=0;count<64;++count){unsigned char data[128];sockaddr_in source{};netio::SocketLength length=sizeof(source);int n=recvfrom(scanner,reinterpret_cast<char*>(data),sizeof(data),0,reinterpret_cast<sockaddr*>(&source),&length);if(n<0)break;if(n<27||std::memcmp(data,ReplyMagic,8))continue;uint32_t token=0;for(int i=0;i<4;++i)token|=uint32_t(data[8+i])<<(i*8);if(token!=nonce||data[17]>32||n!=27+data[17]||data[14]<1||data[14]>data[26]||(data[26]!=2&&data[26]!=4&&data[26]!=8)||(data[15]!=16&&data[15]!=32&&data[15]!=64)||data[16]>1)continue;
-        LanRoom room;room.port=static_cast<unsigned short>((unsigned(data[12])<<8)|data[13]);if(!room.port)continue;char ip[INET_ADDRSTRLEN];if(!inet_ntop(AF_INET,&source.sin_addr,ip,sizeof(ip)))continue;room.address=std::string(ip)+":"+std::to_string(room.port);for(int i=0;i<8;++i)room.identity|=uint64_t(data[18+i])<<(i*8);if(!room.identity)continue;room.name.assign(reinterpret_cast<char*>(data+27),data[17]);if(room.name.empty()||room.name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")!=std::string::npos)continue;room.players=data[14];room.gap=data[15];room.capacity=data[26];room.joinable=data[16]&&room.players<room.capacity;
+    for(int count=0;count<64;++count){unsigned char data[512];sockaddr_in source{};netio::SocketLength length=sizeof(source);int n=recvfrom(scanner,reinterpret_cast<char*>(data),sizeof(data),0,reinterpret_cast<sockaddr*>(&source),&length);if(n<0)break;if(n<27||std::memcmp(data,ReplyMagic,8))continue;uint32_t token=0;for(int i=0;i<4;++i)token|=uint32_t(data[8+i])<<(i*8);if(token!=nonce||data[17]>32||n<27+data[17]||data[14]<1||data[14]>data[26]||(data[26]!=2&&data[26]!=4&&data[26]!=8&&data[26]!=16)||(data[15]!=16&&data[15]!=32&&data[15]!=64)||data[16]>1)continue;
+        LanRoom room;room.port=static_cast<unsigned short>((unsigned(data[12])<<8)|data[13]);if(!room.port)continue;char ip[INET_ADDRSTRLEN];if(!inet_ntop(AF_INET,&source.sin_addr,ip,sizeof(ip)))continue;room.address=std::string(ip)+":"+std::to_string(room.port);for(int i=0;i<8;++i)room.identity|=uint64_t(data[18+i])<<(i*8);if(!room.identity)continue;room.name.assign(reinterpret_cast<char*>(data+27),data[17]);if(room.name.empty()||std::any_of(room.name.begin(),room.name.end(),[](unsigned char c){return c<32||c>126;}))continue;room.players=data[14];room.gap=data[15];room.capacity=data[26];room.joinable=data[16]&&room.players<room.capacity;
+        room.ping=std::max(0,int((Now()-probeSentAt)*1000));
+        size_t offset=27+data[17];bool valid=true;
+        auto text=[&](size_t limit){std::string value;if(offset>=size_t(n)){valid=false;return value;}size_t length=data[offset++];if(length>limit||offset+length>size_t(n)){valid=false;return value;}value.assign(reinterpret_cast<char*>(data+offset),length);offset+=length;for(unsigned char c:value)if(c<32||c>126)valid=false;return value;};
+        if(offset<size_t(n)){room.map=text(64);if(!valid||offset>=size_t(n))continue;int count=data[offset++];if(count>16||count>room.players)continue;for(int i=0;i<count;++i){auto name=text(16);if(name.empty()||name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")!=std::string::npos)valid=false;room.playerNames.push_back(name);}if(!valid||offset!=size_t(n))continue;}
         auto found=std::find_if(rooms.begin(),rooms.end(),[&](const LanRoom& r){return r.identity==room.identity&&r.port==room.port;});if(found!=rooms.end()){room.address=found->address;*found=room;}else if(rooms.size()<64)rooms.push_back(room);
     }
 }

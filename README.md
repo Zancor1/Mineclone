@@ -11,7 +11,7 @@ criados no código, sem pacotes de assets externos.
 ## Recursos
 
 - **Geração procedural contínua:** novas regiões surgem conforme você explora,
-  com biomas, montanhas, árvores, cactos e lagos. Uma janela de 256 × 256 × 80
+  com biomas, montanhas, árvores, cactos e lagos. Uma janela de 256 × 256 × 128
   blocos permanece ativa ao redor do jogador.
 - **Construção livre:** blocos, ferramentas e plantas, inventário criativo paginado e
   hotbar com nove posições configuráveis. Inclui lã em 16 cores.
@@ -125,7 +125,7 @@ save existente ou use **Criar Novo Mundo** para gerar um mapa com uma nova seed.
 | Trocar página do inventário | Setas esquerda/direita, Page Up/Down ou botões |
 
 **E** abre o inventário pessoal com fabricação 2 × 2, **27 slots (3 × 9)** e a **hotbar de 9 slots**
-abaixo. Clique para pegar ou depositar pilhas. No inventário criativo, **Shift + clique
+abaixo. Clique para pegar ou depositar pilhas. Passe o mouse sobre um slot e pressione a tecla configurada de uma posição da hotbar para trocar as duas pilhas, preservando quantidades e propriedades. No inventário criativo, **Shift + clique
 esquerdo descarta a pilha** do slot. A tela do baú utiliza exatamente o mesmo inventário e a mesma hotbar.
 
 Para obter novos blocos no modo criativo, clique em **Blocos criativos**. O
@@ -280,12 +280,14 @@ Veja [compatibilidade, controles e teste manual](docs/MULTIPLAYER.md).
 
 ### BedWars LAN
 
-O menu **BedWars LAN** permite escolher entre quatro mapas com prévias e lobby suspenso. Há Solo (até quatro jogadores) e Dupla (até oito),
+Em **Multiplayer → BedWars**, é possível escolher entre cinco mapas com prévias e lobby suspenso. Há Solo (até oito jogadores) e Dupla (até dezesseis),
 com seleção de time pela lã branca no lobby. Há camas, equipes, loja, geradores, PvP, placar,
 renascimento e vitória. O host abre a porta TCP **25566**; os amigos entram
 pelo seu IPv4. Com pelo menos dois jogadores, o host pressiona **P** para
 iniciar a contagem de cinco segundos na tela de todos. **F8** volta ao lobby.
-O botão **Procurar na rede local** lista salas em Wi-Fi, cabo e interfaces VPN
+O navegador de servidores lista salas, mapa, jogadores e ping. Os filtros
+permitem buscar por nome, mapa e ping máximo; selecione uma sala para ver
+os nicks à direita e clique em **Conectar**. **Atualizar** busca salas em Wi-Fi, cabo e interfaces VPN
 quando a rede permite descoberta; também é possível entrar pelo IP manual.
 Autorize UDP **25567** para busca e TCP **25566** para jogo.
 As lojas de itens e melhorias são aldeões acessados pelo botão direito. A loja
@@ -293,9 +295,16 @@ de itens tem categorias com ícones, progressão de picaretas e machados,
 armaduras permanentes para calça/botas e poções temporárias.
 O terreno da arena é protegido; blocos colocados pelos jogadores e camas
 adversárias podem ser quebrados.
+Segure **TAB** para listar os jogadores e seus times. No BedWars, a TNT explode
+após quatro segundos e destrói construções de lã até quatro blocos, madeira
+até três e pedra do fim até dois. Obsidiana resiste à explosão.
 
 Consulte [BedWars LAN](docs/BEDWARS.md) para controles, regras e limitações.
 As partidas são temporárias e separadas dos saves do single-player.
+As equipes são Vermelho, Azul, Verde, Amarelo, Ciano, Branco, Rosa e Cinza.
+O Airshow importado preserva as oito bases e os balões originais; o NC mantém
+duas equipes por ser um mapa 1v1. Os saves antigos de altura 80 continuam
+carregando na janela de altura 128.
 
 O mapa **NC** inclui a arena importada para dois times, em Solo ou Dupla.
 As lajes, escadas, cercas, grades e carpetes preservam formas e materiais da
@@ -353,7 +362,7 @@ restaurados. O arquivo `world.dat` mantém a região ativa e a posição do joga
 
 Regiões fora da janela não simulam fluidos. A geração, leitura e reconstrução das
 malhas ainda são síncronas e podem causar uma breve pausa na transição. A altura
-permanece limitada a 80 blocos; a exploração horizontal se estende até cerca de
+permanece limitada a 128 blocos; a exploração horizontal se estende até cerca de
 100 milhões de blocos por eixo e ocupa mais espaço em disco conforme o mapa cresce.
 
 ## Arquitetura

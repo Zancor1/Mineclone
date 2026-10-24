@@ -38,6 +38,9 @@ struct LanRoom {
     bool joinable=true;
     uint64_t identity=0;
     int capacity=4;
+    std::string map;
+    std::vector<std::string> playerNames;
+    int ping=-1;
 };
 class LanDiscovery {
 public:
@@ -58,7 +61,7 @@ private:
     LanRoom advertised;
     uint32_t nonce=0;
     uint64_t instance=0;
-    double deadline=0,nextProbe=0;
+    double deadline=0,nextProbe=0,probeSentAt=0;
     std::string status;
     void Probe();
     void FindInterfaces();

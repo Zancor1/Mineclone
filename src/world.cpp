@@ -483,7 +483,7 @@ bool LoadWorld(const std::string& path,PlayerState* player) {
     if(!in||std::memcmp(magic,Magic,6)!=0||magic[7]!=0||(magic[6]<1||magic[6]>12)) return false;
     bool legacy=magic[6]==1;
     uint32_t width=Read32(in),height=Read32(in),seed=Read32(in),checksum=Read32(in);
-    if(!in||(width!=Width&&width!=128)||height!=Height) return false;
+    if(!in||(width!=Width&&width!=128)||(height!=Height&&height!=80)) return false;
     const size_t cells=size_t(width)*height*width;
     std::vector<unsigned char> data(cells+(legacy?0:cells)+(magic[6]>=3?cells:0)+(magic[6]>=4?PoseBytes:0)+(magic[6]>=5?4:0)+(magic[6]>=7?12:0));
     in.read(reinterpret_cast<char*>(data.data()),data.size());
@@ -562,11 +562,12 @@ bool LoadWorld(const std::string& path,PlayerState* player) {
     WorldTime=loadedTime;InvalidateLighting();
     Seed=seed;
     if(width<Width) GenerateRegion();
+    if(height<Height){for(int x=0;x<Width;++x)for(int y=height;y<Height;++y)for(int z=0;z<Width;++z){World[x][y][z]=Air;FluidLevels[x][y][z]=FluidSources[x][y][z]=0;}}
     auto* blocks=reinterpret_cast<unsigned char*>(World);
     auto* levels=reinterpret_cast<unsigned char*>(FluidLevels);
     auto* sources=reinterpret_cast<unsigned char*>(FluidSources);
-    for(int x=0;x<int(width);++x) for(int y=0;y<Height;++y) for(int z=0;z<int(width);++z) {
-        size_t from=(size_t(x)*Height+y)*width+z,to=(size_t(x)*Height+y)*Width+z;
+    for(int x=0;x<int(width);++x) for(int y=0;y<int(height);++y) for(int z=0;z<int(width);++z) {
+        size_t from=(size_t(x)*height+y)*width+z,to=(size_t(x)*Height+y)*Width+z;
         blocks[to]=data[from];
         levels[to]=legacy?(data[from]==Water?MaxWaterLevel:0):data[cells+from];
         sources[to]=magic[6]>=3?data[cells*2+from]:0;
@@ -665,8 +666,12 @@ bool ReadChunk(const std::filesystem::path& path,int cx,int cz,std::vector<unsig
     std::ifstream input(path,std::ios::binary);char magic[4]{};input.read(magic,4);
     uint32_t seed=Read32(input),storedX=Read32(input),storedZ=Read32(input),checksum=Read32(input);
     if(!input||std::memcmp(magic,"MCC1",4)||seed!=expectedSeed||storedX!=uint32_t(cx)||storedZ!=uint32_t(cz)) return false;
-    data.resize(ChunkBytes);input.read(reinterpret_cast<char*>(data.data()),data.size());
+    auto start=input.tellg();input.seekg(0,std::ios::end);auto bytes=input.tellg()-start;input.seekg(start);
+    const size_t oldBytes=size_t(ChunkSize)*80*ChunkSize*3;
+    if(bytes!=std::streamoff(ChunkBytes)&&bytes!=std::streamoff(oldBytes))return false;
+    data.resize(size_t(bytes));input.read(reinterpret_cast<char*>(data.data()),data.size());
     if(!input||input.peek()!=EOF||Checksum(data.data(),data.size())!=checksum) return false;
+    if(data.size()!=ChunkBytes){auto old=std::move(data);data.assign(ChunkBytes,0);for(int x=0;x<ChunkSize;++x)for(int y=0;y<80;++y)for(int z=0;z<ChunkSize;++z)for(int i=0;i<3;++i)data[((x*Height+y)*ChunkSize+z)*3+i]=old[((x*80+y)*ChunkSize+z)*3+i];}
     for(size_t i=0;i<data.size();i+=3) {
         Block block=static_cast<Block>(data[i]);unsigned char level=data[i+1],source=data[i+2];
         if(!Placeable(block)||level>7||source>1||(!Liquid(block)&&(level||source))||

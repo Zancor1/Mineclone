@@ -45,6 +45,17 @@ int main() {
     Settings.toggleSprint=false;run.sprintPressed=false;run.sprint=true;player.Update(run,0);Check(player.IsSprinting(),"held sprint works with toggle off");run.sprint=false;player.Update(run,0);Check(!player.IsSprinting(),"releasing sprint stops running when toggle off");player.RestoreState(sprintPose);
     player.RestoreState(sprintPose);player.MeleeKnockback({8.5f,5.4f,0});for(int i=0;i<4;++i)player.Update({},.05f);auto knocked=player.CaptureState();Check(knocked.velocityY<0.f&&knocked.position.x-sprintPose.position.x>.8f,"melee knockback descends quickly and travels farther horizontally");player.RestoreState(sprintPose);player.Knockback({8.5f,5.4f,0});for(int i=0;i<4;++i)player.Update({},.05f);Check(player.CaptureState().velocityY>0,"faster knockback gravity does not affect other impulses");player.RestoreState(sprintPose);
     player.RestoreState(sprintPose);for(int i=0;i<5;++i){player.MeleeKnockback({8.5f,5.4f,0});player.Update({},.05f);}Check(player.CaptureState().velocityY< -1.f,"repeated hits do not restart airtime and keep the player floating");player.RestoreState(sprintPose);
+    for(int x=76;x<=84;++x)for(int z=70;z<=85;++z)Change(x,10,z,Stone);
+    Player smooth;PlayerState start;start.valid=true;start.position={80.5f,11.001f,80.5f};smooth.RestoreState(start);PlayerInput walking;walking.forward=1;
+    smooth.Update(walking,.05f);float first=80.5f-smooth.CaptureState().position.z;Check(first>0&&first<4.317f*.05f,"movement accelerates instead of snapping to full speed");
+    for(int i=0;i<19;++i)smooth.Update(walking,.05f);
+    auto slowFrames=smooth.CaptureState();float beforeStop=slowFrames.position.z;smooth.Update({},.05f);Check(smooth.CaptureState().position.z<beforeStop,"movement decelerates instead of stopping instantly");
+    smooth.RestoreState(start);for(int i=0;i<100;++i)smooth.Update(walking,.01f);Check(std::abs(smooth.CaptureState().position.z-slowFrames.position.z)<.002f,"acceleration is consistent across frame rates");
+    Player blast;PlayerState blastStart;blastStart.valid=true;blastStart.position={140,50,140};
+    blast.RestoreState(blastStart);blast.Knockback({120,12,0});for(int i=0;i<40;++i)blast.Update({},.05f);
+    Check(std::abs(blast.CaptureState().position.x-160.f)<.02f,"maximum fireball impulse travels twenty unobstructed blocks");
+    blast.RestoreState(blastStart);blast.Knockback({120,12,0});for(int i=0;i<200;++i)blast.Update({},.01f);
+    Check(std::abs(blast.CaptureState().position.x-160.f)<.02f,"fireball range stays consistent across frame rates");
     auto path=std::filesystem::temp_directory_path()/
         ("mineclone-settings-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count())+".cfg");
     Settings.freezeTime=true;Settings.mouseSensitivity=1.75f;Settings.newWorldMinute=1439;

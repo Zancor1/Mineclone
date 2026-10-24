@@ -3,7 +3,7 @@
 #include <raylib.h>
 #include <array>
 namespace game {
-enum class MapShape : unsigned char {Cube,Slab,Stairs,Fence,Bars,Carpet,Torch,Pot,Plate,Hopper,Sign,Portal,Web};
+enum class MapShape : unsigned char {Cube,Slab,Stairs,Fence,Bars,Carpet,Torch,Pot,Plate,Hopper,Sign,Portal,Web,Fire,Barrier};
 struct MapBlockState {Block block=Air,material=Stone;MapShape shape=MapShape::Cube;unsigned char data=0;};
 struct BlockBoxes {std::array<BoundingBox,12> boxes{};int count=0;};
 void ClearMapBlocks();

@@ -361,7 +361,7 @@ void RebuildChunk(int cx,int cz) {
     for(int x=cx*ChunkSize;x<(cx+1)*ChunkSize;++x)
         for(int z=cz*ChunkSize;z<(cz+1)*ChunkSize;++z) for(int y=0;y<Height;++y) {
             Block b=At(x,y,z); if(b==Air) continue;
-            if(HasMapShape(x,y,z)){auto boxes=MapShapeBoxes(x,y,z);auto state=MapStateAt(x,y,z);for(int box=0;box<boxes.count;++box)for(int f=0;f<6;++f){Face face{x,y,z,f,b,box};if(Transparent(state.material)||state.shape==MapShape::Portal)c.transparent.push_back(face);else geometry.Add(face);}continue;}
+            if(HasMapShape(x,y,z)){if(MapStateAt(x,y,z).shape==MapShape::Barrier)continue;auto boxes=MapShapeBoxes(x,y,z);auto state=MapStateAt(x,y,z);for(int box=0;box<boxes.count;++box)for(int f=0;f<6;++f){Face face{x,y,z,f,b,box};if(Transparent(state.material)||state.shape==MapShape::Portal)c.transparent.push_back(face);else geometry.Add(face);}continue;}
             for(int f=0;f<6;++f) {
                 Block neighbor=At(x+Normals[f][0],y+Normals[f][1],z+Normals[f][2]);
                 if((Plant(b)||b==Ladder)&&f!=4&&f!=5) continue;
