@@ -1,6 +1,7 @@
 #include "bedwars_maps.h"
 #include "world.h"
 #include "map_blocks.h"
+#include "external_arenas.h"
 #include <zlib.h>
 #include <stdexcept>
 #include <algorithm>
@@ -17,11 +18,13 @@ Vector3 AirPoint(int team,float back,float side=0){auto b=AirBeds[std::clamp(tea
 
 }
 int MapTeams(int map){return map==3?2:8;}
-std::array<Vector3,2> MapBeds(int map,int team,const Vector3& base){if(map==4){auto p=AirPoint(team,0),q=AirPoint(team,1);return {{{std::floor(p.x),p.y,std::floor(p.z)},{std::floor(q.x),q.y,std::floor(q.z)}}};}if(map==3)return team==0?std::array<Vector3,2>{{{86,26,156},{85,26,156}}}:std::array<Vector3,2>{{{170,26,156},{171,26,156}}};return {{{float(int(base.x)),26,float(int(base.z)+3)},{float(int(base.x)),26,float(int(base.z)+4)}}};}
+int MapLobbyY(int map){return map>=FirstExternalArena?ExternalArenaAt(map).lobbyY:map==4?115:65;}
+std::array<Vector3,2> MapBeds(int map,int team,const Vector3& base){if(map>=FirstExternalArena){auto& teamData=ExternalArenaAt(map).teams[std::clamp(team,0,7)];return {{teamData.beds[0],teamData.beds[1]}};}if(map==4){auto p=AirPoint(team,0),q=AirPoint(team,1);return {{{std::floor(p.x),p.y,std::floor(p.z)},{std::floor(q.x),q.y,std::floor(q.z)}}};}if(map==3)return team==0?std::array<Vector3,2>{{{86,26,156},{85,26,156}}}:std::array<Vector3,2>{{{170,26,156},{171,26,156}}};return {{{float(int(base.x)),26,float(int(base.z)+3)},{float(int(base.x)),26,float(int(base.z)+4)}}};}
 
-const char* MapName(int map){constexpr const char* names[]={"Fortaleza","Ruinas","Jardins","NC","Airshow"};return names[std::clamp(map,0,MapCount-1)];}
-const char* MapDescription(int map){constexpr const char* descriptions[]={"Torres e muralhas nas ilhas","Colinas de pedra e arcos antigos","Terracos, arvores e pavilhoes","Arena original importada - 2 times","Baloes e avioes - 8 times"};return descriptions[std::clamp(map,0,MapCount-1)];}
+const char* MapName(int map){if(map>=FirstExternalArena)return ExternalArenaAt(map).name;constexpr const char* names[]={"Fortaleza","Ruinas","Jardins","NC","Airshow"};return names[std::clamp(map,0,MapCount-1)];}
+const char* MapDescription(int map){if(map>=FirstExternalArena)return "Arena original importada - 8 times";constexpr const char* descriptions[]={"Torres e muralhas nas ilhas","Colinas de pedra e arcos antigos","Terracos, arvores e pavilhoes","Arena original importada - 2 times","Baloes e avioes - 8 times"};return descriptions[std::clamp(map,0,MapCount-1)];}
 std::array<Vector3,8> ArenaBases(int gap,int map){
+    if(map>=FirstExternalArena){std::array<Vector3,8> result{};for(int i=0;i<8;++i)result[i]=ExternalArenaAt(map).teams[i].spawn;return result;}
     if(map==3)return {{{75.5f,26,156.5f},{181.5f,26,156.5f},{128.5f,26,128.5f},{128.5f,26,128.5f}}};
     if(map==4){std::array<Vector3,8> result{};for(int i=0;i<8;++i)result[i]=AirPoint(i,6);return result;}
     int radius=gap+30;
@@ -33,12 +36,16 @@ std::array<Vector3,8> DiamondIslands(int gap,int map){
     for(int i=0;i<8;++i){auto a=bases[ring[i]],b=bases[ring[(i+1)%8]];positions[i]={float(int((a.x+b.x)/2))+.5f,26,float(int((a.z+b.z)/2))+.5f};}
     return positions;
 }
+Vector3 RuinsVendor(int team,int kind,int gap){auto base=ArenaBases(gap,1)[std::clamp(team,0,7)];return {base.x+(kind?8.f:-8.f),26,base.z+5};}
 Vector3 AirshowSpawn(int team){return AirPoint(team,6);}
 Vector3 AirshowVendor(int team,int kind){return AirPoint(team,8,kind?3.f:-3.f);}
-Vector3 AirshowForge(int team){return AirPoint(team,8);}
+Vector3 AirshowForge(int team){auto p=AirPoint(team,10.5f);p.y-=.5f;return p;}
 Vector3 AirshowChest(int team){constexpr int positions[8][3]={{-36,63,-81},{44,67,-81},{81,67,-36},{81,63,44},{36,63,81},{-44,67,81},{-81,67,36},{-81,63,-44}};auto p=positions[std::clamp(team,0,7)];return {p[0]+128.5f,p[1]-20.f,p[2]+128.5f};}
 std::vector<Vector3> AirshowResources(bool emerald){std::vector<Vector3> result;int radius=emerald?12:40;for(int x:{-1,1})for(int z:{-1,1}){bool high=x!=z;result.push_back({128.5f+x*radius,float(high?53:49),128.5f+z*radius});}return result;}
 void BuildArenaTerrain(int map,int gap,const std::function<void(int,int,int,Block)>& put,bool lobby){
+    if(map>=FirstExternalArena){const auto& cells=ExternalCells(map);for(size_t i=0;i<cells.size();i+=7){int x=cells[i],y=cells[i+1],z=cells[i+2];Block b=Block(cells[i+3]);put(x,y,z,b);if(lobby&&b>=MapSlab)SetMapBlockState(x,y,z,{b,Block(cells[i+4]),MapShape(cells[i+5]),cells[i+6]});}
+        int floor=MapLobbyY(map);if(lobby)for(int x=119;x<=137;++x)for(int z=119;z<=137;++z){put(x,floor,z,Glass);if(x==119||x==137||z==119||z==137){put(x,floor+1,z,Glass);put(x,floor+2,z,Glass);}}return;
+    }
     if(map==4){const auto& cells=AirshowCells();for(size_t i=0;i<cells.size();i+=7){int x=cells[i],y=cells[i+1],z=cells[i+2];Block b=Block(cells[i+3]);put(x,y,z,b);if(lobby&&b>=MapSlab)SetMapBlockState(x,y,z,{b,Block(cells[i+4]),MapShape(cells[i+5]),cells[i+6]});}
         if(lobby)for(int x=119;x<=137;++x)for(int z=119;z<=137;++z){put(x,115,z,Glass);if(x==119||x==137||z==119||z==137){put(x,116,z,Glass);put(x,117,z,Glass);}}
         return;
@@ -71,7 +78,7 @@ void BuildArenaTerrain(int map,int gap,const std::function<void(int,int,int,Bloc
         int x=int(bases[team].x),z=int(bases[team].z);
         island(x,z,map==1?12:11,map==1?StoneBricks:Grass,map);
         for(int dx=-5;dx<=5;++dx)for(int dz=-5;dz<=5;++dz)put(x+dx,25,z+dz,wool[team]);
-        put(x,26,z+3,Bed);put(x,26,z+4,BedHead);put(x+4,26,z-2,Chest);put(x-4,25,z-2,LampOn);
+        put(x,26,z+3,Bed);put(x,26,z+4,BedHead);put(x+4,26,z-2,Chest);if(map!=1)put(x-4,25,z-2,LampOn);
         if(map==0){
             for(int dx=-8;dx<=8;++dx)for(int y=26;y<=30;++y)if(std::abs(dx)>2)put(x+dx,y,z-7,StoneBricks);
             for(int side:{-1,1}){
@@ -87,6 +94,17 @@ void BuildArenaTerrain(int map,int gap,const std::function<void(int,int,int,Bloc
                 for(int dx=-3;dx<=3;++dx)put(x+side*7+dx,side<0?35:32,z-5,StoneBricks);
                 for(int dx=-2;dx<=2;++dx)for(int dz=-2;dz<=2;++dz){int h=1+(dx*dx+dz*dz)%3;for(int y=26;y<26+h;++y)if(dx*dx+dz*dz<6)put(x+side*8+dx,y,z+5+dz,StoneBricks);}
             }
+            for(int side:{-1,1}){
+                int sx=x+side*8,sz=z+5;
+                for(int dx=-2;dx<=2;++dx)for(int dz=-2;dz<=1;++dz)put(sx+dx,25,sz+dz,StoneBricks);
+                put(sx,25,sz,LampOn);
+                for(int y=26;y<=28;++y){
+                    for(int dx=-1;dx<=1;++dx)for(int dz=-2;dz<=0;++dz)put(sx+dx,y,sz+dz,Air);
+                    put(sx-2,y,sz,StoneBricks);put(sx+2,y,sz,StoneBricks);
+                    for(int dx=-1;dx<=1;++dx)put(sx+dx,y,sz+1,StoneBricks);
+                }
+                for(int dx=-2;dx<=2;++dx)for(int dz=-1;dz<=1;++dz)put(sx+dx,29,sz+dz,CarvedStone);
+            }
             for(int dz=-9;dz<=-6;++dz)for(int dx=-4;dx<=4;++dx)if((dx*dx+dz)%3)put(x+dx,26,z+dz,CarvedStone);
             for(int dx=-3;dx<=3;++dx)put(x+dx,32,z-7,wool[team]);
         }else{
@@ -96,6 +114,17 @@ void BuildArenaTerrain(int map,int gap,const std::function<void(int,int,int,Bloc
             for(int dx=-7;dx<=7;++dx)for(int dz=-10;dz<=-5;++dz){put(x+dx,32,z+dz,DarkOakPlanks);if(std::abs(dx)<=5&&dz>=-9&&dz<=-6)put(x+dx,33,z+dz,PinkWool);}
             for(int side:{-1,1})for(int dz=5;dz<=8;++dz)for(int dx=6;dx<=8;++dx)put(x+side*dx,26,z+dz,Grass);
         }
+    }
+    // Compact market stalls leave the central forge, chest and bed accessible.
+    for(int team=0;team<8;++team)for(int kind=0;kind<2;++kind){
+        auto base=bases[team];auto p=map==1?RuinsVendor(team,kind,gap):Vector3{base.x+(kind?4.f:-4.f),26,base.z+(kind?2.f:-2.f)};
+        int x=int(p.x),z=int(p.z),front=map==1?-1:kind?-1:1;
+        for(int dx=-2;dx<=2;++dx)for(int dz=-1;dz<=1;++dz)put(x+dx,25,z+dz,map==1?StoneBricks:Planks);
+        put(x,25,z,LampOn);
+        for(int side:{-1,1})for(int y=26;y<=28;++y)put(x+side*2,y,z,Wood);
+        for(int dx=-2;dx<=2;++dx)for(int dz=-1;dz<=1;++dz)put(x+dx,map==1?30:29,z+dz,(dx+2)%2?WhiteWool:wool[team]);
+        for(int dx=-1;dx<=1;++dx){put(x+dx,26,z-front,Planks);put(x+dx,27,z-front,Planks);}
+        put(x-2,28,z+front,LampOn);put(x+2,28,z+front,LampOn);
     }
     for(auto pos:DiamondIslands(gap,map)){
         int x=int(pos.x),z=int(pos.z);island(x,z,4,map==2?Grass:StoneBricks,map);put(x,25,z,BlockOfDiamond);
@@ -120,13 +149,16 @@ void BuildArenaTerrain(int map,int gap,const std::function<void(int,int,int,Bloc
 RenderTexture2D CreateMapPreview(int map,int gap){
     std::vector<unsigned char> cells(size_t(Width)*Height*Width);
     std::vector<unsigned char> barriers(cells.size());if(map==4){const auto& records=AirshowCells();for(size_t i=0;i<records.size();i+=7)if(records[i+5]==14)barriers[(size_t(records[i])*Height+records[i+1])*Width+records[i+2]]=1;}
+    int lowY=Height,highY=0;
     auto index=[](int x,int y,int z){return (size_t(x)*Height+y)*Width+z;};
-    BuildArenaTerrain(map,gap,[&](int x,int y,int z,Block b){if(Inside(x,y,z))cells[index(x,y,z)]=b;},false);
+    BuildArenaTerrain(map,gap,[&](int x,int y,int z,Block b){if(Inside(x,y,z)){cells[index(x,y,z)]=b;if(b!=Air){lowY=std::min(lowY,y);highY=std::max(highY,y);}}},false);
+    if(map>=FirstExternalArena){const auto& records=ExternalCells(map);for(size_t i=0;i<records.size();i+=7){size_t key=index(records[i],records[i+1],records[i+2]);if(records[i+5]==14)barriers[key]=1;else if(records[i+3]>=MapSlab)cells[key]=records[i+4];}}
     auto at=[&](int x,int y,int z){return Inside(x,y,z)?cells[index(x,y,z)]:0;};
     RenderTexture2D image=LoadRenderTexture(360,210);if(!image.id)return image;
-    Camera3D camera{{250,180,250},{128,25,128},{0,1,0},float(map==3?160:map==4?240:2*(gap+50)),CAMERA_ORTHOGRAPHIC};
+    float centerY=map>=FirstExternalArena?float(lowY+highY)*.5f:map==4?48.f:25.f;
+    Camera3D camera{{250,centerY+155,250},{128,centerY,128},{0,1,0},float(map==3?160:map>=4?260:2*(gap+50)),CAMERA_ORTHOGRAPHIC};
     BeginTextureMode(image);ClearBackground({117,174,207,255});BeginMode3D(camera);
-    for(int x=0;x<Width;++x)for(int z=0;z<Width;++z)for(int y=0;y<(map==4?110:map==3?74:40);++y){int b=at(x,y,z);if(!b||barriers[index(x,y,z)]||(at(x-1,y,z)&&at(x+1,y,z)&&at(x,y-1,z)&&at(x,y+1,z)&&at(x,y,z-1)&&at(x,y,z+1)))continue;Color c{148,145,132,255};if(Blocks[b].color)c={static_cast<unsigned char>(Blocks[b].color>>16),static_cast<unsigned char>(Blocks[b].color>>8),static_cast<unsigned char>(Blocks[b].color),255};if(b==Grass)c={106,156,63,255};if(b==Stone||b==StoneBricks)c={126,129,135,255};if(b==Planks||b==Wood)c={137,103,60,255};if(b==RedWool)c=RED;if(b==BlueWool)c=BLUE;if(b==GreenWool)c=GREEN;if(b==YellowWool)c=YELLOW;if(b==PinkWool)c=PINK;if(b==CyanWool)c={55,215,215,255};if(b==WhiteWool)c=RAYWHITE;if(b==GrayWool)c=GRAY;if(b==EndStone)c={207,204,152,255};DrawCube({x+.5f,y+.5f,z+.5f},1,1,1,c);}
+    for(int x=0;x<Width;++x)for(int z=0;z<Width;++z)for(int y=0;y<(map>=FirstExternalArena?Height:map==4?110:map==3?74:40);++y){int b=at(x,y,z);if(!b||barriers[index(x,y,z)]||(at(x-1,y,z)&&at(x+1,y,z)&&at(x,y-1,z)&&at(x,y+1,z)&&at(x,y,z-1)&&at(x,y,z+1)))continue;Color c{148,145,132,255};if(Blocks[b].color)c={static_cast<unsigned char>(Blocks[b].color>>16),static_cast<unsigned char>(Blocks[b].color>>8),static_cast<unsigned char>(Blocks[b].color),255};if(b==Grass)c={106,156,63,255};if(b==Stone||b==StoneBricks)c={126,129,135,255};if(b==Planks||b==Wood)c={137,103,60,255};if(b==RedWool)c=RED;if(b==BlueWool)c=BLUE;if(b==GreenWool)c=GREEN;if(b==YellowWool)c=YELLOW;if(b==PinkWool)c=PINK;if(b==CyanWool)c={55,215,215,255};if(b==WhiteWool)c=RAYWHITE;if(b==GrayWool)c=GRAY;if(b==EndStone)c={207,204,152,255};DrawCube({x+.5f,y+.5f,z+.5f},1,1,1,c);}
     EndMode3D();EndTextureMode();SetTextureFilter(image.texture,TEXTURE_FILTER_BILINEAR);return image;
 }
 }

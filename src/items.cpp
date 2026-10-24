@@ -1,4 +1,7 @@
 #include "items.h"
+#include "projectile_physics.h"
+#include "arrow_model.h"
+#include "arrow_collision.h"
 #include "world.h"
 #include "survival.h"
 #include <raymath.h>
@@ -7,7 +10,7 @@
 #include <vector>
 namespace game {
 namespace {
-struct Projectile {Block type;Vector3 position,velocity;float life;};
+struct Projectile {Block type;Vector3 position,velocity;float life;float tick=0;bool embedded=false;Vector3 support{};};
 std::vector<Projectile> projectiles;
 float cooldown=0,charge=0,eating=0;
 Block lastItem=Air;
@@ -50,7 +53,7 @@ void PearlHit(Player& player,Vector3 position,Vector3 direction) {
 int ActiveProjectiles() {return int(projectiles.size());}
 void CancelItemUse() {charge=eating=0;}
 void ClearItems() {projectiles.clear();cooldown=charge=eating=0;lastItem=Air;}
-void TranslateItems(Vector3 displacement) {for(auto& p:projectiles)p.position=Vector3Add(p.position,displacement);}
+void TranslateItems(Vector3 displacement) {for(auto& p:projectiles){p.position=Vector3Add(p.position,displacement);p.support=Vector3Add(p.support,displacement);}}
 void PrimeTnt(Vector3 position,float fuse) {if(projectiles.size()<128)projectiles.push_back({Tnt,position,{0,2,0},fuse});}
 void Explode(Player& player,Vector3 center,float radius) {
     int extent=int(std::ceil(radius));
@@ -82,7 +85,7 @@ bool UseHeldItem(Player& player,ItemStack& stack,Vector3 direction,const UseInpu
     const Vector3 eye=player.Camera().position;
     if(item==Bow) {
         if(input.down)charge=std::min(1.f,charge+input.dt);
-        if(input.released) {if(charge>=.15f&&cooldown<=0&&projectiles.size()<128&&Ammo()){Shoot(Arrow,eye,direction,12+charge*25);Wear(stack);cooldown=.2f;}charge=0;}
+        if(input.released) {if(charge>=.15f&&cooldown<=0&&projectiles.size()<128&&Ammo()){Shoot(Arrow,eye,direction,ArrowSpeed*BowPower(charge));Wear(stack);cooldown=.15f;}charge=0;}
         return true;
     }
     if(item==GoldenApple) {
@@ -93,7 +96,7 @@ bool UseHeldItem(Player& player,ItemStack& stack,Vector3 direction,const UseInpu
     if(!input.pressed||cooldown>0)return false;
     if(Armor(item)) {EquipArmor(stack);return true;}
     if(item==EnderPearl||item==Fireball||item==Snowball||item==Egg) {
-        if(projectiles.size()<128) {Shoot(item,eye,direction,item==Fireball?16.f:20.f);Consume(stack);cooldown=item==Fireball?.5f:.3f;}
+        if(projectiles.size()<128) {Shoot(item,eye,direction,item==Fireball?FireballSpeed:20.f);Consume(stack);cooldown=item==Fireball?.5f:.3f;}
         return true;
     }
     if(item==Bucket||item==WaterBucket||item==LavaBucket) {
@@ -128,31 +131,39 @@ void UpdateItems(Player& player,float dt) {
     size_t count=projectiles.size();
     for(size_t i=0;i<count;++i) {
         Projectile p=projectiles[i];if(p.life<=0)continue;p.life-=dt;
+        if(p.embedded){if(!ArrowSolidPoint(p.support))p.life=0;projectiles[i]=p;continue;}
         if(p.type==Tnt&&p.life<=0) {projectiles[i].life=0;Explode(player,p.position);continue;}
-        if(p.type!=Fireball)p.velocity.y-=(p.type==Arrow?10.f:20.f)*dt;
-        Vector3 delta=Vector3Scale(p.velocity,dt);int steps=std::max(1,int(std::ceil(Vector3Length(delta)/.08f)));
+        int ticks=1;float stepTime=dt;
+        if(p.type==Arrow){p.tick+=dt;ticks=int((p.tick+1e-6f)/ProjectileTick);p.tick=std::max(0.f,p.tick-ticks*ProjectileTick);stepTime=ProjectileTick;}
+        else if(p.type!=Fireball)p.velocity.y-=20.f*dt;
+        for(int tick=0;tick<ticks&&p.life>0&&!p.embedded;++tick){
+            Vector3 delta=Vector3Scale(p.velocity,stepTime);int steps=std::max(1,int(std::ceil(Vector3Length(delta)/.08f)));
 
-        for(int step=0;step<steps;++step) {
-            Vector3 next=Vector3Add(p.position,Vector3Scale(delta,1.f/steps));
-            int x=int(std::floor(next.x)),y=int(std::floor(next.y-(p.type==Tnt?.45f:0.f))),z=int(std::floor(next.z));Block b=At(x,y,z);
-            if(x<0||x>=Width||z<0||z>=Width||next.y<-25||next.y>Height+256) {p.life=0;break;}
-            if(Solid(b)&&next.y<y+CollisionHeight(b)) {
-                if(p.type==Tnt) {p.velocity={0,0,0};break;}
-                p.life=0;
-                if(p.type==EnderPearl)PearlHit(player,p.position,Vector3Normalize(p.velocity));
-                if(p.type==Fireball) {projectiles[i].life=0;Explode(player,p.position,2.5f);}
-                break;
+            for(int step=0;step<steps;++step) {
+                Vector3 next=Vector3Add(p.position,Vector3Scale(delta,1.f/steps));
+                int x=int(std::floor(next.x)),y=int(std::floor(next.y-(p.type==Tnt?.45f:0.f))),z=int(std::floor(next.z));Block b=At(x,y,z);
+                if(x<0||x>=Width||z<0||z>=Width||next.y<-25||next.y>Height+256) {p.life=0;break;}
+                if(p.type==Arrow&&ArrowSolidPoint(next)){p.support=next;p.position=EmbeddedArrowTip(p.position,next);p.embedded=true;p.life=60;break;}
+                if(p.type!=Arrow&&Solid(b)&&next.y<y+CollisionHeight(b)) {
+                    if(p.type==Tnt) {p.velocity={0,0,0};break;}
+                    p.life=0;
+                    if(p.type==EnderPearl)PearlHit(player,p.position,Vector3Normalize(p.velocity));
+                    if(p.type==Fireball) {projectiles[i].life=0;Explode(player,p.position,2.5f);}
+                    break;
+                }
+                p.position=next;
             }
-            p.position=next;
+            if(p.type==Arrow&&!p.embedded)p.velocity=ArrowTickVelocity(p.velocity);
         }
         projectiles[i]=p;
     }
     projectiles.erase(std::remove_if(projectiles.begin(),projectiles.end(),[](const Projectile& p){return p.life<=0;}),projectiles.end());
 }
+std::vector<ArrowState> ArrowStates(){std::vector<ArrowState> result;for(const auto& p:projectiles)if(p.type==Arrow)result.push_back({p.position,Vector3Normalize(p.velocity),p.embedded});return result;}
 void DrawItems() {
     for(const auto& p:projectiles) {
         if(p.type==Tnt){DrawCube(p.position,.9f,.9f,.9f,int(p.life*5)%2?Color{195,56,41,255}:RAYWHITE);DrawCubeWires(p.position,.91f,.91f,.91f,DARKBROWN);}
-        else if(p.type==Arrow){Vector3 d=Vector3Scale(Vector3Normalize(p.velocity),.5f);DrawLine3D(Vector3Subtract(p.position,d),p.position,BROWN);DrawSphere(p.position,.045f,LIGHTGRAY);}
+        else if(p.type==Arrow)DrawArrowModel(p.position,p.velocity);
         else {Color c=p.type==Fireball?ORANGE:(p.type==EnderPearl?Color{39,155,142,255}:(p.type==Egg?BEIGE:RAYWHITE));DrawSphere(p.position,p.type==Fireball?.18f:.12f,c);}
     }
 }

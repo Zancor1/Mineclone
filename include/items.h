@@ -1,7 +1,10 @@
 #pragma once
+#include "projectile_physics.h"
+#include <vector>
 #include "player.h"
 #include "chest.h"
 namespace game {
+std::vector<ArrowState> ArrowStates();
 struct UseInput {bool pressed=false,down=false,released=false;float dt=0;};
 bool UseHeldItem(Player& player,ItemStack& stack,Vector3 direction,const UseInput& input);
 void UpdateItems(Player& player,float dt);

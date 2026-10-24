@@ -2,6 +2,7 @@
 #include "world.h"
 #include "survival.h"
 #include "crafting.h"
+#include <raymath.h>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -11,7 +12,7 @@
 namespace {
 void Check(bool ok,const char* text){if(!ok){std::fprintf(stderr,"FAIL: %s\n",text);std::exit(1);}}
 }
-int main(){
+int main(int argc,char**){
     using namespace game;
     Mode=GameMode::Survival;ClearChests();ClearItems();Player player;PlayerState pose;pose.valid=true;pose.position={50.5f,72,50.5f};player.RestoreState(pose);
     Check(MinigameItemCount>50&&BlockCount<=256,"minigame selection and stable byte IDs");
@@ -36,6 +37,12 @@ int main(){
     for(int i=0;i<20;++i)UseHeldItem(player,bow,{0,0,-1},{i==0,true,false,.05f});
     UseHeldItem(player,bow,{0,0,-1},{false,false,true,.05f});
     Check(ActiveProjectiles()==1&&Hotbar[0].count==3&&bow.damage==1,"charged bow shoots arrow and consumes ammo and durability");
+    Change(50,73,45,Stone);for(int i=0;i<10;++i)UpdateItems(player,.05f);auto wallArrow=ArrowStates();Check(wallArrow.size()==1&&wallArrow[0].embedded&&wallArrow[0].tip.z>45&&wallArrow[0].tip.z<46,"arrow embeds its tip into a wall");auto frozenTip=wallArrow[0].tip;for(int i=0;i<20;++i)UpdateItems(player,.05f);Check(ArrowStates().size()==1&&Vector3Distance(ArrowStates()[0].tip,frozenTip)<.0001f,"embedded arrow stays fixed without gravity");
+    if(argc>1){SetConfigFlags(FLAG_WINDOW_HIDDEN);InitWindow(720,480,"Embedded arrow model");Camera3D camera{{51.8f,74.2f,48},{50.5f,73.5f,45.9f},{0,1,0},45,CAMERA_PERSPECTIVE};BeginDrawing();ClearBackground(SKYBLUE);BeginMode3D(camera);DrawCube({50.5f,73.5f,45.5f},1,1,1,GRAY);DrawItems();EndMode3D();EndDrawing();auto image=LoadImageFromScreen();ExportImage(image,"build/embedded-arrow.png");UnloadImage(image);CloseWindow();}
+    Change(50,73,45,Air);UpdateItems(player,.05f);Check(ActiveProjectiles()==0,"destroying the support removes embedded arrow");
+    ClearItems();for(int i=0;i<20;++i)UseHeldItem(player,bow,{0,-1,0},{i==0,true,false,.05f});UseHeldItem(player,bow,{0,-1,0},{false,false,true,.05f});for(int i=0;i<5;++i)UpdateItems(player,.05f);auto floorArrow=ArrowStates();Check(floorArrow.size()==1&&floorArrow[0].embedded&&floorArrow[0].direction.y<-.9f&&floorArrow[0].tip.y<71,"arrow embeds vertically in the ground");
+    for(int i=0;i<1201;++i)UpdateItems(player,.05f);
+    Check(ActiveProjectiles()==0,"embedded arrows expire after sixty seconds");
     ClearItems();Hotbar={};bow={Bow,1};for(int i=0;i<20;++i)UseHeldItem(player,bow,{0,0,-1},{false,true,false,.05f});UseHeldItem(player,bow,{0,0,-1},{false,false,true,.05f});
     Check(ActiveProjectiles()==0&&bow.damage==0,"survival bow cannot shoot without arrows");
     ClearItems();Change(50,73,45,Stone);ItemStack fireball{Fireball,1};UseHeldItem(player,fireball,{0,0,-1},click);

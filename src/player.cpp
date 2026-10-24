@@ -70,7 +70,7 @@ bool Player::RestoreState(const PlayerState& state) {
     if(!state.valid||!std::isfinite(state.position.x)||!std::isfinite(state.position.y)||
        !std::isfinite(state.position.z)||!std::isfinite(state.yaw)||!std::isfinite(state.pitch)||
        !std::isfinite(state.velocityY)||std::abs(state.pitch)>1.55f) return false;
-    sprintLock=0;sprintLatched=false;meleeMotion=false;motionX=motionZ=0;impulse={};if(!net::Active())networkAccumulator=0;previousPosition=state.position;position=state.position;yaw=state.yaw;pitch=state.pitch;velocityY=state.velocityY;
+    sprintLock=0;sprintLatched=false;meleeMotion=false;motionX=motionZ=0;impulse={};pendingExplosion={};explosionRamp=explosionDrag=0;if(!net::Active())networkAccumulator=0;previousPosition=state.position;position=state.position;yaw=state.yaw;pitch=state.pitch;velocityY=state.velocityY;
     flying=state.flying&&Mode==GameMode::Creative;jumpWasDown=false;jumpTapAge=1.f;
     return true;
 }
@@ -86,8 +86,9 @@ void Player::MeleeKnockback(Vector3 push){
     if(!alreadyAirborne)velocityY=std::min(push.y,velocityY*.5f+push.y);
     FallDistance=0;
 }
+void Player::ExplosionKnockback(Vector3 push){pendingExplosion=Vector3Add(pendingExplosion,{push.x,0,push.z});explosionRamp=.16f;explosionDrag=2.f;meleeMotion=false;velocityY=std::max(velocityY,push.y);FallDistance=0;}
 void Player::Knockback(Vector3 push) {meleeMotion=false;impulse=Vector3Add(impulse,push);velocityY=std::max(velocityY,push.y);FallDistance=0;}
-void Player::Respawn() {sprintLock=0;sprintLatched=false;meleeMotion=false;motionX=motionZ=0;sneaking=sprinting=false;impulse={};position=Spawn(); velocityY=0; yaw=0; pitch=0;flying=false;jumpWasDown=false;jumpTapAge=1.f;previousPosition=position;networkAccumulator=0;}
+void Player::Respawn() {sprintLock=0;sprintLatched=false;meleeMotion=false;motionX=motionZ=0;sneaking=sprinting=false;impulse={};pendingExplosion={};explosionRamp=explosionDrag=0;position=Spawn(); velocityY=0; yaw=0; pitch=0;flying=false;jumpWasDown=false;jumpTapAge=1.f;previousPosition=position;networkAccumulator=0;}
 bool Player::Overlaps(int x,int y,int z) const {return Overlap(position,x,y,z);}
 Camera3D Player::Camera() const {
     Vector3 view=net::Active()?Vector3Lerp(previousPosition,position,std::clamp(networkAccumulator/.05f,0.f,1.f)):position;
@@ -153,8 +154,11 @@ void Player::Update(const PlayerInput& input,float dt) {
     }
     Block atBody=At(int(std::floor(position.x)),int(std::floor(position.y+.5f)),int(std::floor(position.z)));
     if(atBody==Ladder&&!flying) {velocityY=input.swimDown?-2.f:((input.forward>0||input.jump)?3.f:0.f);FallDistance=0;}
-    float impulseAverage=meleeMotion||dt<=0?1.f:-std::expm1(-6.f*dt)/(6.f*dt);
-    vx+=impulse.x*impulseAverage;vz+=impulse.z*impulseAverage;impulse=Vector3Scale(impulse,std::exp(-dt*(meleeMotion?4.5f:6.f)));
+    if(explosionRamp>0&&dt>0){float part=std::min(dt,explosionRamp)/explosionRamp;impulse=Vector3Add(impulse,Vector3Scale(pendingExplosion,part));pendingExplosion=Vector3Scale(pendingExplosion,1-part);explosionRamp=std::max(0.f,explosionRamp-dt);}
+    explosionDrag=std::max(0.f,explosionDrag-dt);
+    float drag=explosionDrag>0?1.6f:meleeMotion?4.5f:6.f;
+    float impulseAverage=meleeMotion||dt<=0?1.f:-std::expm1(-drag*dt)/(drag*dt);
+    vx+=impulse.x*impulseAverage;vz+=impulse.z*impulseAverage;impulse=Vector3Scale(impulse,std::exp(-dt*drag));
     if(sneaking&&grounded){
         auto floorBelow=[](Vector3 p){p.y-=1.f;for(int x=int(std::floor(p.x-PlayerRadius()));x<=int(std::floor(p.x+PlayerRadius()));++x)for(int y=int(std::floor(p.y));y<=int(std::floor(p.y+BodyHeight));++y)for(int z=int(std::floor(p.z-PlayerRadius()));z<=int(std::floor(p.z+PlayerRadius()));++z)if(CellSolid(x,y,z)&&Overlap(p,x,y,z))return true;return false;};
         float dx=vx*dt,dz=vz*dt;

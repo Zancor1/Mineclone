@@ -14,6 +14,7 @@ public:
     void Respawn();
     void Knockback(Vector3 impulse);
     void MeleeKnockback(Vector3 impulse);
+    void ExplosionKnockback(Vector3 impulse);
     void SuspendSprint(float seconds);
     void SetRemoteVelocity(Vector3 velocity);
     bool OnGround() const;
@@ -26,7 +27,8 @@ public:
     Camera3D Camera() const;
     bool Overlaps(int x,int y,int z) const;
 private:
-    Vector3 position{},impulse{},previousPosition{};
+    Vector3 position{},impulse{},previousPosition{},pendingExplosion{};
+    float explosionRamp=0,explosionDrag=0;
     float yaw=0,pitch=0,velocityY=0;
     bool flying=false,jumpWasDown=false,sneaking=false,sprinting=false,sprintLatched=false,meleeMotion=false;
     float motionX=0,motionZ=0,sprintLock=0;

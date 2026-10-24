@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "map_blocks.h"
 #include "bedwars.h"
+#include "cosmetics.h"
 #include "lighting.h"
 #include "settings.h"
 #include "items.h"
@@ -14,7 +15,7 @@
 #include <map>
 namespace game {
 int BlockTile(Block b,int f) {
-    if(b==Chest) return f==2?TileCount-2:(f==4?16+int(Chest)-14:TileCount-1);
+    if(b==Chest) return f==2?BaseTileCount-2:(f==4?16+int(Chest)-14:BaseTileCount-1);
     switch(b) {
         case Grass:return f==2?0:(f==3?1:6);
         case Stone:return 2;
@@ -63,7 +64,7 @@ Texture2D MakeAtlas() {
     Image image=GenImageColor(TileSize*TileCount,TileSize,BLANK);
     for(int tile=0;tile<TileCount;++tile) for(int y=0;y<TileSize;++y) for(int x=0;x<TileSize;++x) {
         const Block types[16]={Grass,Dirt,Stone,Wood,Wood,Leaves,Dirt,Sand,Water,Glass,Cactus,Cactus,Bricks,CoalOre,WhiteWool,Planks};
-        Block type=tile<16?types[tile]:(tile>=TileCount-2?Chest:static_cast<Block>(int(Cobblestone)+tile-16));
+        Block type=tile<16?types[tile]:(tile>=BaseTileCount?Stone:tile>=BaseTileCount-2?Chest:static_cast<Block>(int(Cobblestone)+tile-16));
         Color c=Palette[type];
         float variation=.85f+float(Hash(x,y,tile)%31)*.01f;
         if(tile==6&&y<3+int(Hash(x,0,60)%3)) c=Palette[Grass];
@@ -209,6 +210,19 @@ Texture2D MakeAtlas() {
                 if(!shape)c=BLANK;else if(x%4==0)c=Shade(c,.75f);
             }
         }
+        if(tile>=BaseTileCount){
+            int kind=tile-BaseTileCount;variation=.92f+float(Hash(x,y,kind+380)%16)*.01f;
+            if(kind==0){c=x>=6&&x<=9?(y<6?Color{255,200,45,255}:Color{130,85,39,255}):BLANK;}
+            if(kind==1){bool flame=y>4+int(Hash(x/2,0,991)%9)&&std::abs(x-7)<7-y/5;c=flame?(y>10?ORANGE:YELLOW):BLANK;}
+            if(kind==2){bool stem=x==7||(x+y)%9==0;bool leaf=(Hash(x/2,y/3,720)%4==0);c=stem||leaf?Color{63,117,42,255}:BLANK;}
+            if(kind==3||kind==12){bool rail=x==3||x==4||x==11||x==12;bool tie=y%4<=1;c=rail?(kind==12?GOLD:Color{178,180,178,255}):tie?Color{119,85,48,255}:BLANK;}
+            if(kind==4||kind==5){c=kind==4?Color{145,105,58,255}:Color{177,183,185,255};if(x==0||x==15||y==0||y==15||x==7)c=Shade(c,.55f);if(y>=3&&y<=8&&((x>=3&&x<=5)||(x>=10&&x<=12)))c=BLANK;if(x==12&&y==12)c=GOLD;}
+            if(kind==6){c={193,193,181,255};if((y>=5&&y<=8&&((x>=3&&x<=6)||(x>=10&&x<=13)))||(y>=10&&y<=13&&x>=6&&x<=10))c={46,47,42,255};}
+            if(kind==7){c={131,134,132,255};if(std::abs(x-8)+std::abs(y-8)<5)c={29,30,29,255};if(x==0||y==0||x==15||y==15)c={72,74,73,255};}
+            if(kind==8){c={119,78,44,255};if(x<2||x>13||y<2||y>13)c={62,40,24,255};if(y>=6&&y<=8&&x>=3&&x<=12)c={25,24,21,255};}
+            if(kind==9){c={176,24,20,255};if((x+y)%5==0)c={226,52,31,255};}
+            if(kind==10||kind==11){c={78,111,72,255};if(x>3&&x<12&&y>3&&y<12)c=kind==11?Color{25,36,28,255}:Color{177,183,131,255};}
+        }
         ImageDrawPixel(&image,tile*TileSize+x,y,Shade(c,variation));
     }
     Texture2D texture=LoadTextureFromImage(image); UnloadImage(image);
@@ -274,13 +288,32 @@ Vector3 Center(const Face& f) {
             f.y+.5f+.5f*Normals[f.direction][1],
             f.z+.5f+.5f*Normals[f.direction][2]};
 }
+int MapFaceTile(const Face& face){
+    auto state=MapStateAt(face.x,face.y,face.z);int direction=face.direction;
+    switch(state.shape){
+    case MapShape::Torch:return BaseTileCount;
+    case MapShape::Fire:return BaseTileCount+1;
+    case MapShape::Vine:return BaseTileCount+2;
+    case MapShape::Rail:return BaseTileCount+(state.material==BlockOfGold?12:3);
+    case MapShape::Door:case MapShape::Trapdoor:return BaseTileCount+(state.material==BlockOfIron?5:4);
+    case MapShape::Skull:if(direction==4)return BaseTileCount+6;break;
+    case MapShape::Dispenser:if(direction==(state.data==2?5:state.data==3?4:state.data==4?1:0))return BaseTileCount+7;break;
+    case MapShape::Jukebox:if(direction==2)return BaseTileCount+8;break;
+    case MapShape::RedstoneBlock:return BaseTileCount+9;
+    case MapShape::PortalFrame:if(direction==2)return BaseTileCount+(face.box>0?11:10);break;
+    case MapShape::Beacon:return BlockTile(face.box==0?Glass:face.box==1?Obsidian:SeaLantern,direction);
+    case MapShape::Log:{int axis=state.data&12;bool end=axis==4?(direction<2):axis==8?(direction>=4):direction==2||direction==3;return BlockTile(state.material,end?2:0);}
+    default:break;
+    }
+    return BlockTile(state.material,direction);
+}
 struct Geometry {
     std::vector<float> positions,uvs,normals;
     std::vector<unsigned char> colors;
     void Clear() { positions.clear(); uvs.clear(); normals.clear(); colors.clear(); }
     int Count() const {return int(positions.size()/3);}
     void Add(const Face& f) {
-        int tile=BlockTile(f.box>=0?MapStateAt(f.x,f.y,f.z).material:f.block,f.direction);
+        int tile=f.box>=0?MapFaceTile(f):BlockTile(f.block,f.direction);
         WaterFace water;
         if(Liquid(f.block)) {
             water=BuildFluidFace(f.x,f.y,f.z,f.direction);
@@ -290,12 +323,14 @@ struct Geometry {
         const int lx=f.x+Normals[f.direction][0],ly=f.y+Normals[f.direction][1],lz=f.z+Normals[f.direction][2];
         int normalAxis=Normals[f.direction][0]?0:(Normals[f.direction][1]?1:2);
         int tangentA=(normalAxis+1)%3,tangentB=(normalAxis+2)%3;
+        BoundingBox shapeBox{};if(f.box>=0)shapeBox=MapShapeBoxes(f.x,f.y,f.z).boxes[f.box];
+        int emission=BlockEmissionAt(f.x,f.y,f.z);
         Color vertexColors[4];
         for(int i=0;i<4;++i) {
             int sa=Corners[f.direction][i][tangentA]>.5f?1:-1;
             int sb=Corners[f.direction][i][tangentB]>.5f?1:-1;
             VertexLight light=SampleCornerLighting(lx,ly,lz,normalAxis,sa,sb);
-            if(BlockEmissionAt(f.x,f.y,f.z)) {light.block=BlockEmissionAt(f.x,f.y,f.z)/24.f;light.ambient=1;}
+            if(emission) {light.block=emission/24.f;light.ambient=1;}
             if(Liquid(f.block)||Plant(f.block)) light.ambient=1;
             auto channel=[](float value) {return static_cast<unsigned char>(std::clamp(value,0.f,1.f)*255+.5f);};
             vertexColors[i]={channel(light.ambient),channel(light.sky),channel(light.block),255};
@@ -310,7 +345,7 @@ struct Geometry {
             float pz=f.z+Corners[f.direction][index][2];
             float py=Corners[f.direction][index][1];
             Vector3 vertex=Liquid(f.block)?water.vertices[index]:Vector3{px,f.y+py*CollisionHeight(f.block),pz};
-            if(f.box>=0){auto box=MapShapeBoxes(f.x,f.y,f.z).boxes[f.box];vertex={Lerp(box.min.x,box.max.x,Corners[f.direction][index][0]),Lerp(box.min.y,box.max.y,Corners[f.direction][index][1]),Lerp(box.min.z,box.max.z,Corners[f.direction][index][2])};}
+            if(f.box>=0){const auto& box=shapeBox;vertex={Lerp(box.min.x,box.max.x,Corners[f.direction][index][0]),Lerp(box.min.y,box.max.y,Corners[f.direction][index][1]),Lerp(box.min.z,box.max.z,Corners[f.direction][index][2])};}
             if(f.block==Ladder)vertex.z=f.z+.97f;
             if(Plant(f.block)) {
                 float t=Corners[f.direction][index][0];
@@ -361,7 +396,7 @@ void RebuildChunk(int cx,int cz) {
     for(int x=cx*ChunkSize;x<(cx+1)*ChunkSize;++x)
         for(int z=cz*ChunkSize;z<(cz+1)*ChunkSize;++z) for(int y=0;y<Height;++y) {
             Block b=At(x,y,z); if(b==Air) continue;
-            if(HasMapShape(x,y,z)){if(MapStateAt(x,y,z).shape==MapShape::Barrier)continue;auto boxes=MapShapeBoxes(x,y,z);auto state=MapStateAt(x,y,z);for(int box=0;box<boxes.count;++box)for(int f=0;f<6;++f){Face face{x,y,z,f,b,box};if(Transparent(state.material)||state.shape==MapShape::Portal)c.transparent.push_back(face);else geometry.Add(face);}continue;}
+            if(HasMapShape(x,y,z)){if(MapStateAt(x,y,z).shape==MapShape::Barrier)continue;auto boxes=MapShapeBoxes(x,y,z);auto state=MapStateAt(x,y,z);for(int box=0;box<boxes.count;++box)for(int f=0;f<6;++f){Face face{x,y,z,f,b,box};if(Transparent(state.material)||state.shape==MapShape::Portal||state.shape==MapShape::Beacon)c.transparent.push_back(face);else geometry.Add(face);}continue;}
             for(int f=0;f<6;++f) {
                 Block neighbor=At(x+Normals[f][0],y+Normals[f][1],z+Normals[f][2]);
                 if((Plant(b)||b==Ladder)&&f!=4&&f!=5) continue;
@@ -443,6 +478,16 @@ struct View {
         return std::abs(Vector3DotProduct(delta,up))<=z*tanY+radius*std::sqrt(1+tanY*tanY);
     }
 };
+std::vector<int> VisibleChunks(const Camera3D& camera){
+    View view(camera);std::vector<int> visible;visible.reserve(ChunkCount*ChunkCount);
+    const float distance=bw::Ready()?256.f:RenderDistance(),radius=std::sqrt(float(ChunkSize*ChunkSize*2+Height*Height))*.5f;
+    for(int x=0;x<ChunkCount;++x)for(int z=0;z<ChunkCount;++z){
+        float nx=std::clamp(camera.position.x,float(x*ChunkSize),float((x+1)*ChunkSize)),nz=std::clamp(camera.position.z,float(z*ChunkSize),float((z+1)*ChunkSize));
+        float dx=nx-camera.position.x,dz=nz-camera.position.z;
+        if(dx*dx+dz*dz<=distance*distance&&view.Sphere({(x+.5f)*ChunkSize,Height*.5f,(z+.5f)*ChunkSize},radius))visible.push_back(x*ChunkCount+z);
+    }
+    return visible;
+}
 struct AlphaRenderer {
     Mesh mesh{}; int capacity=0;
     Geometry geometry;
@@ -475,7 +520,7 @@ struct AlphaRenderer {
 
 }
 namespace {
-Mesh HeldMesh(Block item,const Image& atlas) {
+Mesh HeldMesh(Block item,const Image& atlas,int finish=0) {
     Geometry geometry;
     constexpr int order[6]={0,1,2,0,2,3};
     constexpr float uv[4][2]={{0,1},{1,1},{1,0},{0,0}};
@@ -483,6 +528,7 @@ Mesh HeldMesh(Block item,const Image& atlas) {
     auto add=[&](int face,int pixelX,int pixelY,bool sprite) {
         int tile=BlockTile(item,face);
         Color color=Shade(WHITE,shading[face]);
+        if(finish&&sprite){Color original=GetImageColor(atlas,tile*16+pixelX,pixelY);bool handle=Sword(item)?pixelY>=9:(std::abs(pixelX+pixelY-16)<=1&&pixelX>=3&&pixelX<=10&&pixelY>=6);Color paint=handle?original:cosmetics::ColorFor(finish);float texture=.5f+.5f*std::max({original.r,original.g,original.b})/255.f;color=Shade(paint,shading[face]*(handle?1.f:texture));}
         for(int index:order) {
             Vector3 vertex;
             if(sprite) vertex={(pixelX-8+Corners[face][index][0])/16.f,
@@ -520,11 +566,14 @@ struct RemoteItemCache {
 RemoteItemCache remoteItems;
 
 }
-void DrawHeldItem3D(Texture2D atlas,Block item,Matrix transform,Color tint){
+void DrawHeldItem3D(Texture2D atlas,Block item,Matrix transform,Color tint,int finish){
+    if(cosmetics::Category(item)<0)finish=0;
+    finish=std::clamp(finish,0,progression::SkinCount);
     if(!atlas.id||item==Air||!ValidBlock(item))return;
     if(remoteItems.atlas!=atlas.id){remoteItems.Clear();remoteItems.atlas=atlas.id;remoteItems.pixels=LoadImageFromTexture(atlas);remoteItems.material=LoadMaterialDefault();remoteItems.material.maps[MATERIAL_MAP_DIFFUSE].texture=atlas;}
     if(!remoteItems.pixels.data)return;
-    auto found=remoteItems.meshes.find(int(item));if(found==remoteItems.meshes.end())found=remoteItems.meshes.emplace(int(item),HeldMesh(item,remoteItems.pixels)).first;
+    int key=int(item)+finish*BlockCount;auto found=remoteItems.meshes.find(key);if(found==remoteItems.meshes.end())found=remoteItems.meshes.emplace(key,HeldMesh(item,remoteItems.pixels,finish)).first;
+    remoteItems.material.maps[MATERIAL_MAP_DIFFUSE].texture=finish?Texture2D{rlGetTextureIdDefault(),1,1,1,PIXELFORMAT_UNCOMPRESSED_R8G8B8A8}:atlas;
     remoteItems.material.maps[MATERIAL_MAP_DIFFUSE].color=Emission(item)?WHITE:tint;
     rlDrawRenderBatchActive();if(found->second.vertexCount)DrawMesh(found->second,remoteItems.material,transform);
 }
@@ -538,9 +587,11 @@ struct Renderer::Impl {
     Mesh heldMesh{};
     RenderTexture2D handLayer{};
     Block held=Air;
+    int heldFinish=0;
     float handClock=0,swing=1,equip=0,walking=0;
     int eye=-1,fog=-1,density=-1,day=-1,sun=-1;
-    bool ready=false,sceneReady=false;
+    bool ready=false,sceneReady=false,preparing=false;
+    float loadProgress=0;int loadStage=0;
     struct CachedMap {Texture2D texture{};uint64_t revision=0;};
     std::map<int,CachedMap> mapTextures;
     Texture2D MapTexture(int id) {
@@ -594,18 +645,37 @@ bool Renderer::Initialize() {
     impl->ready=true; return true;
 }
 Texture2D Renderer::Atlas() const {return impl->atlas;}
+void Renderer::BeginWorldLoad(){impl->preparing=true;impl->sceneReady=false;impl->loadProgress=0;impl->loadStage=0;}
+void Renderer::CancelWorldLoad(){impl->preparing=false;impl->loadProgress=0;}
+float Renderer::WorldLoadProgress() const{return impl->loadProgress;}
+const char* Renderer::WorldLoadStage() const{return impl->loadStage==0?"Iluminando mapa...":impl->loadStage==1?"Preparando cenario...":"Mapa pronto";}
+bool Renderer::PrepareWorld(const Camera3D& camera,float budgetMilliseconds){
+    if(!impl->ready)return false;
+    if(!impl->preparing)return impl->sceneReady;
+    double started=GetTime();float budget=std::clamp(budgetMilliseconds,.5f,16.f);
+    if(LightingPending()){
+        impl->loadStage=0;UpdateLighting(budget*.5f);impl->loadProgress=.4f*LightingProgress();
+        if(LightingPending())return false;
+    }
+    if(impl->loadStage==0)bw::ConnectionTrace("loading: lighting complete; preparing mesh uploads");
+    impl->loadStage=1;
+    auto visible=VisibleChunks(camera);
+    auto distance=[&](int i){float dx=(i/ChunkCount+.5f)*ChunkSize-camera.position.x,dz=(i%ChunkCount+.5f)*ChunkSize-camera.position.z;return dx*dx+dz*dz;};
+    std::sort(visible.begin(),visible.end(),[&](int a,int b){return distance(a)<distance(b);});
+    bool rebuilt=false;
+    for(int i:visible)if(Chunks[i].version!=ChunkVersions[i]){
+        if(rebuilt||(GetTime()-started)*1000>=budget)break;
+        RebuildChunk(i/ChunkCount,i%ChunkCount);rebuilt=true;
+    }
+    size_t prepared=0;for(int i:visible)if(Chunks[i].version==ChunkVersions[i])++prepared;
+    impl->loadProgress=.4f+.6f*prepared/std::max(1.f,float(visible.size()));
+    if(prepared<visible.size())return false;
+    impl->preparing=false;impl->sceneReady=true;impl->loadStage=2;impl->loadProgress=1;return true;
+}
 void Renderer::Draw(const Camera3D& camera,const Hit& hit) {
     if(!impl->ready) return;
-    UpdateLighting();
-    View view(camera); std::vector<int> visible; visible.reserve(ChunkCount*ChunkCount);
-    const float renderDistance=bw::Ready()?256.f:RenderDistance();
-    const float radius=std::sqrt(float(ChunkSize*ChunkSize*2+Height*Height))*.5f;
-    for(int x=0;x<ChunkCount;++x) for(int z=0;z<ChunkCount;++z) {
-        float nearestX=std::clamp(camera.position.x,float(x*ChunkSize),float((x+1)*ChunkSize));
-        float nearestZ=std::clamp(camera.position.z,float(z*ChunkSize),float((z+1)*ChunkSize));
-        float distance2=(nearestX-camera.position.x)*(nearestX-camera.position.x)+(nearestZ-camera.position.z)*(nearestZ-camera.position.z);
-        if(distance2<=renderDistance*renderDistance&&view.Sphere({(x+.5f)*ChunkSize,Height*.5f,(z+.5f)*ChunkSize},radius)) {visible.push_back(x*ChunkCount+z);}
-    }
+    UpdateLighting(impl->sceneReady&&!LightingRequiresFullUpdate()?2.f:0.f);
+    View view(camera);auto visible=VisibleChunks(camera);
     auto pending=visible;
     auto priority=[&](int index){int cx=index/ChunkCount,cz=index%ChunkCount;if(hit.found&&hit.x/ChunkSize==cx&&hit.z/ChunkSize==cz)return -1.f;float dx=(cx+.5f)*ChunkSize-camera.position.x,dz=(cz+.5f)*ChunkSize-camera.position.z;return dx*dx+dz*dz;};
     std::sort(pending.begin(),pending.end(),[&](int a,int b){return priority(a)<priority(b);});
@@ -671,10 +741,11 @@ void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,boo
     }
     if(!ValidBlock(item)) item=Air;
     dt=std::clamp(dt,0.f,.05f);
-    if(item!=impl->held) {
+    int finish=bw::ItemSkin(item);
+    if(item!=impl->held||finish!=impl->heldFinish) {
         if(impl->heldMesh.vaoId) UnloadMesh(impl->heldMesh);
-        impl->heldMesh={};impl->held=item;impl->equip=1;
-        if(item!=Air) impl->heldMesh=HeldMesh(item,impl->atlasPixels);
+        impl->heldMesh={};impl->held=item;impl->heldFinish=finish;impl->equip=1;
+        if(item!=Air) impl->heldMesh=HeldMesh(item,impl->atlasPixels,finish);
     }
     impl->equip=std::max(0.f,impl->equip-dt*5);
     impl->walking=Lerp(impl->walking,moving?1.f:0.f,std::min(1.f,dt*10));
@@ -720,6 +791,7 @@ void Renderer::DrawFirstPerson(const Camera3D& camera,Block item,bool moving,boo
         else {rlTranslatef(-.025f,.60f,-.10f);rlRotatef(-25,0,1,0);}
         float scale=sprite?(Sword(item)?.72f:Tool(item)||item==Stick?.66f:.53f):.40f;
         rlScalef(scale,scale,scale);
+        impl->heldMaterial.maps[MATERIAL_MAP_DIFFUSE].texture=finish?Texture2D{rlGetTextureIdDefault(),1,1,1,PIXELFORMAT_UNCOMPRESSED_R8G8B8A8}:impl->atlas;
         impl->heldMaterial.maps[MATERIAL_MAP_DIFFUSE].color=Emission(item)?WHITE:tint;
         itemTransform=rlGetMatrixTransform();
         rlPopMatrix();

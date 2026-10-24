@@ -31,6 +31,7 @@ private:
 }
 
 namespace game {
+inline constexpr int LanProtocolVersion=19;
 struct LanRoom {
     std::string address,name;
     unsigned short port=25566;
@@ -41,6 +42,7 @@ struct LanRoom {
     std::string map;
     std::vector<std::string> playerNames;
     int ping=-1;
+    int protocol=LanProtocolVersion;
 };
 class LanDiscovery {
 public:

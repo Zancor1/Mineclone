@@ -3,9 +3,9 @@
 #include <memory>
 #include "world.h"
 namespace game {
-constexpr int TileSize=16,TileCount=16+(BlockCount-14)+2;
+constexpr int TileSize=16,BaseTileCount=16+(BlockCount-14)+2,TileCount=BaseTileCount+13;
 int BlockTile(Block block,int direction=2);
-void DrawHeldItem3D(Texture2D atlas,Block item,Matrix transform,Color tint=WHITE);
+void DrawHeldItem3D(Texture2D atlas,Block item,Matrix transform,Color tint=WHITE,int finish=0);
 struct WaterFace {
     std::array<Vector3,4> vertices{};
     Vector3 normal{};
@@ -20,6 +20,11 @@ public:
     Renderer(const Renderer&)=delete;
     Renderer& operator=(const Renderer&)=delete;
     bool Initialize();
+    void BeginWorldLoad();
+    void CancelWorldLoad();
+    bool PrepareWorld(const Camera3D& camera,float budgetMilliseconds=4.f);
+    float WorldLoadProgress() const;
+    const char* WorldLoadStage() const;
     void Draw(const Camera3D& camera,const Hit& hit);
     void DrawFirstPerson(const Camera3D& camera,Block item,bool moving,bool usingItem,float dt);
     Texture2D Atlas() const;

@@ -27,7 +27,7 @@ $(BUILD_DIR)/%.o: src/%.cpp Makefile | $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir -p $@
 
-test: $(BUILD_DIR)/platform_test $(BUILD_DIR)/bedwars_test $(BUILD_DIR)/chat_text_test $(BUILD_DIR)/network_test $(BUILD_DIR)/items_test $(BUILD_DIR)/content18_test $(BUILD_DIR)/migration_test $(BUILD_DIR)/survival_test $(BUILD_DIR)/water_test $(BUILD_DIR)/water_mesh_test $(BUILD_DIR)/lighting_test $(BUILD_DIR)/settings_test $(BUILD_DIR)/lava_test $(BUILD_DIR)/streaming_test $(BUILD_DIR)/chest_test $(BUILD_DIR)/crafting_test
+test: test-progression $(BUILD_DIR)/platform_test $(BUILD_DIR)/bedwars_test $(BUILD_DIR)/chat_text_test $(BUILD_DIR)/network_test $(BUILD_DIR)/items_test $(BUILD_DIR)/content18_test $(BUILD_DIR)/migration_test $(BUILD_DIR)/survival_test $(BUILD_DIR)/water_test $(BUILD_DIR)/water_mesh_test $(BUILD_DIR)/lighting_test $(BUILD_DIR)/settings_test $(BUILD_DIR)/lava_test $(BUILD_DIR)/streaming_test $(BUILD_DIR)/chest_test $(BUILD_DIR)/crafting_test
 	./$(BUILD_DIR)/platform_test
 	./$(BUILD_DIR)/bedwars_test
 	./$(BUILD_DIR)/water_test
@@ -49,8 +49,8 @@ test: $(BUILD_DIR)/platform_test $(BUILD_DIR)/bedwars_test $(BUILD_DIR)/chat_tex
 $(BUILD_DIR)/water_test: tests/water_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h) Makefile
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/water_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
 
-$(BUILD_DIR)/water_mesh_test: tests/water_mesh_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h) Makefile
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/water_mesh_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
+$(BUILD_DIR)/water_mesh_test: tests/water_mesh_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h) Makefile
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/water_mesh_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
 
 $(BUILD_DIR)/lighting_test: tests/lighting_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h) Makefile
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/lighting_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
@@ -58,8 +58,8 @@ $(BUILD_DIR)/lighting_test: tests/lighting_test.cpp $(BUILD_DIR)/world.o $(BUILD
 $(BUILD_DIR)/settings_test: tests/settings_test.cpp $(BUILD_DIR)/settings.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/settings_test.cpp $(BUILD_DIR)/settings.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
 
-$(BUILD_DIR)/lava_test: tests/lava_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/lava_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
+$(BUILD_DIR)/lava_test: tests/lava_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/lava_test.cpp $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
 
 $(BUILD_DIR)/streaming_test: tests/streaming_test.cpp $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/streaming_test.cpp $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
@@ -75,8 +75,8 @@ test-renderer: $(BUILD_DIR)/bedwars_test $(BUILD_DIR)/renderer_smoke_test $(BUIL
 	./$(BUILD_DIR)/renderer_smoke_test
 	./$(BUILD_DIR)/network_test --render
 
-$(BUILD_DIR)/renderer_smoke_test: tests/renderer_smoke_test.cpp $(BUILD_DIR)/ui.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/renderer_smoke_test.cpp $(BUILD_DIR)/ui.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
+$(BUILD_DIR)/renderer_smoke_test: tests/renderer_smoke_test.cpp $(BUILD_DIR)/ui.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/renderer_smoke_test.cpp $(BUILD_DIR)/ui.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
 
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
@@ -95,13 +95,13 @@ $(BUILD_DIR)/migration_test: tests/migration_test.cpp $(BUILD_DIR)/world.o $(BUI
 $(BUILD_DIR)/items_test: tests/items_test.cpp $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/items_test.cpp $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
 
-$(BUILD_DIR)/network_test: tests/network_test.cpp $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/ui.o $(BUILD_DIR)/items.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/player.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/network_test.cpp $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/ui.o $(BUILD_DIR)/items.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/player.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
+$(BUILD_DIR)/network_test: tests/network_test.cpp $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/ui.o $(BUILD_DIR)/items.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/player.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/network_test.cpp $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/ui.o $(BUILD_DIR)/items.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/player.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
 
 $(BUILD_DIR)/chat_text_test: tests/chat_text_test.cpp $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o include/chat_text.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/chat_text_test.cpp $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o -o $@ $(LDLIBS)
 
-$(BUILD_DIR)/bedwars_test: tests/bedwars_test.cpp $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/ui.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o
+$(BUILD_DIR)/bedwars_test: tests/bedwars_test.cpp $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/ui.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 .PHONY: windows
@@ -119,3 +119,34 @@ test-windows-platform:
 	mkdir -p build/windows
 	x86_64-w64-mingw32-g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -D_WIN32_WINNT=0x0601 -Iinclude tests/platform_test.cpp src/lan_transport.cpp src/dns_srv.cpp -static -lws2_32 -ldnsapi -liphlpapi -pthread -o build/windows/platform_test.exe
 	WINEPREFIX="$(CURDIR)/build/windows/wine-test" WINEDEBUG=-all WINEDLLOVERRIDES="mscoree,mshtml=" wine build/windows/platform_test.exe
+
+$(BUILD_DIR)/external_maps_test: tests/external_maps_test.cpp $(filter-out $(BUILD_DIR)/main.o,$(OBJECTS))
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/external_maps_test.cpp $(filter-out $(BUILD_DIR)/main.o,$(OBJECTS)) -o $@ $(LDLIBS)
+
+.PHONY: test-maps
+test-maps: $(BUILD_DIR)/external_maps_test
+	./$(BUILD_DIR)/external_maps_test
+
+.PHONY: test-progression
+test-progression: $(BUILD_DIR)/progression_test
+	./$(BUILD_DIR)/progression_test
+$(BUILD_DIR)/progression_test: tests/progression_test.cpp $(BUILD_DIR)/progression.o include/progression.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/progression_test.cpp $(BUILD_DIR)/progression.o -o $@ $(LDLIBS)
+
+.PHONY: test-cosmetics
+test-cosmetics: $(BUILD_DIR)/cosmetics_test
+	./$(BUILD_DIR)/cosmetics_test
+$(BUILD_DIR)/cosmetics_test: tests/cosmetics_test.cpp $(filter-out $(BUILD_DIR)/main.o,$(OBJECTS))
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
+.PHONY: test-edit-frames
+test-edit-frames: $(BUILD_DIR)/edit_frame_test
+	./$(BUILD_DIR)/edit_frame_test
+$(BUILD_DIR)/edit_frame_test: tests/edit_frame_test.cpp $(filter-out $(BUILD_DIR)/main.o,$(OBJECTS))
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
+.PHONY: test-loading
+test-loading: $(BUILD_DIR)/loading_test
+	./$(BUILD_DIR)/loading_test
+$(BUILD_DIR)/loading_test: tests/loading_test.cpp $(filter-out $(BUILD_DIR)/main.o,$(OBJECTS))
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)

@@ -60,6 +60,7 @@ completo de anticheat ou autenticação de contas.
 | Colocar / usar item | Botão direito |
 | Abrir loja próxima | Botão direito olhando para o aldeão de itens ou melhorias |
 | Inventário | E |
+| Transferir pilha entre hotbar e inventário, ou entre jogador e baú aberto | Shift + clique esquerdo |
 | Baú | Botão direito no baú da própria ilha |
 | Selecionar hotbar | 1–9 / roda do mouse |
 | Chat | T, Enter envia |
@@ -95,7 +96,7 @@ pelos jogadores e camas adversárias podem ser destruídos.
 O item selecionado e a armadura de cada jogador são exibidos aos adversários.
 Bolas de fogo aplicam impulso reforçado e permitem saltos com explosão sem
 dano ao lançador; adversários recebem dano e empurrão. Todos devem usar a
-mesma versão do MineClone (protocolo BedWars LAN 11).
+mesma versão do MineClone (protocolo BedWars LAN 19).
 
 Golpes corpo a corpo têm alcance máximo de 3,3 blocos, medidos dos olhos até
 a caixa de colisão do adversário, e são bloqueados pelo terreno. O impulso
@@ -126,7 +127,7 @@ em Wi-Fi e redes de convidados também pode impedir a descoberta e a conexão.
 
 ## Mapas e criação da sala
 
-Depois de escolher Rush rápido, médio ou lento, escolha uma das cinco prévias:
+Depois de escolher Rush rápido, médio ou lento, escolha um dos mapas disponíveis:
 
 - **Fortaleza:** torres e muralhas sobre ilhas de grama.
 - **Ruínas:** terreno de pedra com colinas, plataformas e arcos.
@@ -165,7 +166,7 @@ Os efeitos somem ao morrer e seus tempos são sincronizados pelo host. O
 agachamento também é sincronizado: o modelo se abaixa e inclina o corpo, e o
 nome fica oculto enquanto o jogador está agachado.
 
-Estas mudanças usam o protocolo BedWars LAN **11**. Todos os participantes
+Estas mudanças usam o protocolo BedWars LAN **19**. Todos os participantes
 precisam atualizar o jogo, tanto no Linux quanto no Windows.
 
 ## Resposta dos ataques
@@ -261,7 +262,7 @@ python3 tools/import_nc_map.py 'NC Bedwars 1v1'
 make -j"$(nproc)"
 ```
 
-Todos os participantes precisam usar o protocolo BedWars LAN **11**.
+Todos os participantes precisam usar o protocolo BedWars LAN **19**.
 
 A compra de espada substitui a espada segurada; se outra categoria estiver
 selecionada, substitui a primeira espada do inventário. A loja indica recursos
@@ -273,8 +274,9 @@ progresso em blocos permitidos; ar e terreno protegido não são mineráveis.
 Lojas de qualquer equipe atendem todos os jogadores. Melhorias sempre pertencem
 à equipe de quem paga. Madeira e ouro foram retirados das ofertas de espadas;
 a espada inicial de madeira continua no equipamento de renascimento. O graveto
-com Knockback II custa cinco ouros e duplica o impulso horizontal, sem aumentar
-a subida.
+com Knockback II custa cinco ouros e arremessa aproximadamente cinco blocos
+para trás em terreno livre, mantendo a altura do golpe comum. Paredes e a
+movimentação do jogador alteram a distância final.
 
 Segure o botão de uso por 1,61 segundo para comer uma maçã dourada. Soltar o
 botão, trocar de item ou abrir uma interface cancela o consumo. A maçã concede
@@ -310,13 +312,138 @@ python3 tools/import_nc_map.py "mapas externos/NC Bedwars 1v1"
 python3 tools/import_nc_map.py "mapas externos/Airshow" --airshow --output include/airshow_map_data.inc
 ```
 
-A altura ativa passou de 80 para 128 blocos para preservar o Airshow completo.
-Saves e arquivos de chunks antigos com altura 80 são migrados ao carregar.
-Todos na sala precisam usar esta mesma versão do protocolo LAN (11).
+A altura ativa passou para 192 blocos para preservar o Airshow completo.
+Saves e arquivos de chunks antigos com altura 80 ou 128 são migrados ao carregar.
+Todos na sala precisam usar esta mesma versão do protocolo LAN (19).
 
 ### Escolha do layout na criação
 
 Abaixo de **Dupla**, **Layout padrão** começa ligado. Com ele ligado,
 a escolha de Solo/Dupla leva à tela Rush e depois mostra apenas Fortaleza,
 Ruínas e Jardins. Desligado, a escolha leva diretamente a **Mapas avançados**,
-com NC e Airshow, que mantêm suas distâncias originais.
+com NC, Airshow e os outros mapas importados, que mantêm suas distâncias originais.
+A lista é paginada; consulte [Mapas](MAPS.md).
+
+
+## Níveis, caixas e skins
+
+Kills valem 5 XP; camas destruídas valem 10 XP, uma vez por cama. Uma kill final
+vale os mesmos 5 XP. Cada jogador conectado da equipe vencedora recebe
+25 XP extras uma única vez por partida; empates não concedem esse bônus. O nível é `1 + XP total / 50`: nível 2 com 50 XP, nível 3
+com 100 XP, nível 4 com 150 XP. Cada subida deixa uma caixa pendente.
+
+As caixas são entregues no retorno ao lobby. Se o jogador desconectar antes,
+as recompensas pendentes ficam salvas e são entregues ao entrar novamente no
+lobby com o mesmo nick. Reiniciar a rodada não duplica recompensas.
+
+No inventário (`E`), **Abrir caixa** inicia uma roleta de 4,3 segundos, com parada
+gradual e exibição do prêmio. A abertura é gratuita, sem chaves ou compras, e
+fica disponível apenas no lobby. O host sorteia e salva o prêmio antes da animação;
+fechar a tela ou desconectar não apaga uma skin já sorteada.
+
+**Inventário de skins** tem abas para espadas, picaretas e machados. Cada aba
+mostra as cores desbloqueadas, as bloqueadas e a equipada. Clique em uma cor
+para equipar ou em **Padrão** para restaurar a aparência original. São 36 skins:
+12 cores por categoria. Elas alteram apenas o visual 3D dos itens na própria mão
+e na mão dos outros jogadores; personagem, armadura, dano e durabilidade não mudam.
+
+Cada categoria tem chance de 1/3. Dentro dela, as cores vermelha, azul, verde,
+amarela, ciano e branca têm 12% cada; rosa, cinza e laranja, 7% cada; roxa e marrom,
+3% cada; preta, 1%. Os grupos totalizam 72% comum, 21% rara, 6% épica e 1% lendária.
+Resultados repetidos são possíveis e não removem skins já desbloqueadas.
+
+O host calcula XP, sorteios e desbloqueios durante a partida. O cliente salva
+seu perfil local por nick e o envia ao entrar em outra sala. O host mantém uma
+cópia de recuperação em `profiles/host-cache/`. Um cache com XP maior recupera
+progresso mais recente; com XP igual, prevalecem as caixas e escolhas locais,
+sem restaurar caixas já abertas. Skins desbloqueadas são preservadas.
+
+Os arquivos ficam na pasta de dados do usuário:
+
+- Windows: `%APPDATA%\MineClone\profiles` e `%APPDATA%\MineClone\skins`.
+- Linux: `$XDG_DATA_HOME/MineClone`, ou `~/.local/share/MineClone` por padrão.
+
+Cada nick tem um arquivo `.profile` e uma pasta de skins com `tools.skin`.
+O manifesto de skins é uma cópia legível das cores de ferramentas; o arquivo
+`.profile` contém o inventário válido, XP, caixas e seleção equipada.
+Perfis antigos em `profiles/` são copiados automaticamente na primeira leitura,
+sem apagar os originais. Não há conta autenticada ou banco de dados central:
+para levar o perfil a outro computador, copie sua pasta de dados. Dois jogadores
+não podem usar o mesmo nick simultaneamente na sala. Perfis inválidos são
+rejeitados em vez de sobrescritos com progresso vazio.
+
+Perfis anteriores são migrados sem perder XP, caixas ou cores: as antigas cores
+do personagem passam a ficar disponíveis nas três categorias de ferramenta.
+
+Validação: `make test-progression` testa recompensas pendentes, entrega única,
+probabilidades e migração; `make test-cosmetics` verifica malhas e interface com
+uma janela gráfica oculta; `make test` inclui a sessão LAN e recompensas por cama/kill.
+
+## Entrada na sala e diagnóstico
+
+Depois de receber o mapa, o jogo mostra uma tela de carregamento com progresso.
+A iluminação e as malhas são preparadas em etapas, mantendo a janela responsiva
+e o cursor livre. O mouse só é capturado depois de concluir o primeiro quadro
+3D. Use `ESC` para cancelar a preparação e voltar ao menu.
+
+Se a conexão TCP abrir mas o host não enviar o mapa em 20 segundos, a tentativa
+é encerrada com uma mensagem. Rejeições por versões diferentes também aparecem
+no menu, incluindo quando o servidor fecha a conexão logo após enviar o motivo.
+
+Cada tentativa grava `bedwars-connection.log` ao lado do executável, com a
+plataforma, a data da build e as etapas da conexão, geração, iluminação e primeiro
+quadro. Se um PC parar durante a entrada, esse arquivo identifica a última etapa
+atingida. Ele é substituído na tentativa seguinte e não entra no Git.
+
+`make test-loading` verifica o carregamento por etapas e o cursor livre;
+`make test-windows-platform` verifica sockets e mensagens finais do transporte
+Windows via Wine. Esses testes não substituem a validação nos drivers e no
+hardware de um Windows 10/11 real.
+
+
+### Lojas em Ruínas
+
+Os vendedores de itens e melhorias ficam nos dois nichos laterais da base,
+voltados para a área central. Os nichos têm passagem aberta, teto e iluminação
+no piso, com espaço para o modelo inteiro do villager. As posições usadas para
+interação e validação das compras são as mesmas do desenho, em todos os oito times.
+Esta revisão usa o protocolo LAN 19; host e convidados devem atualizar o jogo.
+
+A busca local também detecta salas com protocolos antigos e mostra “Versao
+diferente: atualize os dois”. Isso não permite misturar builds incompatíveis:
+host e convidados precisam usar a mesma versão. Atualize o executável Linux
+ou toda a distribuição Windows antes de recriar a sala. Quando a conexão por
+IP falhar, consulte `bedwars-connection.log` ao lado do executável.
+
+Se a sala aparecer mas a entrada for recusada com “Nick ja conectado nesta
+sala”, escolha um nick diferente no campo “Seu nick”. O nick identifica o
+perfil do jogador e não pode ser usado simultaneamente por duas conexões.
+O endereço `127.0.0.1` acessa somente uma sala no próprio computador; para
+jogar em outro computador, informe o IP local ou o IP da VPN do host.
+
+As bolas de fogo aplicam o impulso horizontal gradualmente durante 0,16 segundo,
+com desaceleração prolongada. Flechas causam quatro pontos de dano base
+(dois corações), antes da redução por armadura e proteção.
+
+Nos mapas básicos, os aldeões ficam em barracas com toldos nas cores da equipe.
+Nos mapas básicos, os geradores usam uma plataforma 3×3 de slabs inferiores.
+Nos mapas importados, são usadas as plataformas originais, sem substituir
+blocos nem acrescentar slabs. Os pontos de coleta acompanham a altura da superfície. Os mapas
+importados mantêm sua construção; somente os pontos de loja e as plataformas
+dos geradores recebem os ajustes de jogabilidade.
+
+Cliques separados para construir não usam intervalo artificial. Segurar o
+botão repete a colocação a cada 0,2 segundo. O dano base das espadas no BedWars
+é 2 (madeira/ouro), 3 (pedra), 4 (ferro) e 5 (diamante) pontos, antes de armadura.
+
+A bola de fogo voa a 24 blocos/s. A flecha parte a 60 blocos/s no BedWars,
+com arrasto de 0,99 e gravidade por ticks de 20 Hz; no single-player, a força
+depende da carga do arco. A trajetória foi ajustada com base no código
+[EntityArrow da 1.8.9](https://github.com/Marcelektro/MavenMCP-1.8.9/blob/master/src/main/java/net/minecraft/entity/projectile/EntityArrow.java).
+O intervalo entre disparos do arco no BedWars é 0,15 segundo; o dano base
+continua sendo de dois corações.
+
+Flechas têm haste, ponta e penas em 3D. Ao atingir um bloco, ficam fincadas
+na superfície por até 60 segundos. Remover o bloco de apoio também remove
+a flecha. Posição, orientação e estado fincado são sincronizados pela LAN;
+a próxima rodada limpa os projéteis restantes.

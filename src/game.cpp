@@ -1,4 +1,5 @@
 #include "game.h"
+#include "action_repeat.h"
 #include "map_blocks.h"
 #include "bedwars.h"
 #include "world.h"
@@ -28,8 +29,8 @@ int RunGame() {
     UI ui;ui.playerName=Settings.playerName;ui.serverAddress=Settings.serverAddress;
     GameState state=GameState::MainMenu;
     GameState optionsParent=GameState::MainMenu;
-    bool hasWorld=false,quit=false,online=false;
-    int lastSelected=0;
+    bool hasWorld=false,quit=false,online=false,worldPrimed=false;
+    int lastSelected=0;PlacementRepeat placementRepeat;
     std::string activeSave;
     Hit miningTarget;Block miningTool=Air;
     EnableCursor();
@@ -53,7 +54,8 @@ int RunGame() {
         const bool menuKey=IsKeyPressed(KEY_ESCAPE)||((state==GameState::Playing||state==GameState::Paused)&&ActionPressed(BindingAction::Pause));
         if(!ui.CapturingBinding()&&menuKey&&ui.chatOpen){ui.chatOpen=false;ui.chatText.clear();DisableCursor();}
         else if(!ui.CapturingBinding()&&menuKey) {
-            if(state==GameState::BedwarsTeams||state==GameState::BedwarsShop||state==GameState::BedwarsInventory||state==GameState::BedwarsChest){enter(GameState::Playing);}
+            if(state==GameState::WorldLoading){bw::ConnectionTrace("loading cancelled by player");renderer.CancelWorldLoad();bw::Stop();hasWorld=worldPrimed=false;enter(GameState::BedwarsMenu);}
+            else if(state==GameState::BedwarsTeams||state==GameState::BedwarsShop||state==GameState::BedwarsInventory||state==GameState::BedwarsChest){enter(GameState::Playing);}
             else if(state==GameState::BedwarsMaps)enter(ui.standardLayout?GameState::BedwarsRush:GameState::BedwarsMode);
             else if(state==GameState::BedwarsDiscovery)enter(GameState::Minigames);
             else if(state==GameState::BedwarsRush)enter(GameState::BedwarsMode);
@@ -199,13 +201,18 @@ int RunGame() {
             if(hasWorld&&state!=GameState::Playing&&state!=GameState::BedwarsMenu)player.Update({},std::min(GetFrameTime(),.05f));
             bw::HoldUse(ui.selected,state==GameState::Playing&&IsWindowFocused()&&!ui.chatOpen&&ActionDown(BindingAction::Use));
             bw::Update(player,std::min(GetFrameTime(),.05f),state==GameState::Playing,ui.selected);
-            if(!bw::Active()){hasWorld=false;enter(GameState::BedwarsMenu);}
-            else if(bw::Ready()&&state==GameState::BedwarsMenu){hasWorld=true;enter(GameState::Playing);}
+            if(!bw::Active()){const auto reason=bw::Status();hasWorld=worldPrimed=false;renderer.CancelWorldLoad();enter(GameState::BedwarsMenu);ui.Notify(reason,15.f);}
+            else if(bw::Ready()&&state==GameState::BedwarsMenu){hasWorld=worldPrimed=false;renderer.BeginWorldLoad();enter(GameState::WorldLoading);bw::ConnectionTrace("loading: beginning lighting; cursor remains free");}
             else if(bw::Ready()&&state==GameState::BedwarsTeams&&!bw::Lobby())enter(GameState::Playing);
             else if(bw::Ready()&&((state==GameState::BedwarsShop&&!bw::NearShop(player))||(state==GameState::BedwarsChest&&!bw::NearChest(player))))enter(GameState::Playing);
         }
+        if(state==GameState::WorldLoading&&bw::Ready()){
+            worldPrimed=renderer.PrepareWorld(player.Camera(),12.f);hasWorld=worldPrimed;
+            ui.loadingProgress=renderer.WorldLoadProgress();ui.loadingText=renderer.WorldLoadStage();
+        }
         if(bw::Ready()&&bw::Hosting()&&state==GameState::Playing&&!typingAtFrameStart&&!ui.chatOpen){if(ActionPressed(BindingAction::StartRound))bw::StartRound();if(ActionPressed(BindingAction::RestartRound))bw::Restart();}
         bool active=state==GameState::Playing&&IsWindowFocused()&&!transition;
+        if(!active)placementRepeat.Reset();
         if(active) {
             PlayerInput input;
             input.look=ui.chatOpen?Vector2{}:GetMouseDelta();
@@ -235,12 +242,14 @@ int RunGame() {
         if(!online&&state==GameState::FurnaceScreen&&!transition) UpdateFurnaces(std::min(GetFrameTime(),.05f));
         Hit hit;
         Camera3D camera{};
-        if(hasWorld&&(state==GameState::Playing||state==GameState::BedwarsTeams||state==GameState::BedwarsShop||state==GameState::BedwarsInventory||state==GameState::BedwarsChest||state==GameState::ServerInventory||state==GameState::Inventory||(state==GameState::ChestScreen||state==GameState::CraftScreen||state==GameState::FurnaceScreen)||state==GameState::Paused||state==GameState::Dead||
+        if(hasWorld&&(state==GameState::WorldLoading||state==GameState::Playing||state==GameState::BedwarsTeams||state==GameState::BedwarsShop||state==GameState::BedwarsInventory||state==GameState::BedwarsChest||state==GameState::ServerInventory||state==GameState::Inventory||(state==GameState::ChestScreen||state==GameState::CraftScreen||state==GameState::FurnaceScreen)||state==GameState::Paused||state==GameState::Dead||
                      (state==GameState::Options&&optionsParent==GameState::Paused))) {
             camera=player.Camera();
             if(active&&!ui.chatOpen) {
                 Vector3 direction=Vector3Normalize(Vector3Subtract(camera.target,camera.position));
                 bool targetLiquids=ActionDown(BindingAction::TargetLiquid);
+                const bool usePressed=ActionPressed(BindingAction::Use);
+                const bool placeNow=placementRepeat.Update(usePressed,!ui.chatOpen&&ActionDown(BindingAction::Use),std::min(GetFrameTime(),.05f));
                 if(bw::Ready()){
                     if(bw::Lobby()){
                         if(ui.SelectedBlock()==WhiteWool&&(ActionPressed(BindingAction::Attack)||ActionPressed(BindingAction::Use)))enter(GameState::BedwarsTeams);
@@ -253,12 +262,12 @@ int RunGame() {
                         ui.miningProgress+=std::min(GetFrameTime(),.05f)/MiningTime(At(hit.x,hit.y,hit.z),ui.SelectedBlock());
                         if(ui.miningProgress>=1){bw::Dig(hit,2,ui.selected);ui.miningProgress=0;miningTarget={};}
                     }else if(miningTarget.found){bw::Dig(miningTarget,1,ui.selected);miningTarget={};}
-                    if(ActionPressed(BindingAction::Use)){
-                        if(bw::NearChest(player)&&hit.found&&(At(hit.x,hit.y,hit.z)==Chest||(MapStateAt(hit.x,hit.y,hit.z).shape==MapShape::Cube&&MapStateAt(hit.x,hit.y,hit.z).block==MapDecoration&&MapStateAt(hit.x,hit.y,hit.z).material==Obsidian)))enter(GameState::BedwarsChest);
-                        else if(bw::AimedShop(player))enter(GameState::BedwarsShop);
-                        else if(ui.SelectedBlock()==Tnt)bw::Use(ui.selected);
+                    if(placeNow){
+                        if(usePressed&&bw::NearChest(player)&&hit.found&&(At(hit.x,hit.y,hit.z)==Chest||(MapStateAt(hit.x,hit.y,hit.z).shape==MapShape::Cube&&MapStateAt(hit.x,hit.y,hit.z).block==MapDecoration&&MapStateAt(hit.x,hit.y,hit.z).material==Obsidian)))enter(GameState::BedwarsChest);
+                        else if(usePressed&&bw::AimedShop(player))enter(GameState::BedwarsShop);
+                        else if(usePressed&&ui.SelectedBlock()==Tnt)bw::Use(ui.selected);
                         else if(hit.found&&Placeable(ui.SelectedBlock()))bw::Place(hit.x+hit.nx,hit.y+hit.ny,hit.z+hit.nz,ui.selected,&player);
-                        else bw::Use(ui.selected);
+                        else if(usePressed)bw::Use(ui.selected);
                     }
                     }
                 }else if(online) {
@@ -308,7 +317,7 @@ int RunGame() {
                     else if(!usedItem&&ActionPressed(BindingAction::Use)&&At(hit.x,hit.y,hit.z)==Chest&&!ActionDown(BindingAction::Sneak)) {
                         if(Solid(At(hit.x,hit.y+1,hit.z))) ui.Notify("O bloco sobre o bau impede a abertura.");
                         else {ui.OpenChest(hit.x,hit.y,hit.z);enter(GameState::ChestScreen);}
-                    } else if(!usedItem&&ActionPressed(BindingAction::Use)) {
+                    } else if(!usedItem&&placeNow) {
                         const bool replaceLiquid=Liquid(At(hit.x,hit.y,hit.z));
                         int x=hit.x+(replaceLiquid?0:hit.nx);
                         int y=hit.y+(replaceLiquid?0:hit.ny);
@@ -322,8 +331,9 @@ int RunGame() {
             }
         }
         if(!active||!hit.found||!ActionDown(BindingAction::Attack)) {ui.miningProgress=0;miningTarget={};}
+        if(worldPrimed&&state==GameState::WorldLoading)bw::ConnectionTrace("loading: drawing first world frame");
         BeginDrawing();
-        if(hasWorld&&(state==GameState::Playing||state==GameState::BedwarsTeams||state==GameState::BedwarsShop||state==GameState::BedwarsInventory||state==GameState::BedwarsChest||state==GameState::ServerInventory||state==GameState::Inventory||(state==GameState::ChestScreen||state==GameState::CraftScreen||state==GameState::FurnaceScreen)||state==GameState::Paused||state==GameState::Dead||
+        if(hasWorld&&(state==GameState::WorldLoading||state==GameState::Playing||state==GameState::BedwarsTeams||state==GameState::BedwarsShop||state==GameState::BedwarsInventory||state==GameState::BedwarsChest||state==GameState::ServerInventory||state==GameState::Inventory||(state==GameState::ChestScreen||state==GameState::CraftScreen||state==GameState::FurnaceScreen)||state==GameState::Paused||state==GameState::Dead||
                      (state==GameState::Options&&optionsParent==GameState::Paused))) renderer.Draw(camera,hit);
         else ClearBackground({43,41,37,255});
         if(hasWorld&&bw::Ready())bw::DrawWorld(camera,renderer.Atlas());
@@ -335,6 +345,7 @@ int RunGame() {
         ui.Draw(renderer.Atlas(),state);
         if(bw::Ready()&&state==GameState::Playing)bw::DrawHud();
         EndDrawing();
+        if(worldPrimed&&state==GameState::WorldLoading){bw::ConnectionTrace("loading: first frame complete; entering game and capturing cursor");worldPrimed=false;enter(GameState::Playing);}
     }
     bw::Stop();net::Disconnect();
     if(!SaveSettings()) TraceLog(LOG_WARNING,"Falha ao salvar settings.cfg.");

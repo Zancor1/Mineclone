@@ -1,3 +1,4 @@
+#include <cstring>
 #include "platform_socket.h"
 #include "lan_transport.h"
 #include "dns_srv.h"
@@ -30,10 +31,22 @@ int main(){
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     Check(sent&&echo,"nonblocking LAN round trip");guest.Stop();host.Stop();
+    Check(host.Host(port)&&guest.Join("127.0.0.1:"+std::to_string(port)),"reconnect for final-frame test");
+    bool finalFrame=false,disconnected=false;until=std::chrono::steady_clock::now()+std::chrono::seconds(5);
+    while(!disconnected&&std::chrono::steady_clock::now()<until){
+        for(auto& event:host.Poll())if(event.kind==LanTransport::Event::Connected){host.Send(event.peer,payload);host.Drop(event.peer);}
+        host.Poll();
+        for(auto& event:guest.Poll()){
+            if(event.kind==LanTransport::Event::Data){Check(!disconnected&&event.data==payload,"final packet delivered before disconnect");finalFrame=true;}
+            if(event.kind==LanTransport::Event::Disconnected)disconnected=true;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    Check(finalFrame&&disconnected,"server rejection survives immediate socket close");guest.Stop();host.Stop();
     LanDiscovery advertiser,browser;
     Check(advertiser.Advertise({{},"BedWars dos amigos!",port,2,32,true,0,4,"NC",{"DiscoveryHost","Friend"},-1}),"UDP discovery host");Check(browser.Search(),"start LAN discovery");
     bool discovered=false;until=std::chrono::steady_clock::now()+std::chrono::seconds(4);
-    while(!discovered&&std::chrono::steady_clock::now()<until){advertiser.Poll();browser.Poll();for(auto& room:browser.Rooms())if(room.name=="BedWars dos amigos!"&&room.port==port){Check(room.players==2&&room.gap==32&&room.joinable,"discovered room metadata");Check(room.map=="NC"&&room.playerNames.size()==2&&room.playerNames[1]=="Friend"&&room.ping>=0,"map, player roster and measured ping survive discovery");discovered=true;}std::this_thread::sleep_for(std::chrono::milliseconds(1));}
+    while(!discovered&&std::chrono::steady_clock::now()<until){advertiser.Poll();browser.Poll();for(auto& room:browser.Rooms())if(room.name=="BedWars dos amigos!"&&room.port==port){Check(room.protocol==LanProtocolVersion,"discovery carries protocol version");Check(room.players==2&&room.gap==32&&room.joinable,"discovered room metadata");Check(room.map=="NC"&&room.playerNames.size()==2&&room.playerNames[1]=="Friend"&&room.ping>=0,"map, player roster and measured ping survive discovery");discovered=true;}std::this_thread::sleep_for(std::chrono::milliseconds(1));}
     Check(discovered,"broadcast/multicast discovery finds local server");
     advertiser.Advertise({{},"BedWars dos amigos!",port,4,16,false,0,4,"Castelo",{"DiscoveryHost","Friend","Third","Fourth"},-1});Check(browser.Search(),"refresh clears stale rooms");Check(browser.Rooms().empty(),"old room list cleared");discovered=false;until=std::chrono::steady_clock::now()+std::chrono::seconds(4);
     while(!discovered&&std::chrono::steady_clock::now()<until){advertiser.Poll();browser.Poll();for(auto& room:browser.Rooms())if(room.name=="BedWars dos amigos!"&&room.port==port){Check(room.players==4&&room.gap==16&&!room.joinable,"full/running room cannot be joined");Check(room.map=="Castelo"&&room.playerNames.size()==4,"refresh updates selected-room metadata");discovered=true;}std::this_thread::sleep_for(std::chrono::milliseconds(1));}
@@ -41,6 +54,17 @@ int main(){
     while(!discovered&&std::chrono::steady_clock::now()<until){advertiser.Poll();browser.Poll();for(const auto& room:browser.Rooms())if(room.name=="BedWars dos amigos!"&&room.port==port){Check(room.players==7&&room.capacity==8&&room.joinable,"Dupla advertises capacity and remaining slot");discovered=true;}std::this_thread::sleep_for(std::chrono::milliseconds(1));}
     Check(discovered,"Dupla discovery metadata");LanRoom full;full.name="Sixteen players";full.port=port;full.players=full.capacity=16;full.map="Airshow";for(int i=0;i<16;++i)full.playerNames.push_back("Player"+std::to_string(i));advertiser.Advertise(full);browser.Search();discovered=false;until=std::chrono::steady_clock::now()+std::chrono::seconds(4);
     while(!discovered&&std::chrono::steady_clock::now()<until){advertiser.Poll();browser.Poll();for(const auto& room:browser.Rooms())if(room.port==port){Check(room.capacity==16&&room.playerNames.size()==16&&!room.joinable&&room.map=="Airshow","sixteen-player discovery roster");discovered=true;}std::this_thread::sleep_for(std::chrono::milliseconds(1));}Check(discovered,"full eight-team room discovered");browser.CancelSearch();Check(!browser.Searching(),"cancel discovery");advertiser.StopHosting();
+    Check(advertiser.Advertise(full),"restart discovery for stable query");
+    auto udp=socket(AF_INET,SOCK_DGRAM,0);Check(udp!=netio::Invalid,"discovery probe socket");netio::SetNonblocking(udp,true);
+    sockaddr_in discoveryAddress{};discoveryAddress.sin_family=AF_INET;discoveryAddress.sin_addr.s_addr=htonl(INADDR_LOOPBACK);discoveryAddress.sin_port=htons(25567);
+    for(const char* magic:{"MCLAN00?","MCLAN14?"}){
+        unsigned char query[12]{};std::memcpy(query,magic,8);query[8]=42;
+        sendto(udp,reinterpret_cast<const char*>(query),12,0,reinterpret_cast<sockaddr*>(&discoveryAddress),sizeof(discoveryAddress));
+        bool replied=false;until=std::chrono::steady_clock::now()+std::chrono::seconds(2);
+        while(!replied&&std::chrono::steady_clock::now()<until){advertiser.Poll();unsigned char reply[512];int n=recvfrom(udp,reinterpret_cast<char*>(reply),sizeof(reply),0,nullptr,nullptr);if(n>=27){Check(!std::memcmp(reply,"MCLAN19!",8)&&reply[8]==42,"stable and legacy queries report actual host protocol");replied=true;}std::this_thread::sleep_for(std::chrono::milliseconds(1));}
+        Check(replied,"version-independent discovery response");
+    }
+    netio::Close(udp);advertiser.StopHosting();
     const std::string path="platform-save-test.dat",temporary=path+".tmp";std::error_code error;
     {std::ofstream file(path);file<<"old";}{std::ofstream file(temporary);file<<"new";}
     ReplaceSaveFile(temporary,path,error);Check(!error,"replace existing save");

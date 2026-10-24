@@ -5,11 +5,13 @@
 #include <functional>
 #include <vector>
 namespace game::bw {
-constexpr int MapCount=5;
+constexpr int MapCount=21;
 const char* MapName(int map);
 const char* MapDescription(int map);
 std::array<Vector3,8> ArenaBases(int gap,int map=0);
 int MapTeams(int map);
+int MapLobbyY(int map);
+Vector3 RuinsVendor(int team,int kind,int gap);
 Vector3 AirshowSpawn(int team);
 Vector3 AirshowVendor(int team,int kind);
 Vector3 AirshowForge(int team);

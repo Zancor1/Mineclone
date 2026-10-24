@@ -75,11 +75,13 @@ std::vector<const LanRoom*> FilterRooms(const std::string& search,const std::str
     for(const auto& room:bw::Rooms())if(LowerText(room.name).find(nameFilter)!=std::string::npos&&LowerText(room.map).find(mapFilter)!=std::string::npos&&(!onlyOpen||room.joinable)&&(!limit||(room.ping>=0&&room.ping<=limit)))result.push_back(&room);
     std::stable_sort(result.begin(),result.end(),[](const LanRoom* a,const LanRoom* b){return a->ping<b->ping;});return result;
 }
-bool JoinableAddress(const std::string& address){if(address.empty())return false;for(const auto& room:bw::Rooms())if(room.address==address)return room.joinable;return true;}
+bool JoinableAddress(const std::string& address){if(address.empty())return false;for(const auto& room:bw::Rooms())if(room.address==address)return room.joinable&&room.protocol==LanProtocolVersion;return true;}
 void BrowserText(const std::string& text,Rectangle rect,int size,Color color){BeginScissorMode(int(rect.x),int(rect.y),int(rect.width),int(rect.height));DrawText(text.c_str(),int(rect.x+6),int(rect.y+5),size,color);EndScissorMode();}
 Rectangle TeamButton(int team){float x=GetScreenWidth()/2.f-300,y=GetScreenHeight()/2.f-105;return {x+(team%2)*306,y+(team/2)*56,294,46};}
 Rectangle TeamBack(){return {GetScreenWidth()/2.f-150,GetScreenHeight()/2.f+130,300,40};}
-Rectangle MapCard(int index,int count){float width=std::min(count==2?760.f:1100.f,float(GetScreenWidth()-40)),card=(width-12*(count-1))/count,height=std::min(300.f,GetScreenHeight()-160.f);return {(GetScreenWidth()-width)/2+index*(card+12),GetScreenHeight()/2.f-height/2+12,card,height};}
+Rectangle MapCard(int index,int count){int columns=std::min(count,3),rows=(count+2)/3;float width=std::min(count==2?760.f:1100.f,float(GetScreenWidth()-40)),card=(width-12*(columns-1))/columns,height=std::min(300.f,(GetScreenHeight()-176.f-12*(rows-1))/rows);return {(GetScreenWidth()-width)/2+(index%columns)*(card+12),82+(index/columns)*(height+12),card,height};}
+Rectangle MapPageButton(bool next){return {GetScreenWidth()/2.f+(next?80:-230),float(GetScreenHeight()-59),150,32};}
+
 Rectangle MinigameCard(int i){
     float width=std::min(860.f,float(GetScreenWidth()-48)),gap=24,card=(width-gap)/2;
     return {(GetScreenWidth()-width)/2+i*(card+gap),GetScreenHeight()/2.f-135,card,270};
@@ -170,11 +172,12 @@ void ClassicButton(Rectangle r,const char* text,bool enabled) {
 void UI::SetWorlds(std::vector<WorldSave> saves) {
     worlds=std::move(saves);worldScroll=0;selectedWorldPath.clear();
 }
-void UI::Notify(const std::string& text) {message=text;messageUntil=GetTime()+4;}
+void UI::Notify(const std::string& text,float seconds) {message=text;messageUntil=GetTime()+seconds;}
 void UI::OpenChest(int x,int y,int z) {chestX=x;chestY=y;chestZ=z;}
 void UI::ResetInteraction() {capturingBinding=-1;bindingMessage.clear();draggingSlider=0;catalogOpen=false;message.clear();}
 UI::~UI(){for(auto preview:mapPreviews)if(preview.id)UnloadRenderTexture(preview);if(skywarsPreview.id)UnloadRenderTexture(skywarsPreview);}
 UiAction UI::Update(GameState state) {
+    if(state==GameState::WorldLoading)return UiAction::None;
     if(state==GameState::Keyboard){
         int visible=std::max(1,(GetScreenHeight()-200)/38);
         if(capturingBinding>=0){int key=GetKeyPressed();if(key==KEY_ESCAPE){capturingBinding=-1;bindingMessage.clear();return UiAction::None;}if(key==KEY_BACKSPACE||key==KEY_DELETE)key=0;else if(!key){for(int button=0;button<7;++button)if(IsMouseButtonPressed(button)){key=-button-1;break;}if(!key)return UiAction::None;}
@@ -211,7 +214,7 @@ UiAction UI::Update(GameState state) {
         if(IsKeyPressed(KEY_BACKSPACE)&&!roomName.empty())roomName.pop_back();
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
             for(int i=0;i<2;++i)if(Hover({x,y+40+i*65,440,50})){if(roomName.find_first_not_of(" ")==std::string::npos){Notify("Escolha um nome para a sala");return UiAction::None;}teamCapacity=i+1;return standardLayout?UiAction::ChooseRush:UiAction::ChooseMap;}
-            if(Hover({x,y+170,440,40})){standardLayout=!standardLayout;mapChoice=standardLayout?0:3;return UiAction::None;}
+            if(Hover({x,y+170,440,40})){standardLayout=!standardLayout;mapPage=0;mapChoice=standardLayout?0:3;return UiAction::None;}
             if(Hover({x,y+220,440,40}))return UiAction::OpenBedwars;
         }
         return UiAction::None;
@@ -228,7 +231,9 @@ UiAction UI::Update(GameState state) {
         return UiAction::None;
     }
     if(state==GameState::BedwarsMaps){
-        int first=standardLayout?0:3,last=standardLayout?3:bw::MapCount;
+        int pages=(bw::MapCount-3+5)/6;
+        if(!standardLayout){int delta=IsKeyPressed(KEY_RIGHT)?1:IsKeyPressed(KEY_LEFT)?-1:0;delta-=int(GetMouseWheelMove());if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){if(Hover(MapPageButton(false)))--delta;if(Hover(MapPageButton(true)))++delta;}mapPage=std::clamp(mapPage+delta,0,pages-1);}
+        int first=standardLayout?0:3+mapPage*6,last=standardLayout?3:std::min(first+6,bw::MapCount);
         for(int i=first;i<last;++i)if(!mapPreviews[i].id||(standardLayout&&previewGap!=rushGap)){if(mapPreviews[i].id)UnloadRenderTexture(mapPreviews[i]);mapPreviews[i]=bw::CreateMapPreview(i,rushGap);}
         if(standardLayout)previewGap=rushGap;
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))for(int i=first;i<last;++i)if(Hover(MapCard(i-first,last-first))){mapChoice=i;return UiAction::HostBedwars;}
@@ -474,6 +479,14 @@ UiAction UI::Update(GameState state) {
     return UiAction::None;
 }
 void UI::Draw(Texture2D atlas,GameState state) const {
+    if(state==GameState::WorldLoading){
+        DrawRectangle(0,0,GetScreenWidth(),GetScreenHeight(),{28,30,39,255});
+        int w=std::min(480,GetScreenWidth()-48),x=(GetScreenWidth()-w)/2,y=GetScreenHeight()/2;
+        DrawText("ENTRANDO NA SALA",x,y-80,28,GOLD);DrawText(loadingText.c_str(),x,y-35,20,WHITE);
+        DrawRectangle(x,y,w,18,{61,65,78,255});DrawRectangle(x,y,int(w*std::clamp(loadingProgress,0.f,1.f)),18,{103,181,111,255});
+        DrawText(TextFormat("%d%%",int(loadingProgress*100)),x,y+30,18,LIGHTGRAY);DrawText("ESC para cancelar",x,y+65,17,GRAY);return;
+    }
+
     if(state==GameState::Keyboard){
         ClearBackground({36,37,44,255});float x=GetScreenWidth()/2.f-300;DrawText("KEYBOARD",GetScreenWidth()/2-MeasureText("KEYBOARD",28)/2,24,28,GOLD);DrawText("Clique na acao para trocar a tecla ou o botao do mouse",int(x),65,16,WHITE);
         int visible=std::max(1,(GetScreenHeight()-200)/38);for(int i=0;i<visible&&bindingScroll+i<BindingCount;++i){int index=bindingScroll+i;auto row=BindingRow(i);DrawRectangleRec(row,capturingBinding==index?Color{101,91,49,255}:Hover(row)?Color{79,84,96,255}:Color{54,58,69,255});DrawText(BindingLabel(BindingAction(index)),int(row.x+10),int(row.y+9),16,WHITE);auto key=capturingBinding==index?std::string("Pressione..."):BindingKeyName(Settings.bindings[index]);DrawText(key.c_str(),int(row.x+row.width-10-MeasureText(key.c_str(),16)),int(row.y+9),16,GOLD);}
@@ -514,12 +527,13 @@ void UI::Draw(Texture2D atlas,GameState state) const {
     if(state==GameState::BedwarsTeams){DrawRectangle(0,0,GetScreenWidth(),GetScreenHeight(),Fade(BLACK,.7f));DrawText("ESCOLHA SEU TIME",GetScreenWidth()/2-150,GetScreenHeight()/2-155,26,GOLD);for(const auto& team:bw::TeamChoices()){auto r=TeamButton(team.id);ClassicButton(r,TextFormat("%s %d/%d%s",team.name,team.players,team.capacity,team.id==bw::LocalTeam()?" *":""),team.available);DrawRectangle(int(r.x+6),int(r.y+10),7,26,team.color);}ClassicButton(TeamBack(),"Voltar ao jogo",true);return;}
     if(state==GameState::BedwarsMaps){
         ClearBackground({34,35,43,255});const char* title=standardLayout?"MAPAS BASICOS":"MAPAS AVANCADOS";DrawText(title,(GetScreenWidth()-MeasureText(title,28))/2,28,28,GOLD);
-        int first=standardLayout?0:3,last=standardLayout?3:bw::MapCount;
+        int pages=(bw::MapCount-3+5)/6;int first=standardLayout?0:3+mapPage*6,last=standardLayout?3:std::min(first+6,bw::MapCount);
         for(int i=first;i<last;++i){Rectangle r=MapCard(i-first,last-first);DrawRectangleRec(r,Hover(r)?Color{76,80,91,255}:Color{47,50,60,255});DrawRectangleLinesEx(r,2,Hover(r)?GOLD:GRAY);
-            float imageHeight=std::min(r.height-78,(r.width-14)*210/360);if(mapPreviews[i].id)DrawTexturePro(mapPreviews[i].texture,{0,0,360,-210},{r.x+7,r.y+7,r.width-14,imageHeight},{0,0},0,WHITE);
+            float imageHeight=std::min(r.height-78,(r.width-14)*210/360),imageWidth=imageHeight*360/210;if(mapPreviews[i].id)DrawTexturePro(mapPreviews[i].texture,{0,0,360,-210},{r.x+(r.width-imageWidth)/2,r.y+7,imageWidth,imageHeight},{0,0},0,WHITE);
             BrowserText(bw::MapName(i),{r.x+6,r.y+r.height-70,r.width-12,27},20,WHITE);BrowserText(bw::MapDescription(i),{r.x+6,r.y+r.height-44,r.width-12,21},12,LIGHTGRAY);
-            BrowserText(i==3?"2 times | Layout original":i==4?"8 times | Layout original":TextFormat("8 times | Rush %d",rushGap+6),{r.x+6,r.y+r.height-24,r.width-12,21},14,LIGHTGRAY);
-        }DrawText("ESC para voltar",GetScreenWidth()/2-80,GetScreenHeight()-30,16,WHITE);return;
+            BrowserText(i==3?"2 times | Layout original":i>=4?"8 times | Layout original":TextFormat("8 times | Rush %d",rushGap+6),{r.x+6,r.y+r.height-24,r.width-12,21},14,LIGHTGRAY);
+        }if(!standardLayout){ClassicButton(MapPageButton(false),"Anterior",mapPage>0);ClassicButton(MapPageButton(true),"Proxima",mapPage+1<pages);DrawText(TextFormat("%d / %d",mapPage+1,pages),GetScreenWidth()/2-22,GetScreenHeight()-52,16,WHITE);}
+        DrawText("ESC para voltar",GetScreenWidth()/2-80,GetScreenHeight()-22,14,WHITE);return;
     }
 
     if(state==GameState::BedwarsMenu||state==GameState::BedwarsDiscovery){
@@ -542,14 +556,16 @@ void UI::Draw(Texture2D atlas,GameState state) const {
         if(rooms.empty()){BrowserText(bw::SearchingRooms()?"Procurando servidores...":"Nenhuma sala encontrada",{x+8,layout.list.y+45,w-16,30},16,LIGHTGRAY);BrowserText("Use o endereco para conectar.",{x+8,layout.list.y+78,w-16,30},14,GRAY);}
         float rx=layout.right.x+12,ry=layout.right.y+12,rw=layout.right.width-24;
         DrawText("JOGADORES",int(rx),int(ry),16,GOLD);ry+=32;
-        if(selected){BrowserText(selected->name,{rx,ry,rw,28},18,WHITE);ry+=32;BrowserText(selected->map.empty()?"Mapa indisponivel":selected->map,{rx,ry,rw,26},16,LIGHTGRAY);ry+=28;BrowserText(selected->joinable?"Lobby - pode entrar":selected->players>=selected->capacity?"Sala cheia":"Partida em andamento",{rx,ry,rw,26},14,selected->joinable?LIME:GOLD);ry+=36;
+        if(selected){BrowserText(selected->name,{rx,ry,rw,28},18,WHITE);ry+=32;BrowserText(selected->map.empty()?"Mapa indisponivel":selected->map,{rx,ry,rw,26},16,LIGHTGRAY);ry+=28;BrowserText(selected->protocol!=LanProtocolVersion?"Versao diferente: atualize os dois":selected->joinable?"Lobby - pode entrar":selected->players>=selected->capacity?"Sala cheia":"Partida em andamento",{rx,ry,rw,26},14,selected->joinable?LIME:GOLD);ry+=36;
             int visibleNames=std::max(1,int((layout.right.y+layout.right.height-ry)/32));int first=std::clamp(rosterScroll,0,std::max(0,int(selected->playerNames.size())-visibleNames));
             for(int i=first;i<int(selected->playerNames.size())&&i<first+visibleNames;++i){const auto& name=selected->playerNames[i];DrawRectangle(int(rx),int(ry),int(rw),28,{45,50,62,255});BrowserText(name,{rx+4,ry,rw-8,28},16,WHITE);ry+=32;}
             if(selected->playerNames.empty())BrowserText("Lista indisponivel",{rx,ry,rw,30},14,GRAY);
         }else {BrowserText("Selecione um servidor",{rx,ry,rw,30},14,GRAY);}
         DrawText("Endereco:",16,int(layout.fields[4].y+8),16,LIGHTGRAY);auto address=layout.fields[4];DrawRectangleRec(address,{13,15,20,255});DrawRectangleLinesEx(address,1,browserField==4?GOLD:GRAY);BrowserText(bedwarsAddress,address,16,WHITE);
         ClassicButton(layout.refresh,bw::SearchingRooms()?"Buscando...":"Atualizar",!bw::Active());ClassicButton(layout.create,"Criar sala",!bw::Active());ClassicButton(layout.join,"Conectar",!bw::Active()&&JoinableAddress(bedwarsAddress));ClassicButton(layout.back,"Voltar",true);
-        const std::string status=!message.empty()&&GetTime()<messageUntil?message:bw::Active()?bw::Status():bw::DiscoveryStatus();BrowserText(status,{16,float(GetScreenHeight()-24),float(GetScreenWidth()-32),22},12,LIGHTGRAY);return;
+        bool nicknameInUse=false;
+        if(selected)for(const auto& name:selected->playerNames)if(LowerText(name)==LowerText(playerName))nicknameInUse=true;
+        const std::string status=!message.empty()&&GetTime()<messageUntil?message:bw::Active()?bw::Status():nicknameInUse?"Esse nick ja esta conectado. Escolha outro nick para entrar.":bw::DiscoveryStatus();BrowserText(status,{16,float(GetScreenHeight()-24),float(GetScreenWidth()-32),22},12,LIGHTGRAY);return;
     }
 
     if(state==GameState::BedwarsRush){ClearBackground({34,35,43,255});float x=GetScreenWidth()/2.f-220,y=GetScreenHeight()/2.f-100;DrawText("RUSH",int(x+174),int(y-55),32,GOLD);const char* labels[]={"Rapido (22 blocos)","Medio (38 blocos)","Lento (70 blocos)"};for(int i=0;i<3;++i)ClassicButton({x,y+i*60,440,48},labels[i],true);return;}

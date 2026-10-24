@@ -70,6 +70,18 @@ int main() {
     double regionalMs=0,fullMs=0;
     for(const auto& edit:edits){Change(edit.x,edit.y,edit.z,edit.block);auto begin=std::chrono::steady_clock::now();UpdateLighting();regionalMs+=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-begin).count();uint64_t incremental=checksum();
         InvalidateLighting();begin=std::chrono::steady_clock::now();UpdateLighting();fullMs+=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-begin).count();Check(checksum()==incremental,"regional lighting equals full rebuild after blockers, overlapping lamps, removal and boundary edits");}
+    Change(128,40,128,LampOn);Change(129,40,128,Stone);
+    unsigned char oldDirect=DirectBlockLightAt(130,40,128);
+    UpdateLighting(.01f);Check(LightingPending()&&!LightingRequiresFullUpdate(),"small frame budget defers regional lighting work");
+    Check(DirectBlockLightAt(130,40,128)==oldDirect,"unfinished lighting is not visible to renderer");
+    Change(129,40,128,Air);Change(143,40,128,LampOn);
+    double maxSlice=0;int slices=0;
+    while(LightingPending()&&slices<10000){auto start=std::chrono::steady_clock::now();UpdateLighting(2.f);maxSlice=std::max(maxSlice,std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count());++slices;}
+    Check(!LightingPending()&&slices>1,"frame-budgeted lighting converges after overlapping edits");
+    uint64_t budgeted=checksum();InvalidateLighting();UpdateLighting();Check(checksum()==budgeted,"budgeted light matches complete rebuild after cancellation and merged edits");
+    Change(128,40,128,Air);UpdateLighting(.01f);InvalidateLighting();Check(LightingRequiresFullUpdate(),"world replacement requires complete initial lighting");UpdateLighting();
+    Check(BlockLightAt(128,40,128)==9,"full invalidation safely replaces pending removal job");
+    std::printf("Lighting frame slices: %d, max %.2f ms (2 ms computation budget)\n",slices,maxSlice);
     std::printf("Lighting edits: regional %.2f ms, full %.2f ms average\n",regionalMs/8,fullMs/8);
     std::printf("PASS: lighting propagation, occlusion, removal, day/night, saves and %d inventory blocks\n",int(BlockCount)-1);
 }

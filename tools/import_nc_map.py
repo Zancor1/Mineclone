@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert the legacy NC arena into an embedded, compressed block-state resource."""
+"""Convert NC or Airshow into an embedded, compressed block-state resource."""
 import argparse
 import struct,gzip,zlib,pathlib,collections,json
 class NBT:
@@ -35,49 +35,7 @@ parser.add_argument('source',type=pathlib.Path)
 parser.add_argument('--output',type=pathlib.Path,default=pathlib.Path('include/nc_map_data.inc'))
 parser.add_argument('--airshow',action='store_true')
 args=parser.parse_args();source=args.source
-registry=pathlib.Path('include/block.h').read_text()
-import re
-ids={};value=0
-# Preserve the registry order, including the generated ID lists.
-registry=registry[registry.index('enum Block'):registry.index('struct BlockProperties')]
-for name in ['content18_ids.inc','minigame_ids.inc']:
- registry=registry.replace('#include "'+name+'"',pathlib.Path('include/'+name).read_text())
-body=registry[registry.index('{')+1:registry.index('}')]
-for token in body.split(','):
- token=token.strip()
- if not token:continue
- if '=' in token:name,v=token.split('=');value=int(v.strip());name=name.strip()
- else:name=token
- ids[name]=value;value+=1
-wools=['WhiteWool','OrangeWool','MagentaWool','LightBlueWool','YellowWool','LimeWool','PinkWool','GrayWool','LightGrayWool','CyanWool','PurpleWool','BlueWool','BrownWool','GreenWool','RedWool','BlackWool']
-planks=['Planks','SpruceWoodPlanks','BirchWoodPlanks','JungleWoodPlanks','AcaciaPlanks','DarkOakPlanks']
-slabs=['Stone','Sandstone','Planks','Cobblestone','Bricks','StoneBricks','NetherBrick','BlockOfQuartz']
-shapes={'Cube':0,'Slab':1,'Stairs':2,'Fence':3,'Bars':4,'Carpet':5,'Torch':6,'Pot':7,'Plate':8,'Hopper':9,'Sign':10,'Portal':11,'Web':12,'Fire':13,'Barrier':14}
-def state(block,material=None,shape='Cube',data=0):return [ids[block],ids[material or block],shapes[shape],data]
-def convert(t,m):
- if t==1:return state(['Stone','Granite','PolishedGranite','Diorite','PolishedDiorite','Andesite','PolishedAndesite'][m])
- if t==5:return state(planks[m])
- if t==17:return state(['Wood','SpruceWood','BirchWood','JungleWood'][m&3])
- if t==35:return state(wools[m])
- if t==51:return state('MapDecoration','Lava','Fire',m)
- if t==166:return state('MapDecoration','Bedrock','Barrier',m)
- if t==26:return state('BedHead' if m&8 else 'Bed')
- if t in [43,44]:return state(slabs[m&7]) if t==43 else state('MapSlab',slabs[m&7],'Slab',m)
- if t in [125,126]:return state(planks[m&7]) if t==125 else state('MapSlab',planks[m&7],'Slab',m)
- if t==95:return state(wools[m].replace('Wool','StainedGlass'))
- if t==159:return state(wools[m].replace('Wool','StainedClay'))
- if t==98:return state(['StoneBricks','MossyStoneBricks','CrackedStoneBricks','CarvedStone'][m&3])
- if t==155:return state(['BlockOfQuartz','ChiseledQuartzBlock','PillarQuartzBlock'][min(2,m)])
- stairs={53:'Planks',67:'Cobblestone',109:'StoneBricks',128:'Sandstone',134:'SpruceWoodPlanks',135:'BirchWoodPlanks',156:'BlockOfQuartz',164:'DarkOakPlanks'}
- if t in stairs:return state('MapStairs',stairs[t],'Stairs',m)
- if t in [85,139,188,190]:return state('MapFence',{85:'Planks',139:'Cobblestone',188:'SpruceWoodPlanks',190:'DarkOakPlanks'}[t],'Fence',m)
- if t==101:return state('IronBars','BlockOfIron','Bars',m)
- if t==171:return state('MapCarpet',wools[m],'Carpet',m)
- deco={50:('Wood','Torch'),75:('Wood','Torch'),76:('LampOn','Torch'),90:('PurpleStainedGlass','Portal'),140:('Bricks','Pot'),55:('RedWool','Plate'),72:('Planks','Plate'),143:('Planks','Plate'),149:('Stone','Plate'),154:('BlockOfIron','Hopper'),118:('BlockOfIron','Hopper'),178:('Planks','Plate'),63:('Planks','Sign'),68:('Planks','Sign'),30:('WhiteWool','Web'),130:('Obsidian','Cube'),137:('CarvedStone','Cube')}
- if t in deco:return state('MapDecoration',*deco[t],m)
- simple={42:'BlockOfIron',2:'Grass',3:'Dirt',4:'Cobblestone',20:'Glass',24:'Sandstone',45:'Bricks',49:'Obsidian',54:'Chest',57:'BlockOfDiamond',65:'Ladder',82:'Clay',97:'Stone',133:'BlockOfEmerald',152:'RedStainedClay',169:'SeaLantern',173:'BlockOfCoal'}
- if t in simple:return state(simple[t])
- raise ValueError('Unsupported block: '+str((t,m)))
+from legacy_blocks import convert
 records=[];counts=collections.Counter()
 for chunk in chunks():
  cx,cz=chunk['xPos'],chunk['zPos']

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "network.h"
 #include "network_progress.h"
 #include "dns_srv.h"
@@ -135,7 +136,8 @@ int main(int argc,char**){
     Check(attack&&chat&&keepAlive&&digPosition&&forgeDone&&forgeBrand,"attack, chat and keepalive sent to actual TCP server");
     net::Chat("arena_test");auto arenaDeadline=std::chrono::steady_clock::now()+std::chrono::seconds(3);
     while(std::chrono::steady_clock::now()<arenaDeadline){net::Update(player,.01f);if(net::Joined()&&RegionOriginX< -10000)break;std::this_thread::sleep_for(std::chrono::milliseconds(5));}
-    Check(net::Joined()&&At(136,32,136)==Stone&&At(152,32,136)==Glass,"respawn, bulk chunks before teleport, distant arena and vertical origin");
+    int arenaFloor=128-std::clamp(96,0,256-Height);
+    Check(net::Joined()&&At(136,arenaFloor,136)==Stone&&At(152,arenaFloor,136)==Glass,"respawn, bulk chunks before teleport, distant arena and vertical origin");
     Check(std::abs(net::MovementSpeed()-.13f)<.00001f,"server movement attribute modifiers are applied");
     auto arenaStart=player.CaptureState().position;PlayerInput arenaWalk;arenaWalk.forward=1;for(int i=0;i<15;++i)player.Update(arenaWalk,.05f);
     Check(player.CaptureState().position.z>arenaStart.z+.5f&&player.OnGround(),"walk on server arena after transfer");

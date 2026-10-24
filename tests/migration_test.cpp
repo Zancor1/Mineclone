@@ -14,6 +14,7 @@ void Write(const std::filesystem::path& file,const std::vector<unsigned char>& d
 }
 int main() {
     using namespace game;
+    for(size_t oldHeight:{80u,128u}){
     auto folder=std::filesystem::temp_directory_path()/("mineclone-migration-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::filesystem::create_directories(folder);
     auto path=folder/"world.dat";
@@ -21,7 +22,7 @@ int main() {
     PlayerState pose;pose.valid=true;pose.position={64.5f,75,64.5f};
     Check(SaveWorld(path.string(),pose),"write expanded save");
     std::ifstream in(path,std::ios::binary);std::vector<unsigned char> current((std::istreambuf_iterator<char>(in)),{});in.close();
-    constexpr size_t oldWidth=128,oldHeight=80,cells=size_t(Width)*Height*Width;
+    constexpr size_t oldWidth=128,cells=size_t(Width)*Height*Width;
     std::vector<unsigned char> old(current.begin(),current.begin()+24);
     Word(old,8,oldWidth);Word(old,12,oldHeight);
     for(size_t component=0;component<3;++component)
@@ -41,4 +42,5 @@ int main() {
     Check(!LoadWorld(path.string())&&At(20,70,20)==BlueWool,"corrupt expansion archive leaves active world untouched");
     std::filesystem::remove_all(folder);
     std::puts("PASS: 128-to-256 world migration, archived edits, inventories, pose and corruption safety");
+    }
 }

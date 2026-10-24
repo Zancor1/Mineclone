@@ -14,7 +14,8 @@ public:
     int rushGap=16,mapChoice=0,teamCapacity=1;
     bool standardLayout=true;
     ~UI();
-    float miningProgress=0;
+    float miningProgress=0,loadingProgress=0;
+    std::string loadingText;
     UiAction Update(GameState state);
     void Draw(Texture2D atlas,GameState state) const;
     void DrawPlayerList() const;
@@ -28,7 +29,7 @@ public:
     bool chatOpen=false;
     void SetWorlds(std::vector<WorldSave> saves);
     std::string SelectedWorldPath() const {return selectedWorldPath;}
-    void Notify(const std::string& text);
+    void Notify(const std::string& text,float seconds=4.f);
 private:
     std::vector<WorldSave> worlds;
     int worldScroll=0;
@@ -40,7 +41,7 @@ private:
     std::string bindingMessage;
     std::array<RenderTexture2D,bw::MapCount> mapPreviews{};
     RenderTexture2D skywarsPreview{};
-    int previewGap=0;
+    int previewGap=0,mapPage=0;
     int inventoryPage=0;
     int draggingSlider=0,serverField=0;
     std::string selectedWorldPath;
