@@ -41,9 +41,11 @@ make -C "$root" -j"$jobs" CXX=x86_64-w64-mingw32-g++ \
     CPPFLAGS="-Iinclude -isystem \"$prefix/include\" -D_WIN32_WINNT=0x0601" \
     CXXFLAGS="-std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic" \
     LDFLAGS="-static -static-libgcc -static-libstdc++ -mwindows -L\"$prefix/lib\"" \
-    LDLIBS="-lraylib -lz -lopengl32 -lgdi32 -lwinmm -lws2_32 -ldnsapi -liphlpapi -pthread" all
+    LDLIBS="-lraylib -lz -lopengl32 -lgdi32 -lwinmm -lws2_32 -ldnsapi -liphlpapi -lwintrust -lcrypt32 -pthread" all
 if [ -d "$root/sounds" ]; then cp -R "$root/sounds" "$root/dist/windows/"; fi
 cp "$root/README.md" "$root/dist/windows/README.md"
+mkdir -p "$root/dist/windows/docs"
+cp "$root/docs/ANTICHEAT.md" "$root/dist/windows/docs/ANTICHEAT.md"
 if [ -d "$root/LICENSES" ]; then cp -R "$root/LICENSES" "$root/dist/windows/"; fi
 cp "$sources/raylib-5.5/LICENSE" "$root/dist/windows/LICENSE-raylib.txt"
 cp "$sources/zlib-1.3.1/LICENSE" "$root/dist/windows/LICENSE-zlib.txt"

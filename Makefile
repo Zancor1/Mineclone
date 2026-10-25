@@ -6,7 +6,7 @@ BUILD_DIR ?= build
 CPPFLAGS += -Iinclude $(shell $(PKG_CONFIG) --cflags raylib)
 CXXFLAGS ?= -O3 -DNDEBUG
 CXXFLAGS += -std=c++17 -Wall -Wextra -Wpedantic
-LDLIBS += $(shell $(PKG_CONFIG) --libs raylib) -lm -lz -lresolv -pthread
+LDLIBS += $(shell $(PKG_CONFIG) --libs raylib) -lm -lz -lresolv -ldl -pthread
 
 SOURCES := $(wildcard src/*.cpp)
 OBJECTS := $(patsubst src/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
@@ -14,7 +14,7 @@ DEPENDENCIES := $(OBJECTS:.o=.d)
 
 .DEFAULT_GOAL := all
 .DELETE_ON_ERROR:
-.PHONY: all clean test test-renderer
+.PHONY: all clean test test-renderer test-touch
 
 all: $(TARGET)
 
@@ -27,7 +27,7 @@ $(BUILD_DIR)/%.o: src/%.cpp Makefile | $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir -p $@
 
-test: test-progression $(BUILD_DIR)/platform_test $(BUILD_DIR)/bedwars_test $(BUILD_DIR)/chat_text_test $(BUILD_DIR)/network_test $(BUILD_DIR)/items_test $(BUILD_DIR)/content18_test $(BUILD_DIR)/migration_test $(BUILD_DIR)/survival_test $(BUILD_DIR)/water_test $(BUILD_DIR)/water_mesh_test $(BUILD_DIR)/lighting_test $(BUILD_DIR)/settings_test $(BUILD_DIR)/lava_test $(BUILD_DIR)/streaming_test $(BUILD_DIR)/chest_test $(BUILD_DIR)/crafting_test
+test: test-touch test-progression test-anticheat test-host-migration $(BUILD_DIR)/platform_test $(BUILD_DIR)/bedwars_test $(BUILD_DIR)/chat_text_test $(BUILD_DIR)/network_test $(BUILD_DIR)/items_test $(BUILD_DIR)/content18_test $(BUILD_DIR)/migration_test $(BUILD_DIR)/survival_test $(BUILD_DIR)/water_test $(BUILD_DIR)/water_mesh_test $(BUILD_DIR)/lighting_test $(BUILD_DIR)/settings_test $(BUILD_DIR)/lava_test $(BUILD_DIR)/streaming_test $(BUILD_DIR)/chest_test $(BUILD_DIR)/crafting_test
 	./$(BUILD_DIR)/platform_test
 	./$(BUILD_DIR)/bedwars_test
 	./$(BUILD_DIR)/water_test
@@ -75,8 +75,8 @@ test-renderer: $(BUILD_DIR)/bedwars_test $(BUILD_DIR)/renderer_smoke_test $(BUIL
 	./$(BUILD_DIR)/renderer_smoke_test
 	./$(BUILD_DIR)/network_test --render
 
-$(BUILD_DIR)/renderer_smoke_test: tests/renderer_smoke_test.cpp $(BUILD_DIR)/ui.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/renderer_smoke_test.cpp $(BUILD_DIR)/ui.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o -o $@ $(LDLIBS)
+$(BUILD_DIR)/renderer_smoke_test: tests/renderer_smoke_test.cpp $(BUILD_DIR)/ui.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o $(wildcard include/*.h) $(BUILD_DIR)/touch_platform.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/renderer_smoke_test.cpp $(BUILD_DIR)/ui.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/lighting.o $(BUILD_DIR)/touch_platform.o -o $@ $(LDLIBS)
 
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
@@ -101,7 +101,7 @@ $(BUILD_DIR)/network_test: tests/network_test.cpp $(BUILD_DIR)/renderer.o $(BUIL
 $(BUILD_DIR)/chat_text_test: tests/chat_text_test.cpp $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o include/chat_text.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/chat_text_test.cpp $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o -o $@ $(LDLIBS)
 
-$(BUILD_DIR)/bedwars_test: tests/bedwars_test.cpp $(BUILD_DIR)/bedwars.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/ui.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o
+$(BUILD_DIR)/bedwars_test: tests/bedwars_test.cpp $(BUILD_DIR)/bedwars_fixture.o $(BUILD_DIR)/progression.o $(BUILD_DIR)/cosmetics.o $(BUILD_DIR)/bedwars_maps.o $(BUILD_DIR)/external_arenas.o $(BUILD_DIR)/lan_transport.o $(BUILD_DIR)/ui.o $(BUILD_DIR)/renderer.o $(BUILD_DIR)/items.o $(BUILD_DIR)/player.o $(BUILD_DIR)/network.o $(BUILD_DIR)/chat_text.o $(BUILD_DIR)/dns_srv.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/world.o $(BUILD_DIR)/map_blocks.o $(BUILD_DIR)/chest.o $(BUILD_DIR)/crafting.o $(BUILD_DIR)/survival.o $(BUILD_DIR)/lighting.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 .PHONY: windows
@@ -150,3 +150,42 @@ test-loading: $(BUILD_DIR)/loading_test
 	./$(BUILD_DIR)/loading_test
 $(BUILD_DIR)/loading_test: tests/loading_test.cpp $(filter-out $(BUILD_DIR)/main.o,$(OBJECTS))
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
+$(BUILD_DIR)/touch_test: tests/touch_test.cpp include/touch_controls.h include/settings.h | $(BUILD_DIR)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) tests/touch_test.cpp -o $@ $(LDLIBS)
+
+test-touch: $(BUILD_DIR)/touch_test
+	./$(BUILD_DIR)/touch_test
+
+.PHONY: android
+android:
+	./tools/build-android.sh
+
+$(BUILD_DIR)/renderer_packed.o: src/renderer.cpp $(wildcard include/*.h) | $(BUILD_DIR)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -DMINECLONE_PACKED_ATLAS -c $< -o $@
+
+$(BUILD_DIR)/renderer_mobile_test: tests/renderer_smoke_test.cpp $(filter-out $(BUILD_DIR)/main.o $(BUILD_DIR)/game.o $(BUILD_DIR)/renderer.o,$(OBJECTS)) $(BUILD_DIR)/renderer_packed.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
+$(BUILD_DIR)/anticheat_test: tests/anticheat_test.cpp include/anticheat.h | $(BUILD_DIR)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) tests/anticheat_test.cpp -o $@
+
+$(BUILD_DIR)/anticheat_lan_test: tests/anticheat_lan_test.cpp $(filter-out $(BUILD_DIR)/main.o,$(OBJECTS))
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
+.PHONY: test-anticheat
+test-anticheat: $(BUILD_DIR)/anticheat_test $(BUILD_DIR)/anticheat_lan_test
+	./$(BUILD_DIR)/anticheat_test
+	./$(BUILD_DIR)/anticheat_lan_test
+
+# Legacy gameplay fixtures directly reposition the local player to arrange scenes.
+# Keep that setup helper out of production and the anti-cheat/migration tests.
+$(BUILD_DIR)/bedwars_fixture.o: src/bedwars.cpp src/bedwars_migration.inc $(wildcard include/*.h) Makefile | $(BUILD_DIR)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -DMINECLONE_LEGACY_FIXTURE -MMD -MP -c $< -o $@
+
+$(BUILD_DIR)/host_migration_test: tests/host_migration_test.cpp $(filter-out $(BUILD_DIR)/main.o,$(OBJECTS))
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
+.PHONY: test-host-migration
+test-host-migration: $(BUILD_DIR)/host_migration_test
+	./$(BUILD_DIR)/host_migration_test

@@ -1,4 +1,5 @@
 #pragma once
+#include "texture_atlas.h"
 #include "arrow_model.h"
 #include "projectile_physics.h"
 #include <cmath>
@@ -25,8 +26,8 @@ inline void DrawBowModel(float seconds,Color tint=WHITE,Texture2D atlas={},int w
                 Color c=color({static_cast<unsigned char>(205*shades[face]),static_cast<unsigned char>(170*shades[face]),static_cast<unsigned char>(125*shades[face]),255});
                 rlColor4ub(c.r,c.g,c.b,c.a);
                 for(int v=0;v<4;++v){
-                    float u=(woodTile*16.f+((v==1||v==2)?13.f:3.f))/std::max(1,atlas.width);
-                    float t=((v>=2)?15.f:1.f)/std::max(1,atlas.height);
+                    float u=(AtlasX(woodTile,atlas.width)+((v==1||v==2)?13.f:3.f))/std::max(1,atlas.width);
+                    float t=(AtlasY(woodTile,atlas.width)+((v>=2)?15.f:1.f))/std::max(1,atlas.height);
                     rlTexCoord2f(u,t);
                     auto pos=vertices[faces[face][v]];
                     rlVertex3f(pos.x*width*.5f,pos.y*(length+.012f)*.5f,pos.z*depth*.5f);

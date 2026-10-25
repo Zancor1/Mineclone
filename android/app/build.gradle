@@ -1,0 +1,26 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.zancor.mineclone'
+    compileSdk 35
+    ndkVersion '27.2.12479018'
+    defaultConfig {
+        applicationId 'com.zancor.mineclone'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1-android'
+        ndk { abiFilters.addAll((project.findProperty('androidAbis') ?: 'arm64-v8a,armeabi-v7a').split(',')) }
+        externalNativeBuild { cmake { arguments '-DANDROID_STL=c++_static'; cppFlags '-std=c++17' } }
+    }
+    externalNativeBuild { cmake { path file('../CMakeLists.txt'); version '3.22.1'; buildStagingDirectory file('../../build/android/cxx') } }
+    // Keep packaged paths identical to the desktop: sounds/Hit.mp3 and sounds/ahh.mp3.
+    sourceSets.main.assets.srcDirs = []
+    buildTypes { debug { debuggable true }; release { minifyEnabled false } }
+    packaging { jniLibs { useLegacyPackaging false } }
+}
+def soundAssets = tasks.register('prepareSoundAssets', Copy) {
+    from('../../sounds') { into 'sounds' }
+    into("${layout.buildDirectory.get()}/generated/assets")
+}
+android.sourceSets.main.assets.srcDir("${layout.buildDirectory.get()}/generated/assets")
+tasks.named('preBuild').configure { dependsOn soundAssets }

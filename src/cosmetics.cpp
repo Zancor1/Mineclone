@@ -1,3 +1,5 @@
+#include "texture_atlas.h"
+#include "touch_controls.h"
 #include "cosmetics.h"
 #include "bedwars.h"
 #include "renderer.h"
@@ -18,8 +20,8 @@ Rectangle Tab(int i){auto p=Panel();return {p.x+16+i*(p.width-32)/3,p.y+45,(p.wi
 Rectangle Cell(int i){auto p=Panel();float w=(p.width-42)/4,h=(p.height-150)/4;return {p.x+16+(i%4)*(w+3),p.y+90+(i/4)*(h+3),w,h};}
 Rectangle Back(){auto p=Panel();return {p.x+16,p.y+p.height-42,p.width-32,30};}
 bool Spinning(){return result>0&&Now()-start<4.3;}
-void Button(Rectangle r,const std::string& text,Color color=WHITE){bool hover=CheckCollisionPointRec(GetMousePosition(),r);DrawRectangleRec(r,hover?Color{83,88,103,255}:Color{48,52,65,255});DrawRectangleLinesEx(r,1,GRAY);int size=std::max(12,std::min(18,int(r.height*.35f)));DrawText(text.c_str(),int(r.x+(r.width-MeasureText(text.c_str(),size))/2),int(r.y+(r.height-size)/2),size,color);}
-void Icon(Texture2D atlas,Rectangle rect,int type,int color){float size=std::min(rect.width,rect.height)*.65f;DrawTexturePro(atlas,{float(BlockTile(icons[type])*TileSize),0,TileSize,TileSize},{rect.x+(rect.width-size)/2,rect.y+4,size,size},{0,0},0,ColorFor(color));}
+void Button(Rectangle r,const std::string& text,Color color=WHITE){bool hover=CheckCollisionPointRec(PointerPosition(),r);DrawRectangleRec(r,hover?Color{83,88,103,255}:Color{48,52,65,255});DrawRectangleLinesEx(r,1,GRAY);int size=std::max(12,std::min(18,int(r.height*.35f)));DrawText(text.c_str(),int(r.x+(r.width-MeasureText(text.c_str(),size))/2),int(r.y+(r.height-size)/2),size,color);}
+void Icon(Texture2D atlas,Rectangle rect,int type,int color){float size=std::min(rect.width,rect.height)*.65f;DrawTexturePro(atlas,AtlasTile(atlas,BlockTile(icons[type])),{rect.x+(rect.width-size)/2,rect.y+4,size,size},{0,0},0,ColorFor(color));}
 }
 int Category(Block item){if(Sword(item))return 0;if(Pickaxe(item))return 1;if(ValidBlock(item)&&Blocks[item].toolKind==3)return 2;return -1;}
 Color ColorFor(int skin){return colors[std::clamp(skin,0,progression::SkinCount)];}
@@ -33,10 +35,10 @@ void CancelWaiting(){waiting=false;}
 void Reward(int reward){if(reward<1||reward>36)return;waiting=false;opened=true;result=reward;start=Now();}
 bool Input(){
     if(waiting){if(Now()-start>8)waiting=false;return true;}
-    if(result>0){if(!Spinning()&&IsMouseButtonPressed(MOUSE_BUTTON_LEFT)&&CheckCollisionPointRec(GetMousePosition(),Back()))result=-1;return true;}
+    if(result>0){if(!Spinning()&&PointerPressed(MOUSE_BUTTON_LEFT)&&CheckCollisionPointRec(PointerPosition(),Back()))result=-1;return true;}
     if(!opened)return false;
-    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-        auto mouse=GetMousePosition();if(CheckCollisionPointRec(mouse,Back())){opened=false;return true;}
+    if(PointerPressed(MOUSE_BUTTON_LEFT)){
+        auto mouse=PointerPosition();if(CheckCollisionPointRec(mouse,Back())){opened=false;return true;}
         for(int i=0;i<3;++i)if(CheckCollisionPointRec(mouse,Tab(i))){category=i;return true;}
         for(int i=0;i<=progression::SkinCount;++i)if(CheckCollisionPointRec(mouse,Cell(i))){bw::EquipSkin(category,i);return true;}
     }

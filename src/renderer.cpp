@@ -1,3 +1,4 @@
+#include "texture_atlas.h"
 #include "projectile_models.h"
 #include "renderer.h"
 #include "map_blocks.h"
@@ -63,7 +64,11 @@ Color Shade(Color c,float light) {
         static_cast<unsigned char>(std::clamp(c.b*light,0.f,255.f)),c.a};
 }
 Texture2D MakeAtlas() {
+#if defined(__ANDROID__) || defined(MINECLONE_PACKED_ATLAS)
+    Image image=GenImageColor(64*TileSize,((TileCount+63)/64)*TileSize,BLANK);
+#else
     Image image=GenImageColor(TileSize*TileCount,TileSize,BLANK);
+#endif
     for(int tile=0;tile<TileCount;++tile) for(int y=0;y<TileSize;++y) for(int x=0;x<TileSize;++x) {
         const Block types[16]={Grass,Dirt,Stone,Wood,Wood,Leaves,Dirt,Sand,Water,Glass,Cactus,Cactus,Bricks,CoalOre,WhiteWool,Planks};
         Block type=tile<16?types[tile]:(tile>=BaseTileCount?Stone:tile>=BaseTileCount-2?Chest:static_cast<Block>(int(Cobblestone)+tile-16));
@@ -234,7 +239,7 @@ Texture2D MakeAtlas() {
             if(kind==9){c={176,24,20,255};if((x+y)%5==0)c={226,52,31,255};}
             if(kind==10||kind==11){c={78,111,72,255};if(x>3&&x<12&&y>3&&y<12)c=kind==11?Color{25,36,28,255}:Color{177,183,131,255};}
         }
-        ImageDrawPixel(&image,tile*TileSize+x,y,Shade(c,variation));
+        ImageDrawPixel(&image,AtlasX(tile,image.width)+x,AtlasY(tile,image.width)+y,Shade(c,variation));
     }
     Texture2D texture=LoadTextureFromImage(image); UnloadImage(image);
     SetTextureFilter(texture,TEXTURE_FILTER_POINT); SetTextureWrap(texture,TEXTURE_WRAP_CLAMP);
@@ -318,6 +323,11 @@ int MapFaceTile(const Face& face){
     }
     return BlockTile(state.material,direction);
 }
+#if defined(__ANDROID__) || defined(MINECLONE_PACKED_ATLAS)
+constexpr int AtlasColumns=64,AtlasRows=(TileCount+63)/64;
+#else
+constexpr int AtlasColumns=TileCount,AtlasRows=1;
+#endif
 struct Geometry {
     std::vector<float> positions,uvs,normals;
     std::vector<unsigned char> colors;
@@ -367,8 +377,8 @@ struct Geometry {
             }
             positions.insert(positions.end(),{vertex.x,vertex.y,vertex.z});
             normals.insert(normals.end(),{n.x,n.y,n.z});
-            uvs.push_back((tile*TileSize+.5f+uv[index][0]*(TileSize-1))/(TileSize*TileCount));
-            uvs.push_back((.5f+uv[index][1]*(TileSize-1))/TileSize);
+            uvs.push_back((AtlasX(tile,TileSize*AtlasColumns)+.5f+uv[index][0]*(TileSize-1))/(TileSize*AtlasColumns));
+            uvs.push_back((AtlasY(tile,TileSize*AtlasColumns)+.5f+uv[index][1]*(TileSize-1))/(TileSize*AtlasRows));
             Color color=vertexColors[index];
             colors.insert(colors.end(),{color.r,color.g,color.b,255});
         }
@@ -575,7 +585,7 @@ Mesh HeldMesh(Block item,const Image& atlas,int finish=0) {
     auto add=[&](int face,int pixelX,int pixelY,bool sprite) {
         int tile=BlockTile(item,face);
         Color color=Shade(WHITE,shading[face]);
-        if(finish&&sprite){Color original=GetImageColor(atlas,tile*16+pixelX,pixelY);bool handle=Sword(item)?pixelY>=9:(std::abs(pixelX+pixelY-16)<=1&&pixelX>=3&&pixelX<=10&&pixelY>=6);Color paint=handle?original:cosmetics::ColorFor(finish);float texture=.5f+.5f*std::max({original.r,original.g,original.b})/255.f;color=Shade(paint,shading[face]*(handle?1.f:texture));}
+        if(finish&&sprite){Color original=GetImageColor(atlas,AtlasX(tile,atlas.width)+pixelX,AtlasY(tile,atlas.width)+pixelY);bool handle=Sword(item)?pixelY>=9:(std::abs(pixelX+pixelY-16)<=1&&pixelX>=3&&pixelX<=10&&pixelY>=6);Color paint=handle?original:cosmetics::ColorFor(finish);float texture=.5f+.5f*std::max({original.r,original.g,original.b})/255.f;color=Shade(paint,shading[face]*(handle?1.f:texture));}
         for(int index:order) {
             Vector3 vertex;
             if(sprite) {
@@ -589,8 +599,8 @@ Mesh HeldMesh(Block item,const Image& atlas,int finish=0) {
             else vertex={Corners[face][index][0]-.5f,Corners[face][index][1]-.5f,Corners[face][index][2]-.5f};
             geometry.positions.insert(geometry.positions.end(),{vertex.x,vertex.y,vertex.z});
             geometry.normals.insert(geometry.normals.end(),{float(Normals[face][0]),float(Normals[face][1]),float(Normals[face][2])});
-            geometry.uvs.push_back((tile*TileSize+(sprite?pixelX+.5f:.5f+uv[index][0]*15))/float(TileSize*TileCount));
-            geometry.uvs.push_back((sprite?pixelY+.5f:.5f+uv[index][1]*15)/16.f);
+            geometry.uvs.push_back((AtlasX(tile,atlas.width)+(sprite?pixelX+.5f:.5f+uv[index][0]*15))/float(atlas.width));
+            geometry.uvs.push_back((AtlasY(tile,atlas.width)+(sprite?pixelY+.5f:.5f+uv[index][1]*15))/float(atlas.height));
             geometry.colors.insert(geometry.colors.end(),{color.r,color.g,color.b,255});
         }
     };
@@ -621,7 +631,7 @@ Mesh HeldMesh(Block item,const Image& atlas,int finish=0) {
         for(int f=0;f<6;++f) add(f,0,0,false);
     } else {
         int tile=BlockTile(item);
-        auto visible=[&](int x,int y) {return x>=0&&x<16&&y>=0&&y<16&&GetImageColor(atlas,tile*16+x,y).a>40;};
+        auto visible=[&](int x,int y) {return x>=0&&x<16&&y>=0&&y<16&&GetImageColor(atlas,AtlasX(tile,atlas.width)+x,AtlasY(tile,atlas.width)+y).a>40;};
         for(int y=0;y<16;++y) for(int x=0;x<16;++x) if(visible(x,y)) {
             add(4,x,y,true);add(5,x,y,true);
             if(!visible(x+1,y)) add(0,x,y,true);
@@ -746,7 +756,21 @@ Renderer::~Renderer() {
     if(impl->atlas.id) UnloadTexture(impl->atlas);
 }
 bool Renderer::Initialize() {
-    impl->atlas=MakeAtlas(); impl->shader=LoadShaderFromMemory(VertexShader,FragmentShader);
+    impl->atlas=MakeAtlas();
+#ifdef __ANDROID__
+    auto mobileShader=[](std::string text,bool vertex){
+        auto replace=[&](const std::string& from,const std::string& to){size_t at=0;while((at=text.find(from,at))!=std::string::npos){text.replace(at,from.size(),to);at+=to.size();}};
+        // Vertex highp is mandatory in ES 2.0, even without fragment highp.
+        replace("#version 330",vertex?"#version 100\nprecision highp float;":"#version 100\n#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif");
+        if(vertex){replace("in vec","attribute vec");replace("out vec","varying vec");}
+        else{replace("in vec","varying vec");replace("out vec4 finalColor;","");replace("finalColor=","gl_FragColor=");replace("texture(","texture2D(");}
+        return text;
+    };
+    auto mobileVertex=mobileShader(VertexShader,true),mobileFragment=mobileShader(FragmentShader,false);
+    impl->shader=LoadShaderFromMemory(mobileVertex.c_str(),mobileFragment.c_str());
+#else
+    impl->shader=LoadShaderFromMemory(VertexShader,FragmentShader);
+#endif
     if(!impl->atlas.id||!impl->shader.id||impl->shader.id==rlGetShaderIdDefault()) return false;
     for(int i=0;i<10;++i)impl->cracks[i]=MakeMiningCracks(i);
     impl->atlasPixels=LoadImageFromTexture(impl->atlas);

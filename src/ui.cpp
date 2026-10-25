@@ -1,3 +1,6 @@
+#include "android_platform.h"
+#include "texture_atlas.h"
+#include "touch_controls.h"
 #include "ui.h"
 #include "inventory_layout.h"
 #include "bedwars.h"
@@ -95,7 +98,7 @@ void Icon(Texture2D atlas,Rectangle slot,Block b) {
     if(b==Air) return;
     int tile=BlockTile(b);
     DrawRectangle(int(slot.x+14),int(slot.y+9),34,34,{68,72,75,255});
-    DrawTexturePro(atlas,{float(tile*TileSize),0,TileSize,TileSize},{slot.x+14,slot.y+9,34,34},{0,0},0,WHITE);
+    DrawTexturePro(atlas,AtlasTile(atlas,tile),{slot.x+14,slot.y+9,34,34},{0,0},0,WHITE);
     const char* label=Names[b];
     if(b>=WoodenSword&&b<=IronSword) label=b==WoodenSword?"Esp. madeira":(b==StoneSword?"Esp. pedra":"Esp. ferro");
     if(b>=WoodenPickaxe&&b<=IronPickaxe) label=b==WoodenPickaxe?"Pic. madeira":(b==StonePickaxe?"Pic. pedra":"Pic. ferro");
@@ -107,7 +110,7 @@ void Icon(Texture2D atlas,Rectangle slot,Block b) {
     }
     DrawText(caption.c_str(),int(slot.x+(slot.width-MeasureText(caption.c_str(),font))/2),int(slot.y+50),font,RAYWHITE);
 }
-bool Hover(Rectangle r) {return CheckCollisionPointRec(GetMousePosition(),r);}
+bool Hover(Rectangle r) {return CheckCollisionPointRec(PointerPosition(),r);}
 int VisibleWorldRows() {return std::max(1,(GetScreenHeight()-230)/52);}
 Rectangle WorldRow(int i) {return {GetScreenWidth()/2.f-310,105.f+i*52,620,46};}
 Rectangle DeleteButton(int row) {
@@ -118,6 +121,33 @@ Rectangle WorldButton(bool back) {
 }
 Rectangle PauseButton(int i) {
     return {GetScreenWidth()/2.f-210,GetScreenHeight()/2.f-60+i*64.f,420,48};
+}
+bool touchEditor=false,touchDragging=false,touchSaveFailed=false;int touchSelected=0;Vector2 touchOffset{};
+Rectangle TouchToolbar(int i){float width=std::min(130.f,(GetScreenWidth()-24.f)/5);return {12+i*width,12,width-4,40};}
+void UpdateTouchEditor(){
+    TouchLayout layout(GetScreenWidth(),GetScreenHeight());auto pointer=PointerPosition();
+    if(PointerPressed(MOUSE_BUTTON_LEFT)){
+        for(int i=0;i<5;++i)if(CheckCollisionPointRec(pointer,TouchToolbar(i))){
+            if(i==0){touchSaveFailed=!SaveSettings();if(!touchSaveFailed){touchEditor=false;touchDragging=false;}}
+            if(i==1){Settings.touchLayout={};touchDragging=false;}
+            if(i==2)Settings.touchDpad=!Settings.touchDpad;
+            if(i==3||i==4)Settings.touchLayout[touchSelected].scale=std::clamp(Settings.touchLayout[touchSelected].scale+(i==3?-.1f:.1f),.5f,2.f);
+            return;
+        }
+        touchDragging=false;
+        for(int i=8;i>=0;--i){auto r=layout.Control(i);if(CheckCollisionPointRec(pointer,r)){touchSelected=i;touchOffset={pointer.x-r.x-r.width/2,pointer.y-r.y-r.height/2};touchDragging=true;break;}}
+    }
+    if(!PointerDown(MOUSE_BUTTON_LEFT))touchDragging=false;
+    if(touchDragging){auto r=layout.Control(touchSelected);auto& p=Settings.touchLayout[touchSelected];p.x=std::clamp(pointer.x-touchOffset.x,r.width/2,GetScreenWidth()-r.width/2)/GetScreenWidth();p.y=std::clamp(pointer.y-touchOffset.y,r.height/2,GetScreenHeight()-r.height/2)/GetScreenHeight();}
+}
+void DrawTouchEditor(){
+    int w=GetScreenWidth(),h=GetScreenHeight();DrawRectangle(0,0,w,h,{24,29,34,245});
+    TouchLayout layout(w,h);const char* names[]={"Movimento","Hotbar","Pular","Usar","Picar","Correr","Pausa","Inventario","Dropar"};
+    for(int i=0;i<9;++i){auto r=layout.Control(i);DrawRectangleRec(r,Fade(i==touchSelected?GOLD:GRAY,.35f));DrawRectangleLinesEx(r,2,i==touchSelected?GOLD:WHITE);DrawText(names[i],int(r.x+4),int(r.y+r.height/2-8),16,WHITE);}
+    const char* labels[]={"Salvar / voltar","Restaurar",Settings.touchDpad?"D-pad":"Joystick","Menor -","Maior +"};
+    for(int i=0;i<5;++i){auto r=TouchToolbar(i);DrawRectangleRec(r,{65,69,77,255});DrawRectangleLinesEx(r,1,WHITE);int font=std::min(16,int(r.width/8));DrawText(labels[i],int(r.x+4),int(r.y+13),font,WHITE);}
+    if(touchSaveFailed)DrawText("Falha ao salvar. Tente novamente.",12,84,16,RED);
+    DrawText(TextFormat("Arraste para mover. Selecionado: %s (%d%%)",names[touchSelected],int(Settings.touchLayout[touchSelected].scale*100+.5f)),12,62,16,WHITE);
 }
 Rectangle OptionsPanel() {return {GetScreenWidth()/2.f-320,GetScreenHeight()/2.f-224,640,448};}
 Rectangle OptionsTab(int i){auto p=OptionsPanel();return {p.x+20+i*202,p.y+48,196,34};}
@@ -155,7 +185,7 @@ void TakeFurnaceOutput(ItemStack& slot,bool right) {
 }
 void StackIcon(Texture2D atlas,Rectangle r,ItemStack stack) {
     if(!stack.count) return;
-    DrawTexturePro(atlas,{float(BlockTile(stack.block)*TileSize),0,TileSize,TileSize},
+    DrawTexturePro(atlas,AtlasTile(atlas,BlockTile(stack.block)),
         {r.x+5,r.y+4,r.width-10,r.height-10},{0,0},0,WHITE);
     if(ToolDurability(stack.block)>0&&stack.damage) {
         float left=1.f-float(stack.damage)/ToolDurability(stack.block);
@@ -186,14 +216,17 @@ void UI::OpenChest(int x,int y,int z) {chestX=x;chestY=y;chestZ=z;}
 void UI::ResetInteraction() {capturingBinding=-1;bindingMessage.clear();draggingSlider=0;catalogOpen=false;message.clear();}
 UI::~UI(){for(auto preview:mapPreviews)if(preview.id)UnloadRenderTexture(preview);if(skywarsPreview.id)UnloadRenderTexture(skywarsPreview);}
 UiAction UI::Update(GameState state) {
+    ApplyAndroidText();
+    if(state==GameState::Options&&touchEditor){UpdateTouchEditor();return UiAction::None;}
+    if(state!=GameState::Options)touchEditor=false;
     if(state==GameState::WorldLoading)return UiAction::None;
     if(state==GameState::Keyboard){
         int visible=std::max(1,(GetScreenHeight()-200)/38);
-        if(capturingBinding>=0){int key=GetKeyPressed();if(key==KEY_ESCAPE){capturingBinding=-1;bindingMessage.clear();return UiAction::None;}if(key==KEY_BACKSPACE||key==KEY_DELETE)key=0;else if(!key){for(int button=0;button<7;++button)if(IsMouseButtonPressed(button)){key=-button-1;break;}if(!key)return UiAction::None;}
+        if(capturingBinding>=0){int key=GetKeyPressed();if(key==KEY_ESCAPE){capturingBinding=-1;bindingMessage.clear();return UiAction::None;}if(key==KEY_BACKSPACE||key==KEY_DELETE)key=0;else if(!key){for(int button=0;button<7;++button)if(PointerPressed(button)){key=-button-1;break;}if(!key)return UiAction::None;}
             if(SetBinding(BindingAction(capturingBinding),key)){capturingBinding=-1;bindingMessage="Bind alterada";}else bindingMessage="Tecla ja usada. Escolha outra ou ESC para cancelar.";return UiAction::None;
         }
         bindingScroll=std::clamp(bindingScroll-int(GetMouseWheelMove()),0,std::max(0,BindingCount-visible));
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+        if(PointerPressed(MOUSE_BUTTON_LEFT)){
             float x=GetScreenWidth()/2.f-300,y=float(GetScreenHeight()-70);
             if(Hover({x,y,290,40})){Settings.bindings=DefaultBindings;bindingMessage="Binds restauradas ao padrao";return UiAction::None;}
             if(Hover({x+310,y,290,40}))return UiAction::CloseKeyboard;
@@ -216,12 +249,13 @@ UiAction UI::Update(GameState state) {
     if(state==GameState::BedwarsMode){
         float x=GetScreenWidth()/2.f-220,y=GetScreenHeight()/2.f-60;
         bool control=IsKeyDown(KEY_LEFT_CONTROL)||IsKeyDown(KEY_RIGHT_CONTROL);
+        if(PointerPressed(MOUSE_BUTTON_LEFT)&&Hover({x,y-20,440,36}))EditAndroidText(roomName,32);
         if(control&&IsKeyPressed(KEY_A))roomName.clear();
         auto append=[&](int c){if(c>=32&&c<=126&&roomName.size()<32)roomName.push_back(char(c));};
         if(control&&IsKeyPressed(KEY_V)){const char* text=GetClipboardText();if(text)for(;*text;++text)append(static_cast<unsigned char>(*text));}
         for(int c=GetCharPressed();c;c=GetCharPressed())if(!control)append(c);
         if(IsKeyPressed(KEY_BACKSPACE)&&!roomName.empty())roomName.pop_back();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+        if(PointerPressed(MOUSE_BUTTON_LEFT)){
             for(int i=0;i<2;++i)if(Hover({x,y+40+i*65,440,50})){if(roomName.find_first_not_of(" ")==std::string::npos){Notify("Escolha um nome para a sala");return UiAction::None;}teamCapacity=i+1;return standardLayout?UiAction::ChooseRush:UiAction::ChooseMap;}
             if(Hover({x,y+170,440,40})){standardLayout=!standardLayout;mapPage=0;mapChoice=standardLayout?0:3;return UiAction::None;}
             if(Hover({x,y+220,440,40}))return UiAction::OpenBedwars;
@@ -229,11 +263,11 @@ UiAction UI::Update(GameState state) {
         return UiAction::None;
     }
 
-    if(state==GameState::BedwarsTeams){if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){for(const auto& team:bw::TeamChoices())if(team.available&&Hover(TeamButton(team.id))){bw::SelectTeam(team.id);return UiAction::None;}if(Hover(TeamBack()))return UiAction::Resume;}return UiAction::None;}
+    if(state==GameState::BedwarsTeams){if(PointerPressed(MOUSE_BUTTON_LEFT)){for(const auto& team:bw::TeamChoices())if(team.available&&Hover(TeamButton(team.id))){bw::SelectTeam(team.id);return UiAction::None;}if(Hover(TeamBack()))return UiAction::Resume;}return UiAction::None;}
     if(state==GameState::Minigames){
         if(!mapPreviews[0].id)mapPreviews[0]=bw::CreateMapPreview(0,16);
         if(!skywarsPreview.id)skywarsPreview=CreateSkywarsPreview();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+        if(PointerPressed(MOUSE_BUTTON_LEFT)){
             if(Hover(TesterButton()))return UiAction::OpenTester;
             if(Hover(MinigameCard(0)))return UiAction::OpenBedwars;
             if(Hover(MinigamesBack()))return UiAction::BackToMenu;
@@ -242,11 +276,11 @@ UiAction UI::Update(GameState state) {
     }
     if(state==GameState::BedwarsMaps){
         int pages=(bw::MapCount-3+5)/6;
-        if(!standardLayout){int delta=IsKeyPressed(KEY_RIGHT)?1:IsKeyPressed(KEY_LEFT)?-1:0;delta-=int(GetMouseWheelMove());if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){if(Hover(MapPageButton(false)))--delta;if(Hover(MapPageButton(true)))++delta;}mapPage=std::clamp(mapPage+delta,0,pages-1);}
+        if(!standardLayout){int delta=IsKeyPressed(KEY_RIGHT)?1:IsKeyPressed(KEY_LEFT)?-1:0;delta-=int(GetMouseWheelMove());if(PointerPressed(MOUSE_BUTTON_LEFT)){if(Hover(MapPageButton(false)))--delta;if(Hover(MapPageButton(true)))++delta;}mapPage=std::clamp(mapPage+delta,0,pages-1);}
         int first=standardLayout?0:3+mapPage*6,last=standardLayout?3:std::min(first+6,bw::MapCount);
         for(int i=first;i<last;++i)if(!mapPreviews[i].id||(standardLayout&&previewGap!=rushGap)){if(mapPreviews[i].id)UnloadRenderTexture(mapPreviews[i]);mapPreviews[i]=bw::CreateMapPreview(i,rushGap);}
         if(standardLayout)previewGap=rushGap;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))for(int i=first;i<last;++i)if(Hover(MapCard(i-first,last-first))){mapChoice=i;return UiAction::HostBedwars;}
+        if(PointerPressed(MOUSE_BUTTON_LEFT))for(int i=first;i<last;++i)if(Hover(MapCard(i-first,last-first))){mapChoice=i;return UiAction::HostBedwars;}
         return UiAction::None;
     }
 
@@ -255,8 +289,9 @@ UiAction UI::Update(GameState state) {
         if(Hover(layout.list))lanScroll-=int(GetMouseWheelMove());
         if(Hover(layout.right))rosterScroll=std::max(0,rosterScroll-int(GetMouseWheelMove()));
         lanScroll=std::clamp(lanScroll,0,std::max(0,int(rooms.size())-visible));
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+        if(PointerPressed(MOUSE_BUTTON_LEFT)){
             browserField=-1;for(int i=0;i<5;++i)if(Hover(layout.fields[i]))browserField=i;
+            if(browserField>=0){std::string* fields[]={&roomSearch,&mapSearch,&pingSearch,&playerName,&bedwarsAddress};EditAndroidText(*fields[browserField],browserField==2?4:browserField==3?16:64,browserField==2?2:browserField==3?1:0);}
             if(Hover(layout.onlyOpen)){onlyOpenRooms=!onlyOpenRooms;lanScroll=0;}
             if(Hover(layout.refresh)&&!bw::Active()){lanScroll=0;return UiAction::SearchBedwars;}
             if(Hover(layout.create)&&!bw::Active())return UiAction::ChooseMode;
@@ -279,16 +314,16 @@ UiAction UI::Update(GameState state) {
         return UiAction::None;
     }
 
-    if(state==GameState::BedwarsRush){float x=GetScreenWidth()/2.f-220,y=GetScreenHeight()/2.f-100;if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))for(int i=0;i<3;++i)if(Hover({x,y+i*60,440,48})){rushGap=16<<i;return UiAction::ChooseMap;}return UiAction::None;}
+    if(state==GameState::BedwarsRush){float x=GetScreenWidth()/2.f-220,y=GetScreenHeight()/2.f-100;if(PointerPressed(MOUSE_BUTTON_LEFT))for(int i=0;i<3;++i)if(Hover({x,y+i*60,440,48})){rushGap=16<<i;return UiAction::ChooseMap;}return UiAction::None;}
 
     if(state==GameState::BedwarsShop){bw::ShopInput();return UiAction::None;}
     if(state==GameState::BedwarsInventory||state==GameState::BedwarsChest){bw::InventoryInput(state==GameState::BedwarsChest);return UiAction::None;}
 
     if(state==GameState::Multiplayer) {
         float x=GetScreenWidth()/2.f-280,y=GetScreenHeight()/2.f-150;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            if(Hover({x,y+55,560,38}))serverField=0;
-            if(Hover({x,y+130,560,38}))serverField=1;
+        if(PointerPressed(MOUSE_BUTTON_LEFT)) {
+            if(Hover({x,y+55,560,38})){serverField=0;EditAndroidText(serverAddress,253,3);}
+            if(Hover({x,y+130,560,38})){serverField=1;EditAndroidText(playerName,16,1);}
             if(Hover({x,y+262,270,40}))return net::Active()?UiAction::DisconnectServer:UiAction::ConnectServer;
             if(Hover({x+290,y+262,270,40}))return UiAction::BackToMenu;
         }
@@ -300,10 +335,10 @@ UiAction UI::Update(GameState state) {
     }
     if(CursorStack.count&&((state==GameState::Inventory&&!catalogOpen)||state==GameState::ChestScreen||state==GameState::CraftScreen||state==GameState::FurnaceScreen)){
         auto panel=state==GameState::Inventory?InventoryPanel():ChestPanel();
-        if(!Hover(panel)){if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))return UiAction::DropCursor;if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))return UiAction::DropCursorSingle;}
+        if(!Hover(panel)){if(PointerPressed(MOUSE_BUTTON_LEFT))return UiAction::DropCursor;if(PointerPressed(MOUSE_BUTTON_RIGHT))return UiAction::DropCursorSingle;}
     }
     if(state==GameState::ServerInventory) {
-        bool left=IsMouseButtonPressed(MOUSE_BUTTON_LEFT),right=IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+        bool left=PointerPressed(MOUSE_BUTTON_LEFT),right=PointerPressed(MOUSE_BUTTON_RIGHT);
         if(left||right){auto slots=RemoteSlots();for(const auto& slot:slots)if(Hover(slot.rect)){net::ClickSlot(slot.index,right,ActionDown(BindingAction::Sneak));return UiAction::None;}
             if(!slots.empty()){auto panel=slots.front().rect;for(const auto& slot:slots){float x=std::min(panel.x,slot.rect.x),y=std::min(panel.y,slot.rect.y);panel={x,y,std::max(panel.x+panel.width,slot.rect.x+slot.rect.width)-x,std::max(panel.y+panel.height,slot.rect.y+slot.rect.height)-y};}panel={panel.x-8,panel.y-28,panel.width+16,panel.height+36};if(!Hover(panel))net::ClickSlot(-999,right,false);}
         }
@@ -319,14 +354,14 @@ UiAction UI::Update(GameState state) {
         }
     }
     if(state==GameState::Dead) {
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if(PointerPressed(MOUSE_BUTTON_LEFT)) {
             if(Hover(PauseButton(0))) return UiAction::Respawn;
             if(Hover(PauseButton(1))) return UiAction::SaveAndReturn;
         }
         return UiAction::None;
     }
     if(state==GameState::CraftScreen||state==GameState::FurnaceScreen) {
-        Rectangle p=ChestPanel();bool left=IsMouseButtonPressed(MOUSE_BUTTON_LEFT),right=IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+        Rectangle p=ChestPanel();bool left=PointerPressed(MOUSE_BUTTON_LEFT),right=PointerPressed(MOUSE_BUTTON_RIGHT);
         if(left&&Hover({p.x+390,p.y+8,26,23})) return UiAction::CloseChest;
         if(state==GameState::CraftScreen) {
             if(left||right) {
@@ -349,7 +384,7 @@ UiAction UI::Update(GameState state) {
         auto* slots=ChestAt(chestX,chestY,chestZ);
         if(!slots) return UiAction::CloseChest;
         Rectangle p=ChestPanel();
-        bool left=IsMouseButtonPressed(MOUSE_BUTTON_LEFT),right=IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+        bool left=PointerPressed(MOUSE_BUTTON_LEFT),right=PointerPressed(MOUSE_BUTTON_RIGHT);
         if(left&&Hover({p.x+390,p.y+8,26,23})) return UiAction::CloseChest;
         if(left||right) {
             for(int i=0;i<27;++i) {
@@ -370,7 +405,7 @@ UiAction UI::Update(GameState state) {
         return UiAction::None;
     }
     if(state==GameState::Options) {
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if(PointerPressed(MOUSE_BUTTON_LEFT)) {
             for(int i=0;i<3;++i)if(Hover(OptionsTab(i))){optionsPage=i;draggingSlider=0;return UiAction::None;}
             if(Hover(OptionControl(3)))return UiAction::CloseOptions;
             if(optionsPage==0){
@@ -382,15 +417,16 @@ UiAction UI::Update(GameState state) {
                 if(Hover(OptionControl(2)))draggingSlider=2;
                 else if(Hover(OptionControl(9)))Settings.toggleSprint=!Settings.toggleSprint;
                 else if(Hover(OptionControl(8)))return UiAction::OpenKeyboard;
+                else if(Hover(OptionControl(10))){touchEditor=true;touchDragging=false;}
             }else{
                 if(Hover(OptionControl(11)))Settings.beautifulSky=!Settings.beautifulSky;
                 else if(Hover(OptionControl(12)))Settings.fullBright=!Settings.fullBright;
             }
         }
-        if(!IsMouseButtonDown(MOUSE_BUTTON_LEFT)) draggingSlider=0;
+        if(!PointerDown(MOUSE_BUTTON_LEFT)) draggingSlider=0;
         if(draggingSlider) {
             Rectangle r=OptionControl(draggingSlider);
-            float value=std::clamp((GetMousePosition().x-r.x-10)/(r.width-20),0.f,1.f);
+            float value=std::clamp((PointerPosition().x-r.x-10)/(r.width-20),0.f,1.f);
             if(draggingSlider==1) {
                 Settings.newWorldMinute=int(std::lround(value*1439));
                 SetClockMinute(Settings.newWorldMinute);
@@ -402,7 +438,7 @@ UiAction UI::Update(GameState state) {
         return UiAction::None;
     }
     if(state==GameState::MainMenu) {
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if(PointerPressed(MOUSE_BUTTON_LEFT)) {
             if(Hover(MainButton(0))) return UiAction::OpenWorlds;
             if(Hover(MainButton(1))) return UiAction::OpenMinigames;
             if(Hover(MainButton(2))) return UiAction::OpenOptions;
@@ -411,14 +447,14 @@ UiAction UI::Update(GameState state) {
         return UiAction::None;
     }
     if(state==GameState::WorldSelection) {
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)&&Hover({GetScreenWidth()/2.f+35,70,275,28})) {
+        if(PointerPressed(MOUSE_BUTTON_LEFT)&&Hover({GetScreenWidth()/2.f+35,70,275,28})) {
             NewWorldMode=NewWorldMode==GameMode::Creative?GameMode::Survival:GameMode::Creative;
             return UiAction::None;
         }
         float wheel=GetMouseWheelMove();
         worldScroll=std::clamp(worldScroll+(wheel>0?-1:wheel<0?1:0),0,
             std::max(0,int(worlds.size())-VisibleWorldRows()));
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if(PointerPressed(MOUSE_BUTTON_LEFT)) {
             if(Hover(WorldButton(false))) return UiAction::NewWorld;
             if(Hover(WorldButton(true))) return UiAction::BackToMenu;
             for(int i=0;i<VisibleWorldRows()&&worldScroll+i<int(worlds.size());++i) {
@@ -431,7 +467,7 @@ UiAction UI::Update(GameState state) {
     const bool paused=state==GameState::Paused;
     const bool inventory=state==GameState::Inventory;
     if(paused) {
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if(PointerPressed(MOUSE_BUTTON_LEFT)) {
             if(Hover(PauseButton(0))) {message.clear();return UiAction::Resume;}
             if(Hover(PauseButton(1))) return UiAction::OpenOptions;
             if(Hover(PauseButton(2))) return UiAction::SaveAndReturn;
@@ -439,7 +475,7 @@ UiAction UI::Update(GameState state) {
         return UiAction::None;
     }
     if(inventory&&!catalogOpen) {
-        bool left=IsMouseButtonPressed(MOUSE_BUTTON_LEFT),right=IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+        bool left=PointerPressed(MOUSE_BUTTON_LEFT),right=PointerPressed(MOUSE_BUTTON_RIGHT);
         if(Mode==GameMode::Creative&&left&&Hover(CreativeItemsButton())) {catalogOpen=true;return UiAction::None;}
         if(left||right)for(int i=0;i<4;++i)if(Hover(ClassicArmorSlot(i))) {
             if(!CursorStack.count||(Armor(CursorStack.block)&&ArmorSlot(CursorStack.block)==i))ClickStack(EquippedArmor[i],right);
@@ -476,7 +512,7 @@ UiAction UI::Update(GameState state) {
         if(IsKeyPressed(KEY_RIGHT)||IsKeyPressed(KEY_PAGE_DOWN)) inventoryPage=(inventoryPage+1)%pages;
         if(IsKeyPressed(KEY_LEFT)||IsKeyPressed(KEY_PAGE_UP)) inventoryPage=(inventoryPage+pages-1)%pages;
         Rectangle p=Panel();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if(PointerPressed(MOUSE_BUTTON_LEFT)) {
             if(Hover({p.x+440,p.y+12,195,28})) {catalogOpen=false;return UiAction::None;}
             if(Hover({p.x+24,p.y+264,105,22})) inventoryPage=(inventoryPage+pages-1)%pages;
             if(Hover({p.x+520,p.y+264,115,22})) inventoryPage=(inventoryPage+1)%pages;
@@ -490,7 +526,7 @@ UiAction UI::Update(GameState state) {
                 }
             }
         }
-        bool left=IsMouseButtonPressed(MOUSE_BUTTON_LEFT),right=IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+        bool left=PointerPressed(MOUSE_BUTTON_LEFT),right=PointerPressed(MOUSE_BUTTON_RIGHT);
         if(left||right) for(int i=0;i<9;++i) if(Hover(Slot(i,p.y+318,p.x+24))) {
             selected=i;
             if(left&&ActionDown(BindingAction::Sneak)) Hotbar[i]={};else ClickStack(Hotbar[i],right);
@@ -624,7 +660,7 @@ void UI::Draw(Texture2D atlas,GameState state) const {
             for(const auto& slot:layout){DrawRectangleRec(slot.rect,Hover(slot.rect)?LIGHTGRAY:GRAY);const auto& item=slots[slot.index];if(item.count)StackIcon(atlas,slot.rect,{net::LocalItem(item),item.count});}
             DrawText("E / ESC: fechar",int(left),int(bottom+12),14,DARKGRAY);
         }
-        if(net::Cursor().count){auto m=GetMousePosition();StackIcon(atlas,{m.x-18,m.y-18,40,40},{net::LocalItem(net::Cursor()),net::Cursor().count});}return;
+        if(net::Cursor().count){auto m=PointerPosition();StackIcon(atlas,{m.x-18,m.y-18,40,40},{net::LocalItem(net::Cursor()),net::Cursor().count});}return;
     }
     if(state==GameState::Dead) {
         DrawRectangle(0,0,GetScreenWidth(),GetScreenHeight(),{65,5,5,180});
@@ -650,8 +686,8 @@ void UI::Draw(Texture2D atlas,GameState state) const {
         DrawText("Inventario",int(p.x+16),int(p.y+180),18,DARKGRAY);
         for(int group=0;group<2;++group) for(int i=0;i<(group?9:27);++i) drawSlot(ChestSlot(i,group?2:1),group?Hotbar[i]:Backpack[i]);
         DrawText("E / ESC: fechar",int(p.x+16),int(p.y+405),14,DARKGRAY);
-        if(CursorStack.count) {Vector2 m=GetMousePosition();StackIcon(atlas,{m.x-18,m.y-18,40,40},CursorStack);}
-        else if(hovered!=Air) {Vector2 m=GetMousePosition();DrawRectangle(int(m.x+12),int(m.y-28),MeasureText(Names[hovered],16)+16,25,{29,24,36,245});DrawText(Names[hovered],int(m.x+20),int(m.y-23),16,WHITE);}
+        if(CursorStack.count) {Vector2 m=PointerPosition();StackIcon(atlas,{m.x-18,m.y-18,40,40},CursorStack);}
+        else if(hovered!=Air) {Vector2 m=PointerPosition();DrawRectangle(int(m.x+12),int(m.y-28),MeasureText(Names[hovered],16)+16,25,{29,24,36,245});DrawText(Names[hovered],int(m.x+20),int(m.y-23),16,WHITE);}
         return;
     }
     if(state==GameState::ChestScreen) {
@@ -669,9 +705,9 @@ void UI::Draw(Texture2D atlas,GameState state) const {
         }
         DrawText("Shift: transferir pilha | E / ESC: fechar",int(p.x+12),int(p.y+405),14,{45,40,31,255});
         if(CursorStack.count) {
-            Vector2 mouse=GetMousePosition();StackIcon(atlas,{mouse.x-18,mouse.y-18,40,40},CursorStack);
+            Vector2 mouse=PointerPosition();StackIcon(atlas,{mouse.x-18,mouse.y-18,40,40},CursorStack);
         } else if(hovered!=Air) {
-            Vector2 mouse=GetMousePosition();int width=MeasureText(Names[hovered],16)+16;
+            Vector2 mouse=PointerPosition();int width=MeasureText(Names[hovered],16)+16;
             DrawRectangle(int(mouse.x+12),int(mouse.y-28),width,25,{29,24,36,245});
             DrawText(Names[hovered],int(mouse.x+20),int(mouse.y-23),16,WHITE);
         }
@@ -692,11 +728,12 @@ void UI::Draw(Texture2D atlas,GameState state) const {
         DrawText(">",int(p.x+139*scale),int(p.y+29*scale),int(10*scale),GRAY);
         if(Mode==GameMode::Creative){auto button=CreativeItemsButton();DrawRectangleRec(button,Hover(button)?Color{109,137,96,255}:Color{93,112,82,255});DrawText("Todos os itens",int(button.x+3*scale),int(button.y+4*scale),int(6*scale),WHITE);}
         for(int i=0;i<36;++i){auto r=ClassicPlayerSlot(i);DrawInventorySlot(r,Hover(r));auto stack=i<9?Hotbar[i]:Backpack[i-9];StackIcon(atlas,r,stack);if(Hover(r))hovered=stack.block;}
-        if(CursorStack.count){auto m=GetMousePosition();StackIcon(atlas,{m.x-8*scale,m.y-8*scale,16*scale,16*scale},CursorStack);}
-        else if(hovered!=Air){auto m=GetMousePosition();int width=MeasureText(Names[hovered],16)+16;DrawRectangle(int(m.x+12),int(m.y-28),width,25,{29,24,36,245});DrawText(Names[hovered],int(m.x+20),int(m.y-23),16,WHITE);}
+        if(CursorStack.count){auto m=PointerPosition();StackIcon(atlas,{m.x-8*scale,m.y-8*scale,16*scale,16*scale},CursorStack);}
+        else if(hovered!=Air){auto m=PointerPosition();int width=MeasureText(Names[hovered],16)+16;DrawRectangle(int(m.x+12),int(m.y-28),width,25,{29,24,36,245});DrawText(Names[hovered],int(m.x+20),int(m.y-23),16,WHITE);}
         return;
     }
     if(state==GameState::Options) {
+        if(touchEditor){DrawTouchEditor();return;}
         int w=GetScreenWidth(),h=GetScreenHeight();Rectangle p=OptionsPanel();
         DrawRectangle(0,0,w,h,Fade(BLACK,.55f));
         DrawRectangleRec(p,{48,46,42,255});DrawRectangleLinesEx(p,3,{155,151,138,255});
@@ -714,6 +751,7 @@ void UI::Draw(Texture2D atlas,GameState state) const {
             DrawText(TextFormat("Sensibilidade do mouse: %.0f%%",Settings.mouseSensitivity*100),int(p.x+20),int(p.y+121),17,WHITE);Slider(OptionControl(2),(Settings.mouseSensitivity-.1f)/2.9f);
             ClassicButton(OptionControl(9),Settings.toggleSprint?"Toggle Sprint: LIGADO":"Toggle Sprint: DESLIGADO",true);
             ClassicButton(OptionControl(8),"Keyboard: configurar teclas e mouse",true);
+            ClassicButton(OptionControl(10),"Touch: editar botoes",true);
         }else{
             ClassicButton(OptionControl(11),Settings.beautifulSky?"Ceu melhorado: LIGADO":"Ceu melhorado: DESLIGADO",true);
             ClassicButton(OptionControl(12),Settings.fullBright?"Full Bright: LIGADO":"Full Bright: DESLIGADO",true);
@@ -776,6 +814,13 @@ void UI::Draw(Texture2D atlas,GameState state) const {
             DrawRectangle(w/2-8,h/2-1,17,3,Fade(BLACK,.8f)); DrawRectangle(w/2-1,h/2-8,3,17,Fade(BLACK,.8f));
             DrawLine(w/2-6,h/2,w/2+6,h/2,RAYWHITE);DrawLine(w/2,h/2-6,w/2,h/2+6,RAYWHITE);
         }
+        if(Touch.enabled){
+            TouchLayout layout(w,h);DrawRectangleRec({layout.hotbar.x-4,layout.hotbar.y-4,layout.hotbar.width+8,layout.hotbar.height+8},Fade(BLACK,.65f));
+            for(int i=0;i<9;++i){auto r=layout.Slot(i);DrawRectangleRec(r,{48,46,42,235});DrawRectangleLinesEx(r,selected==i?3.f:1.f,selected==i?GOLD:GRAY);
+                float size=std::min(r.width-8,r.height-12);if(Hotbar[i].count)DrawTexturePro(atlas,AtlasTile(atlas,BlockTile(Hotbar[i].block)),{r.x+(r.width-size)/2,r.y+4,size,size},{0,0},0,WHITE);
+                if(Hotbar[i].count>1)DrawText(TextFormat("%d",Hotbar[i].count),int(r.x+r.width-22),int(r.y+r.height-17),14,WHITE);
+            }
+        }else{
         float left=w/2.f-306;
         DrawRectangle(int(left-6),h-93,620,85,Fade(BLACK,.7f));
         for(int i=0;i<9;++i) {
@@ -791,18 +836,21 @@ void UI::Draw(Texture2D atlas,GameState state) const {
             if(Hotbar[i].count) DrawText(TextFormat("%d",Hotbar[i].count),int(r.x+43),int(r.y+33),14,WHITE);
             DrawText(TextFormat("%d",i+1),int(r.x+5),int(r.y+4),14,WHITE);
         }
+            }
     }
+
     if(state==GameState::Playing&&Mode==GameMode::Survival) {
-        int left=w/2-300;
+        int left=Touch.enabled?w/2-92:w/2-300;
+        int heartsY=Touch.enabled?int(TouchLayout(w,h).hotbar.y)-20:h-115;
         for(int i=0;i<10;++i) {
-            int x=left+i*18,y=h-115;float units=Health-i*2;
+            int x=left+i*18,y=heartsY;float units=Health-i*2;
             Color color=units>=2?Color{214,42,48,255}:(units>0?Color{145,31,40,255}:Color{43,24,26,255});
             DrawRectangle(x,y,5,5,color);DrawRectangle(x+6,y,5,5,color);
             DrawRectangle(x+1,y+4,9,5,color);DrawRectangle(x+3,y+9,5,3,color);
         }
-        for(int i=0;i<10;++i)DrawRectangle(left+i*18,h-130,11,8,DefensePoints()>i*2?LIGHTGRAY:Color{43,43,45,255});
-        for(int i=0;i<int(std::ceil(Absorption/2));++i){int x=left+185+i*18,y=h-115;Color c=Absorption-i*2>=2?GOLD:Color{173,133,30,255};DrawRectangle(x,y,5,5,c);DrawRectangle(x+6,y,5,5,c);DrawRectangle(x+1,y+4,9,5,c);DrawRectangle(x+3,y+9,5,3,c);}
-        if(Breath<20) for(int i=0;i<10;++i) DrawCircle(left+i*18+5,h-144,4,Breath>i*2?SKYBLUE:DARKGRAY);
+        for(int i=0;i<10;++i)DrawRectangle(left+i*18,heartsY-15,11,8,DefensePoints()>i*2?LIGHTGRAY:Color{43,43,45,255});
+        for(int i=0;i<int(std::ceil(Absorption/2));++i){int x=left+185+i*18,y=heartsY;Color c=Absorption-i*2>=2?GOLD:Color{173,133,30,255};DrawRectangle(x,y,5,5,c);DrawRectangle(x+6,y,5,5,c);DrawRectangle(x+1,y+4,9,5,c);DrawRectangle(x+3,y+9,5,3,c);}
+        if(Breath<20) for(int i=0;i<10;++i) DrawCircle(left+i*18+5,heartsY-29,4,Breath>i*2?SKYBLUE:DARKGRAY);
     }
     if(net::Active()||bw::Ready()) {
         int y=GetScreenHeight()-170;
@@ -811,7 +859,7 @@ void UI::Draw(Texture2D atlas,GameState state) const {
         if(chatOpen){DrawRectangle(6,GetScreenHeight()-30,GetScreenWidth()-12,24,Fade(BLACK,.8f));DrawText(("<"+(bw::Ready()?bw::Nickname():net::Nickname())+"> "+chatText+"_").c_str(),12,GetScreenHeight()-25,17,WHITE);}
     }
     if(state==GameState::Playing&&(net::Joined()||bw::Ready())&&ActionDown(BindingAction::PlayerList)&&!chatOpen)DrawPlayerList();
-    DrawFPS(w-100,16);
+    DrawFPS(Touch.enabled?w/2-48:w-100,16);
     if(inventory) {
         DrawRectangle(0,0,w,h,Fade(BLACK,.6f));Rectangle p=Panel();
         DrawRectangleRec(p,{45,43,39,255});DrawRectangleLinesEx(p,3,{155,151,138,255});
@@ -835,7 +883,7 @@ void UI::Draw(Texture2D atlas,GameState state) const {
             DrawText(TextFormat("%d",i+1),int(r.x+4),int(r.y+4),14,WHITE);
         }
         DrawText("E / ESC: fechar inventario",int(p.x+24),int(p.y+402),15,LIGHTGRAY);
-        if(CursorStack.count) {Vector2 m=GetMousePosition();StackIcon(atlas,{m.x-18,m.y-18,40,40},CursorStack);}
+        if(CursorStack.count) {Vector2 m=PointerPosition();StackIcon(atlas,{m.x-18,m.y-18,40,40},CursorStack);}
     } else if(paused) {
         DrawRectangle(0,0,w,h,Fade(BLACK,.55f));
         const char* title="Menu do Jogo";

@@ -91,10 +91,12 @@ int main() {
     Settings.fov=96;Check(SetBinding(BindingAction::Forward,KEY_UP),"remap movement");Check(!SetBinding(BindingAction::Backward,KEY_UP),"reject duplicate bindings");Check(SetBinding(BindingAction::Use,-3)&&SetBinding(BindingAction::Attack,-2),"remap mouse actions");Check(!SetBinding(BindingAction::Use,-99),"reject invalid mouse button");
     Check(player.Camera().fovy==96,"FOV setting updates camera");
     Settings.sprintFov=false;Settings.beautifulSky=false;Settings.fullBright=true;
+    Settings.touchDpad=false;Settings.touchLayout[2]={.82f,.61f,1.5f};
     Check(SaveSettings(path.string()),"save options");
     Settings=GameSettings{};
     Check(LoadSettings(path.string())&&Settings.freezeTime&&Settings.mouseSensitivity==1.75f&&
           Settings.newWorldMinute==1439&&!Settings.fogEnabled&&Settings.renderChunks==6&&Settings.fogDistance==137.f,"options survive reload");
+    Check(!Settings.touchDpad&&Settings.touchLayout[2].x==.82f&&Settings.touchLayout[2].y==.61f&&Settings.touchLayout[2].scale==1.5f,"touch layout and movement choice survive reload");
     Check(!Settings.toggleSprint&&Settings.fov==96&&Settings.bindings[int(BindingAction::Forward)]==KEY_UP&&Settings.bindings[int(BindingAction::Use)]==-3&&Settings.bindings[int(BindingAction::Attack)]==-2,"FOV and keyboard/mouse bindings survive reload");
     Check(!Settings.sprintFov&&!Settings.beautifulSky&&Settings.fullBright,"visual extras survive saving and reloading");
     Check(Settings.playerName=="Zancor_1"&&Settings.serverAddress=="127.0.0.1:25566","multiplayer nickname and address persist");

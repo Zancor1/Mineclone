@@ -74,7 +74,7 @@ Copie a pasta `dist/windows/` para um computador com **Windows 10/11 x64** e
 OpenGL 3.3. Não é necessário instalar Raylib, zlib ou DLLs do MinGW. Saves e
 configurações são criados no diretório de trabalho; use uma pasta com permissão
 de escrita. Perfis e skins são salvos em `%APPDATA%\MineClone`, separados
-do executável. Linux e Windows usam o protocolo **BedWars LAN 20** e devem estar
+do executável. Linux e Windows usam o protocolo **BedWars LAN 22** e devem estar
 na mesma versão do jogo. A porta TCP 25566 precisa estar liberada no host.
 
 Veja [build e validação Windows](docs/WINDOWS.md) para detalhes e testes.
@@ -405,6 +405,34 @@ A tecla pode ser alterada nas opções de controles. Com uma pilha no cursor,
 clicar fora da janela do inventário com o botão esquerdo dropa a pilha inteira;
 o botão direito dropa uma unidade.
 
+## Controles por toque
+
+Ao detectar um toque real na tela, o jogo mostra controles no estilo do Minecraft
+Pocket Edition antigo. Cliques comuns do mouse não ativam a interface touch.
+O direcional permite andar em diagonal e o círculo central permite agachar;
+os botões à direita permitem pular, usar itens e minerar. É possível andar,
+olhar e pular simultaneamente com vários dedos.
+
+- Toque rápido com bloco na mão e local válido: colocar um bloco. Nos outros casos, atacar.
+- Segure parado por **0,3 segundo**: começar a quebrar; continue segurando para minerar.
+- Arraste na área do mundo: olhar, sem atacar ou colocar por acidente.
+- **Usar**: usar imediatamente, inclusive segurar arco, comida ou poção.
+- **Picar**: segurar para quebrar blocos.
+- Toque na hotbar para selecionar; **...** abre o inventário e **Voltar** fecha.
+- **Correr** controla a corrida; **II** abre a pausa e **Q** dropa uma unidade.
+
+Em **Opções → Controls → Touch: editar botoes**, selecione e arraste os controles
+para mudar sua posição. **Menor -** e **Maior +** alteram o tamanho do controle
+selecionado, incluindo a hotbar. O botão **D-pad / Joystick** alterna o movimento;
+**Restaurar** recupera as posições e tamanhos padrão. **Salvar / voltar** guarda o
+layout para a próxima execução. O editor também aceita mouse no computador.
+
+O suporte nativo desktop usa Windows Touch e XInput 2.2 no Linux com X11.
+A leitura no Android usa os pontos de toque do Raylib. Os testes de gestos podem
+ser executados com `make test-touch`. Veja [Compilar para Android](docs/ANDROID.md)
+para gerar o APK no Arch Linux. A versão Android ainda precisa de validação em
+aparelho físico.
+
 ## Teclas e campo de visão
 
 Em **Opções → Controls → Keyboard**, clique numa ação e pressione a nova tecla ou botão
@@ -644,3 +672,27 @@ As texturas utilizadas pelo executável são procedurais.
 
 MineClone é um projeto independente inspirado em Minecraft, sem afiliação com
 Mojang ou Microsoft.
+
+## Anticheat
+
+No BedWars LAN, o host valida inventário, alcance e tempo de mineração. O sistema
+novo limita deslocamentos acumulados, subida, voo parado e posições dentro de
+blocos, com tolerância para lag, poções, respawn, pérolas e knockback. Cada cliente
+acompanha as amostras de movimento e usa seu próprio verificador para confirmar
+episódios suspeitos. Confirmações repetidas, vencidas ou sem evidência não contam.
+
+O host também passa pelas verificações. Se for expulso, a sala é transferida para
+o jogador conectado há mais tempo depois dele. Mapa, times, inventários, perfis,
+efeitos e entidades em andamento são preservados, com uma pausa breve para
+reconectar. A conexão com o sucessor é testada antes de desconectar o host antigo.
+
+O kick exige 1 confirmação com até 3 participantes, 2 com 4–5, 3 com 6–8, 4 com
+9–11, e assim por diante. Não há ban por nick. No Windows há também verificações
+locais de ferramentas conhecidas, módulos suspeitos, integridade do código e
+handles externos de acesso ao processo. Na detecção local, o jogo fecha a janela
+e mostra **“LoL try to cheating.”**. Ao clicar em **OK**, o processo encerra sem
+reabrir automaticamente; uma nova abertura deve ser feita manualmente.
+
+Veja [funcionamento e limites](docs/ANTICHEAT.md). A detecção Windows precisa de
+validação em Windows real; ela não garante detectar todo injetor, DLL ou leitura.
+Host e convidados precisam atualizar para o **protocolo LAN 22**.

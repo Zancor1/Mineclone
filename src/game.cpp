@@ -1,4 +1,7 @@
+#include "anticheat.h"
 #include "game.h"
+#include "android_platform.h"
+#include "touch_controls.h"
 #include "action_repeat.h"
 #include "map_blocks.h"
 #include "bedwars.h"
@@ -22,7 +25,7 @@ int RunGame() {
     SetClockMinute(Settings.newWorldMinute);
     Renderer renderer;
     if(!renderer.Initialize()) {
-        TraceLog(LOG_ERROR,"Falha ao carregar atlas/shader GLSL 330.");
+        TraceLog(LOG_ERROR,"Falha ao carregar atlas e shaders.");
         return 1;
     }
     Player player;
@@ -35,13 +38,27 @@ int RunGame() {
     Hit miningTarget;Block miningTool=Air;
     EnableCursor();
     while(!WindowShouldClose()&&!quit) {
+        if(ac::Detected()){bw::IntegrityFailure();if(online)net::Disconnect();if(bw::Migrating()){bw::Update(player,std::min(GetFrameTime(),.05f),false,ui.selected);BeginDrawing();ClearBackground(BLACK);DrawText("Transferindo a sala...",24,24,24,WHITE);EndDrawing();continue;}break;}
+        Touch.Update(PollScreenTouches(),GetFrameTime(),GetScreenWidth(),GetScreenHeight(),state==GameState::Playing&&!ui.chatOpen&&IsWindowFocused(),state==GameState::Inventory||state==GameState::ChestScreen||state==GameState::CraftScreen||state==GameState::FurnaceScreen||state==GameState::BedwarsInventory||state==GameState::BedwarsChest||state==GameState::BedwarsShop||state==GameState::BedwarsTeams||state==GameState::ServerInventory);
+        bool capturedMouse=false;
+        if(Touch.enabled){
+            if(Touch.SuppressMouse()){if(IsCursorHidden())EnableCursor();}
+            else if(state==GameState::Playing&&!ui.chatOpen&&IsWindowFocused()){
+                auto mouse=GetMouseDelta();if(std::hypot(mouse.x,mouse.y)>1||IsMouseButtonPressed(MOUSE_BUTTON_LEFT)||IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))Touch.mouseLook=true;
+                if(Touch.mouseLook&&!IsCursorHidden()){DisableCursor();capturedMouse=true;}
+            }
+        }
+#ifdef __ANDROID__
+        static double savedAt=GetTime();
+        if(hasWorld&&!activeSave.empty()&&!online&&!bw::Active()&&GetTime()-savedAt>=15){if(!SaveWorld(activeSave,player.CaptureState()))ui.Notify("Falha no salvamento automatico");savedAt=GetTime();}
+#endif
         bw::UpdateDiscovery();
         bool transition=false;const bool typingAtFrameStart=ui.chatOpen;
         auto enter=[&](GameState next) {
             const GameState previousState=state;
             ui.miningProgress=0;miningTarget={};CancelItemUse();
             state=next;transition=true;ui.ResetInteraction();if(state!=GameState::Playing){ui.chatOpen=false;ui.chatText.clear();}
-            if(state==GameState::Playing&&IsWindowFocused()) DisableCursor();
+            if(state==GameState::Playing&&IsWindowFocused()&&(!Touch.enabled||Touch.mouseLook)) DisableCursor();
             else EnableCursor();
             if(hasWorld&&!activeSave.empty()&&(state==GameState::Paused||state==GameState::Inventory||(state==GameState::ChestScreen||state==GameState::CraftScreen||state==GameState::FurnaceScreen)||(previousState==GameState::ChestScreen||previousState==GameState::CraftScreen||previousState==GameState::FurnaceScreen))) {
                 if(!SaveWorld(activeSave,player.CaptureState())) ui.Notify("Falha ao salvar a posicao. Tente salvar novamente.");
@@ -51,8 +68,8 @@ int RunGame() {
             if(SaveSettings()) enter(optionsParent);
             else ui.Notify("Falha ao gravar settings.cfg. Tente novamente.");
         };
-        const bool menuKey=IsKeyPressed(KEY_ESCAPE)||((state==GameState::Playing||state==GameState::Paused)&&ActionPressed(BindingAction::Pause));
-        if(!ui.CapturingBinding()&&menuKey&&ui.chatOpen){ui.chatOpen=false;ui.chatText.clear();DisableCursor();}
+        const bool menuKey=AndroidBackPressed()||Touch.Pressed(BindingAction::Pause)||IsKeyPressed(KEY_ESCAPE)||((state==GameState::Playing||state==GameState::Paused)&&ActionPressed(BindingAction::Pause));
+        if(!ui.CapturingBinding()&&menuKey&&ui.chatOpen){ui.chatOpen=false;ui.chatText.clear();if(!Touch.enabled||Touch.mouseLook)DisableCursor();}
         else if(!ui.CapturingBinding()&&menuKey) {
             if(state==GameState::WorldLoading){bw::ConnectionTrace("loading cancelled by player");renderer.CancelWorldLoad();bw::Stop();hasWorld=worldPrimed=false;enter(GameState::BedwarsMenu);}
             else if(state==GameState::BedwarsTeams||state==GameState::BedwarsShop||state==GameState::BedwarsInventory||state==GameState::BedwarsChest){enter(GameState::Playing);}
@@ -219,7 +236,7 @@ int RunGame() {
         if(!active)placementRepeat.Reset();
         if(active) {
             PlayerInput input;
-            input.look=ui.chatOpen?Vector2{}:GetMouseDelta();
+            input.look=ui.chatOpen||capturedMouse?Vector2{}:Touch.enabled&&!Touch.mouseLook?Touch.look:GetMouseDelta();
             input.forward=ui.chatOpen?0:float(ActionDown(BindingAction::Forward))-float(ActionDown(BindingAction::Backward));
             input.side=ui.chatOpen?0:float(ActionDown(BindingAction::Right))-float(ActionDown(BindingAction::Left));
             input.jump=!ui.chatOpen&&ActionDown(BindingAction::Jump);input.swimUp=input.jump;
@@ -232,7 +249,8 @@ int RunGame() {
             if(!online&&Mode==GameMode::Creative&&ActionPressed(BindingAction::SkipTime)&&!Settings.freezeTime) WorldTime=std::fmod(WorldTime+DayDuration*.25f,DayDuration);
             if(bw::Ready())bw::ApplyEffects(input);else if(!online)ApplyItemEffects(input);
             Block used=ui.SelectedBlock();input.usingItem=!ui.chatOpen&&ActionDown(BindingAction::Use)&&(Sword(used)||TimedUseItem(used)||(used==Bow&&(bw::Ready()?bw::BowDrawTime():game::BowDrawTime())>=0));
-            player.Update(input,dt);if(!online&&!bw::Active()){UpdateWorld(dt);UpdateItems(player,dt);}
+            if(!bw::Migrating())player.Update(input,dt);
+            if(!online&&!bw::Active()){UpdateWorld(dt);UpdateItems(player,dt);}
             if(!bw::Active()&&Mode==GameMode::Survival&&Health<=0) {active=false;enter(GameState::Dead);if(!online)SaveWorld(activeSave,player.CaptureState());}
             PlayerState streamed=player.CaptureState();
             const Vector3 previousPosition=streamed.position;bool shifted=false;
@@ -259,6 +277,17 @@ int RunGame() {
                     else if(online)net::Drop(all);
                     else DropItem(player,Hotbar[ui.selected],all);
                 }
+                // A quick touch places only when the selected block has a free,
+                // reachable destination; otherwise it punches. Held world touches mine.
+                auto touchHit=Trace(camera.position,direction,targetLiquids);
+                bool tapPlaces=false;Block touchBlock=ui.SelectedBlock();
+                if(touchHit.found&&touchBlock!=Air&&Placeable(touchBlock)){
+                    bool liquid=!bw::Ready()&&Liquid(At(touchHit.x,touchHit.y,touchHit.z));
+                    int x=touchHit.x+(liquid?0:touchHit.nx),y=touchHit.y+(liquid?0:touchHit.ny),z=touchHit.z+(liquid?0:touchHit.nz);
+                    Block before=At(x,y,z);auto collision=GetRayCollisionBox({camera.position,direction},{{float(touchHit.x),float(touchHit.y),float(touchHit.z)},{touchHit.x+1.f,touchHit.y+1.f,touchHit.z+1.f}});
+                    tapPlaces=Inside(x,y,z)&&(before==Air||(!bw::Ready()&&Liquid(before)))&&(!Solid(touchBlock)||!player.Overlaps(x,y,z))&&(!bw::Ready()||(collision.hit&&collision.distance<=4.f&&!bw::Lobby()&&!Liquid(touchBlock)&&touchBlock!=Bed&&touchBlock!=BedHead));
+                }
+                Touch.ResolveWorldTap(tapPlaces);
                 const bool usePressed=ActionPressed(BindingAction::Use);
                 const bool placeNow=placementRepeat.Update(usePressed,!ui.chatOpen&&ActionDown(BindingAction::Use),std::min(GetFrameTime(),.05f));
                 if(bw::Ready()){
@@ -356,10 +385,11 @@ int RunGame() {
         }
         ui.Draw(renderer.Atlas(),state);
         if(bw::Ready()&&state==GameState::Playing)bw::DrawHud();
+        if(!ui.chatOpen)Touch.Draw(GetScreenWidth(),GetScreenHeight());
         EndDrawing();
         if(worldPrimed&&state==GameState::WorldLoading){bw::ConnectionTrace("loading: first frame complete; entering game and capturing cursor");worldPrimed=false;enter(GameState::Playing);}
     }
-    bw::Stop();net::Disconnect();
+    ShutdownScreenTouches();bw::Stop();net::Disconnect();
     if(!SaveSettings()) TraceLog(LOG_WARNING,"Falha ao salvar settings.cfg.");
     if(hasWorld&&!activeSave.empty()&&!SaveWorld(activeSave,player.CaptureState())) {
         TraceLog(LOG_ERROR,"Falha ao salvar o mundo e a posicao ao fechar.");

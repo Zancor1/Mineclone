@@ -2,6 +2,8 @@
 #include "platform_socket.h"
 #ifdef _WIN32
 #include <windns.h>
+#elif defined(__ANDROID__)
+#include <dlfcn.h>
 #else
 #include <arpa/nameser.h>
 #include <resolv.h>
@@ -71,6 +73,17 @@ SrvRecord LookupMinecraftSrv(const std::string& host){
     }
     DnsRecordListFree(reinterpret_cast<PDNS_RECORD>(records),DnsFreeRecordList);
     return Choose(std::move(found));
+#elif defined(__ANDROID__)
+    // Android 10+ exposes the asynchronous resolver in libandroid. Older
+    // versions still connect through normal host DNS or an explicit IP:port.
+    void* library=dlopen("libandroid.so",RTLD_NOW|RTLD_LOCAL);if(!library)return {};
+    using Query=int(*)(uint64_t,const char*,int,int,uint32_t);using Result=int(*)(int,int*,unsigned char*,size_t);using Cancel=void(*)(int);
+    auto queryDns=reinterpret_cast<Query>(dlsym(library,"android_res_nquery"));auto resultDns=reinterpret_cast<Result>(dlsym(library,"android_res_nresult"));auto cancelDns=reinterpret_cast<Cancel>(dlsym(library,"android_res_cancel"));
+    if(!queryDns||!resultDns||!cancelDns){dlclose(library);return {};}
+    int fd=queryDns(0,query.c_str(),1,33,0);if(fd<0){dlclose(library);return {};}
+    netio::PollFd pollfd{fd,POLLIN,0};if(netio::Poll(&pollfd,1,3000)<=0){cancelDns(fd);dlclose(library);return {};}
+    std::array<unsigned char,65536> response{};int code=0,size=resultDns(fd,&code,response.data(),response.size());dlclose(library);
+    if(code||size<=0||size>int(response.size()))return {};return Choose(ParseSrvRecords(response.data(),size));
 #else
     struct __res_state resolver{};if(res_ninit(&resolver)<0)return {};
     resolver.retrans=2;resolver.retry=1;

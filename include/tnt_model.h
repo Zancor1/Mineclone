@@ -1,4 +1,5 @@
 #pragma once
+#include "texture_atlas.h"
 #include "projectile_physics.h"
 #include <rlgl.h>
 namespace game {
@@ -14,7 +15,7 @@ inline void DrawPrimedTnt(Texture2D atlas,int tile,Vector3 position,float remain
     rlPushMatrix();rlTranslatef(position.x,position.y,position.z);rlScalef(size,size,size);
     rlSetTexture(atlas.id);rlBegin(RL_QUADS);
     for(int face=0;face<6;++face){rlColor4ub(shades[face],shades[face],shades[face],255);for(int i=0;i<4;++i){
-        rlTexCoord2f((tile*16+.5f+uv[i][0]*15)/atlas.width,(.5f+uv[i][1]*15)/atlas.height);
+        rlTexCoord2f((AtlasX(tile,atlas.width)+.5f+uv[i][0]*15)/atlas.width,(AtlasY(tile,atlas.width)+.5f+uv[i][1]*15)/atlas.height);
         rlVertex3f(corners[face][i][0]-.5f,corners[face][i][1]-.5f,corners[face][i][2]-.5f);
     }}
     rlEnd();rlSetTexture(0);rlPopMatrix();

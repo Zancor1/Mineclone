@@ -98,7 +98,7 @@ pelos jogadores e camas adversárias podem ser destruídos.
 O item selecionado e a armadura de cada jogador são exibidos aos adversários.
 Bolas de fogo aplicam impulso reforçado e permitem saltos com explosão sem
 dano ao lançador; adversários recebem dano e empurrão. Todos devem usar a
-mesma versão do MineClone (protocolo BedWars LAN 20).
+mesma versão do MineClone (protocolo BedWars LAN 22).
 
 Golpes corpo a corpo têm alcance máximo de 3,3 blocos, medidos dos olhos até
 a caixa de colisão do adversário, e são bloqueados pelo terreno. O impulso
@@ -168,7 +168,7 @@ Os efeitos somem ao morrer e seus tempos são sincronizados pelo host. O
 agachamento também é sincronizado: o modelo se abaixa e inclina o corpo, e o
 nome fica oculto enquanto o jogador está agachado.
 
-Estas mudanças usam o protocolo BedWars LAN **20**. Todos os participantes
+Estas mudanças usam o protocolo BedWars LAN **22**. Todos os participantes
 precisam atualizar o jogo, tanto no Linux quanto no Windows.
 
 ## Resposta dos ataques
@@ -268,7 +268,7 @@ python3 tools/import_nc_map.py 'NC Bedwars 1v1'
 make -j"$(nproc)"
 ```
 
-Todos os participantes precisam usar o protocolo BedWars LAN **20**.
+Todos os participantes precisam usar o protocolo BedWars LAN **22**.
 
 A compra de espada substitui a espada segurada; se outra categoria estiver
 selecionada, substitui a primeira espada do inventário. A loja indica recursos
@@ -320,7 +320,7 @@ python3 tools/import_nc_map.py "mapas externos/Airshow" --airshow --output inclu
 
 A altura ativa passou para 192 blocos para preservar o Airshow completo.
 Saves e arquivos de chunks antigos com altura 80 ou 128 são migrados ao carregar.
-Todos na sala precisam usar esta mesma versão do protocolo LAN (20).
+Todos na sala precisam usar esta mesma versão do protocolo LAN (22).
 
 ### Escolha do layout na criação
 
@@ -413,7 +413,7 @@ Os vendedores de itens e melhorias ficam nos dois nichos laterais da base,
 voltados para a área central. Os nichos têm passagem aberta, teto e iluminação
 no piso, com espaço para o modelo inteiro do villager. As posições usadas para
 interação e validação das compras são as mesmas do desenho, em todos os oito times.
-Esta revisão usa o protocolo LAN 20; host e convidados devem atualizar o jogo.
+Esta revisão usa o protocolo LAN 22; host e convidados devem atualizar o jogo.
 
 A busca local também detecta salas com protocolos antigos e mostra “Versao
 diferente: atualize os dois”. Isso não permite misturar builds incompatíveis:

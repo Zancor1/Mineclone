@@ -1,4 +1,6 @@
 #include "renderer.h"
+#include "texture_atlas.h"
+#include "touch_controls.h"
 #include "projectile_models.h"
 #include "bedwars.h"
 #include "ui.h"
@@ -33,7 +35,7 @@ int main() {
             for(int i=0;i<16;++i) {
                 Block wool=woolColors[i];
                 if(!Wool(wool)||Plant(wool)||!Solid(wool)||Transparent(wool)||
-                   GetImageColor(atlas,BlockTile(wool)*TileSize+8,8).a!=255) result=1;
+                   GetImageColor(atlas,AtlasX(BlockTile(wool),atlas.width)+8,AtlasY(BlockTile(wool),atlas.width)+8).a!=255) result=1;
                 Change(3+i%4,5,9+i/4,wool);
             }
             UnloadImage(atlas);
@@ -109,6 +111,16 @@ int main() {
             SetTraceLogCallback(nullptr);
             if(allocations||releases){std::fprintf(stderr,"FAIL: same-size chunk edits reallocated GPU buffers (%d/%d)\n",allocations,releases);result=1;}
             UI ui;
+            Touch={};Touch.Update(PollScreenTouches(),.016f,GetScreenWidth(),GetScreenHeight(),false);
+            PlayAutomationEvent({0,7,{300,200,0,0}});PlayAutomationEvent({0,6,{MOUSE_BUTTON_LEFT,0,0,0}});
+            Touch.Update(PollScreenTouches(),.016f,GetScreenWidth(),GetScreenHeight(),false);
+            if(Touch.enabled){std::fprintf(stderr,"FAIL: mouse clicks incorrectly activate touch controls\n");result=1;}
+            PlayAutomationEvent({0,5,{MOUSE_BUTTON_LEFT,0,0,0}});BeginDrawing();EndDrawing();
+            Touch.Update({},.016f,GetScreenWidth(),GetScreenHeight(),true);TouchLayout touchLayout(GetScreenWidth(),GetScreenHeight());
+            Touch.Update({{901,{touchLayout.pad.x+touchLayout.cell*1.5f,touchLayout.pad.y+touchLayout.cell*.5f}}},.016f,GetScreenWidth(),GetScreenHeight(),true);
+            BeginDrawing();renderer.Draw(camera,{});ui.Draw(renderer.Atlas(),GameState::Playing);Touch.Draw(GetScreenWidth(),GetScreenHeight());rlDrawRenderBatchActive();Image touchImage=LoadImageFromScreen();ExportImage(touchImage,"build/touch-controls.png");UnloadImage(touchImage);EndDrawing();
+            Touch={};ShutdownScreenTouches();
+
             BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Keyboard);rlDrawRenderBatchActive();Image keyboard=LoadImageFromScreen();ExportImage(keyboard,"build/keyboard-options.png");UnloadImage(keyboard);EndDrawing();
             BeginDrawing();ClearBackground(DARKGRAY);ui.Draw(renderer.Atlas(),GameState::Options);
             rlDrawRenderBatchActive();Image options=LoadImageFromScreen();ExportImage(options,"build/options-preview.png");UnloadImage(options);EndDrawing();

@@ -14,6 +14,9 @@ public:
     bool Host(unsigned short port);
     bool Join(const std::string& address);
     void Stop();
+    void Swap(LanTransport& other);
+    unsigned short Port() const;
+    std::string PeerIP(int peer) const;
     std::vector<Event> Poll();
     void Send(int peer,const std::vector<unsigned char>& data);
     void Broadcast(const std::vector<unsigned char>& data);
@@ -31,7 +34,7 @@ private:
 }
 
 namespace game {
-inline constexpr int LanProtocolVersion=20;
+inline constexpr int LanProtocolVersion=22;
 struct LanRoom {
     std::string address,name;
     unsigned short port=25566;

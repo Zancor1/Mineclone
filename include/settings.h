@@ -12,13 +12,20 @@ bool SetBinding(BindingAction action,int key);
 bool ActionDown(BindingAction action);
 bool ActionPressed(BindingAction action);
 bool ActionReleased(BindingAction action);
+struct TouchPlacement {float x=-1,y=-1,scale=1;};
 struct GameSettings {
+    bool touchDpad=true;
+    std::array<TouchPlacement,9> touchLayout{};
     std::string playerName="Player",serverAddress="jogar.mush.com.br";
     bool freezeTime=false;
     bool toggleSprint=true;
     bool fogEnabled=true;
     bool sprintFov=true,beautifulSky=true,fullBright=false;
+#ifdef __ANDROID__
+    int renderChunks=2;
+#else
     int renderChunks=3;
+#endif
     float fogDistance=40.f;
     float mouseSensitivity=1.f;
     float fov=70.f;

@@ -9,6 +9,9 @@ constexpr size_t MaxPacket=256*1024,MaxQueue=1024*1024;
 }
 LanTransport::~LanTransport(){Stop();}
 void LanTransport::Stop(){for(auto& p:peers)netio::Close(p.fd);peers.clear();if(listener!=netio::Invalid)netio::Close(listener);listener=netio::Invalid;nextId=1;}
+void LanTransport::Swap(LanTransport& other){peers.swap(other.peers);std::swap(listener,other.listener);std::swap(nextId,other.nextId);error.swap(other.error);}
+unsigned short LanTransport::Port()const{sockaddr_in a{};netio::SocketLength n=sizeof(a);return listener!=netio::Invalid&&getsockname(listener,reinterpret_cast<sockaddr*>(&a),&n)==0?ntohs(a.sin_port):0;}
+std::string LanTransport::PeerIP(int peer)const{for(const auto& p:peers)if(p.id==peer){sockaddr_in a{};netio::SocketLength n=sizeof(a);char ip[INET_ADDRSTRLEN]{};if(getpeername(p.fd,reinterpret_cast<sockaddr*>(&a),&n)==0&&inet_ntop(AF_INET,&a.sin_addr,ip,sizeof(ip)))return ip;}return {};}
 bool LanTransport::Host(unsigned short port){Stop();error.clear();if(!netio::Initialize()){error="Falha ao inicializar rede";return false;}listener=socket(AF_INET,SOCK_STREAM,0);if(listener==netio::Invalid){error="Falha ao criar socket LAN";return false;}int yes=1;netio::SetOption(listener,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(yes));sockaddr_in a{};a.sin_family=AF_INET;a.sin_addr.s_addr=INADDR_ANY;a.sin_port=htons(port);if(bind(listener,reinterpret_cast<sockaddr*>(&a),sizeof(a))<0||listen(listener,8)<0){error="Porta LAN ocupada ou indisponivel";Stop();return false;}Configure(listener);return true;}
 bool LanTransport::Join(const std::string& address){Stop();error.clear();if(!netio::Initialize()){error="Falha ao inicializar rede";return false;}std::string host=address;int port=25566;try{auto c=host.find(':');if(c!=std::string::npos){auto s=host.substr(c+1);if(s.empty()||s.find_first_not_of("0123456789")!=std::string::npos)throw 0;port=std::stoi(s);host.resize(c);}if(port<1||port>65535)throw 0;}catch(...){error="Use IP:porta, por exemplo 192.168.1.20:25566";return false;}if(host=="localhost")host="127.0.0.1";sockaddr_in a{};a.sin_family=AF_INET;a.sin_port=htons(port);if(inet_pton(AF_INET,host.c_str(),&a.sin_addr)!=1){error="Informe o IP IPv4 do computador que hospeda";return false;}netio::Socket fd=socket(AF_INET,SOCK_STREAM,0);if(fd==netio::Invalid){error="Falha ao criar socket";return false;}Configure(fd);int result=connect(fd,reinterpret_cast<sockaddr*>(&a),sizeof(a));if(result<0&&!netio::Connecting(netio::LastError())){netio::Close(fd);error="Nao foi possivel conectar ao host";return false;}peers.push_back({0,fd,true,Now(),{},{},0});return true;}
 void LanTransport::Drop(int peer){for(auto& p:peers)if(p.id==peer)p.closing=true;}
@@ -48,7 +51,8 @@ namespace game {
 namespace {
 constexpr unsigned short DiscoveryPort=25567;
 constexpr uint32_t MulticastAddress=0xefff4d43; // 239.255.77.67
-constexpr char ReplyMagic[]="MCLAN20!";
+static_assert(LanProtocolVersion>=0&&LanProtocolVersion<100);
+constexpr char ReplyMagic[]={'M','C','L','A','N',char('0'+LanProtocolVersion/10),char('0'+LanProtocolVersion%10),'!',0};
 int DiscoveryVersion(const unsigned char* data,char suffix){
     if(std::memcmp(data,"MCLAN",5)||data[7]!=suffix||data[5]<'0'||data[5]>'9'||data[6]<'0'||data[6]>'9')return -1;
     return (data[5]-'0')*10+data[6]-'0';

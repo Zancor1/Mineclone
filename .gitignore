@@ -29,3 +29,8 @@ __pycache__/
 /profiles/
 
 /bedwars-connection.log
+
+/android/.gradle/
+/android/local.properties
+/android/app/.cxx/
+/android/app/build/
