@@ -41,6 +41,7 @@ int main(int argc,char**){using namespace game;
         const Block defense[]={Air,Planks,EndStone,Obsidian};
         for(int i=0;i<4;++i){int x=100+i*18;Check(At(x,26,144)==Bed&&At(x,26,145)==BedHead,"Tester has four independent beds");Check(At(x,27,144)==defense[i],"training bed cover matches bare, wood, end stone and obsidian");}
         Check(Count(IronSword)==1&&Count(IronPickaxe)==1&&Count(Tnt)==64,"Tester provides a usable equipment kit");
+        Check(Count(Egg)==16&&Count(Snowball)==16,"Tester provides eggs and snowballs for knockback testing");
         int foodSlot=-1;for(int slot=0;slot<27;++slot)if(Backpack[slot].block==GoldenApple)foodSlot=slot+9;
         Check(foodSlot>=0,"Tester provides golden apples");bw::SwapSlots(foodSlot,4,false,true);tick(1);
         auto fallPose=training.CaptureState();fallPose.position.y+=10;training.RestoreState(fallPose);tick(1);fallPose.position.y-=10;training.RestoreState(fallPose);tick(2);

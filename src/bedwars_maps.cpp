@@ -1,4 +1,5 @@
 #include "bedwars_maps.h"
+#include "skywars.h"
 #include "world.h"
 #include "map_blocks.h"
 #include "external_arenas.h"
@@ -18,12 +19,13 @@ Vector3 AirPoint(int team,float back,float side=0){auto b=AirBeds[std::clamp(tea
 
 }
 int MapTeams(int map){return map==3?2:8;}
-int MapLobbyY(int map){return map>=FirstExternalArena?ExternalArenaAt(map).lobbyY:map==4?115:65;}
-std::array<Vector3,2> MapBeds(int map,int team,const Vector3& base){if(map>=FirstExternalArena){auto& teamData=ExternalArenaAt(map).teams[std::clamp(team,0,7)];return {{teamData.beds[0],teamData.beds[1]}};}if(map==4){auto p=AirPoint(team,0),q=AirPoint(team,1);return {{{std::floor(p.x),p.y,std::floor(p.z)},{std::floor(q.x),q.y,std::floor(q.z)}}};}if(map==3)return team==0?std::array<Vector3,2>{{{86,26,156},{85,26,156}}}:std::array<Vector3,2>{{{170,26,156},{171,26,156}}};return {{{float(int(base.x)),26,float(int(base.z)+3)},{float(int(base.x)),26,float(int(base.z)+4)}}};}
+int MapLobbyY(int map){if(map==SkywarsMap)return 65;return map>=FirstExternalArena?ExternalArenaAt(map).lobbyY:map==4?115:65;}
+std::array<Vector3,2> MapBeds(int map,int team,const Vector3& base){if(map==SkywarsMap)return {{{0,0,0},{0,0,1}}};if(map>=FirstExternalArena){auto& teamData=ExternalArenaAt(map).teams[std::clamp(team,0,7)];return {{teamData.beds[0],teamData.beds[1]}};}if(map==4){auto p=AirPoint(team,0),q=AirPoint(team,1);return {{{std::floor(p.x),p.y,std::floor(p.z)},{std::floor(q.x),q.y,std::floor(q.z)}}};}if(map==3)return team==0?std::array<Vector3,2>{{{86,26,156},{85,26,156}}}:std::array<Vector3,2>{{{170,26,156},{171,26,156}}};return {{{float(int(base.x)),26,float(int(base.z)+3)},{float(int(base.x)),26,float(int(base.z)+4)}}};}
 
-const char* MapName(int map){if(map>=FirstExternalArena)return ExternalArenaAt(map).name;constexpr const char* names[]={"Fortaleza","Ruinas","Jardins","NC","Airshow"};return names[std::clamp(map,0,MapCount-1)];}
-const char* MapDescription(int map){if(map>=FirstExternalArena)return "Arena original importada - 8 times";constexpr const char* descriptions[]={"Torres e muralhas nas ilhas","Colinas de pedra e arcos antigos","Terracos, arvores e pavilhoes","Arena original importada - 2 times","Baloes e avioes - 8 times"};return descriptions[std::clamp(map,0,MapCount-1)];}
+const char* MapName(int map){if(map==SkywarsMap)return "SkyWars - Bosque Celeste";if(map>=FirstExternalArena)return ExternalArenaAt(map).name;constexpr const char* names[]={"Fortaleza","Ruinas","Jardins","NC","Airshow"};return names[std::clamp(map,0,MapCount-1)];}
+const char* MapDescription(int map){if(map==SkywarsMap)return "Ilhas, minas e baus no centro";if(map>=FirstExternalArena)return "Arena original importada - 8 times";constexpr const char* descriptions[]={"Torres e muralhas nas ilhas","Colinas de pedra e arcos antigos","Terracos, arvores e pavilhoes","Arena original importada - 2 times","Baloes e avioes - 8 times"};return descriptions[std::clamp(map,0,MapCount-1)];}
 std::array<Vector3,8> ArenaBases(int gap,int map){
+    if(map==SkywarsMap)return sky::Bases();
     if(map>=FirstExternalArena){std::array<Vector3,8> result{};for(int i=0;i<8;++i)result[i]=ExternalArenaAt(map).teams[i].spawn;return result;}
     if(map==3)return {{{75.5f,26,156.5f},{181.5f,26,156.5f},{128.5f,26,128.5f},{128.5f,26,128.5f}}};
     if(map==4){std::array<Vector3,8> result{};for(int i=0;i<8;++i)result[i]=AirPoint(i,6);return result;}
@@ -43,6 +45,7 @@ Vector3 AirshowForge(int team){auto p=AirPoint(team,10.5f);p.y-=.5f;return p;}
 Vector3 AirshowChest(int team){constexpr int positions[8][3]={{-36,63,-81},{44,67,-81},{81,67,-36},{81,63,44},{36,63,81},{-44,67,81},{-81,67,36},{-81,63,-44}};auto p=positions[std::clamp(team,0,7)];return {p[0]+128.5f,p[1]-20.f,p[2]+128.5f};}
 std::vector<Vector3> AirshowResources(bool emerald){std::vector<Vector3> result;int radius=emerald?12:40;for(int x:{-1,1})for(int z:{-1,1}){bool high=x!=z;result.push_back({128.5f+x*radius,float(high?53:49),128.5f+z*radius});}return result;}
 void BuildArenaTerrain(int map,int gap,const std::function<void(int,int,int,Block)>& put,bool lobby){
+    if(map==SkywarsMap){sky::Build(put,lobby);return;}
     if(map>=FirstExternalArena){const auto& cells=ExternalCells(map);for(size_t i=0;i<cells.size();i+=7){int x=cells[i],y=cells[i+1],z=cells[i+2];Block b=Block(cells[i+3]);put(x,y,z,b);if(lobby&&b>=MapSlab)SetMapBlockState(x,y,z,{b,Block(cells[i+4]),MapShape(cells[i+5]),cells[i+6]});}
         int floor=MapLobbyY(map);if(lobby)for(int x=119;x<=137;++x)for(int z=119;z<=137;++z){put(x,floor,z,Glass);if(x==119||x==137||z==119||z==137){put(x,floor+1,z,Glass);put(x,floor+2,z,Glass);}}return;
     }
@@ -152,11 +155,11 @@ RenderTexture2D CreateMapPreview(int map,int gap){
     int lowY=Height,highY=0;
     auto index=[](int x,int y,int z){return (size_t(x)*Height+y)*Width+z;};
     BuildArenaTerrain(map,gap,[&](int x,int y,int z,Block b){if(Inside(x,y,z)){cells[index(x,y,z)]=b;if(b!=Air){lowY=std::min(lowY,y);highY=std::max(highY,y);}}},false);
-    if(map>=FirstExternalArena){const auto& records=ExternalCells(map);for(size_t i=0;i<records.size();i+=7){size_t key=index(records[i],records[i+1],records[i+2]);if(records[i+5]==14)barriers[key]=1;else if(records[i+3]>=MapSlab)cells[key]=records[i+4];}}
+    if(map!=SkywarsMap&&map>=FirstExternalArena){const auto& records=ExternalCells(map);for(size_t i=0;i<records.size();i+=7){size_t key=index(records[i],records[i+1],records[i+2]);if(records[i+5]==14)barriers[key]=1;else if(records[i+3]>=MapSlab)cells[key]=records[i+4];}}
     auto at=[&](int x,int y,int z){return Inside(x,y,z)?cells[index(x,y,z)]:0;};
     RenderTexture2D image=LoadRenderTexture(360,210);if(!image.id)return image;
     float centerY=map>=FirstExternalArena?float(lowY+highY)*.5f:map==4?48.f:25.f;
-    Camera3D camera{{250,centerY+155,250},{128,centerY,128},{0,1,0},float(map==3?160:map>=4?260:2*(gap+50)),CAMERA_ORTHOGRAPHIC};
+    Camera3D camera{{250,centerY+155,250},{128,centerY,128},{0,1,0},float(map==SkywarsMap?100:map==3?160:map>=4?260:2*(gap+50)),CAMERA_ORTHOGRAPHIC};
     BeginTextureMode(image);ClearBackground({117,174,207,255});BeginMode3D(camera);
     for(int x=0;x<Width;++x)for(int z=0;z<Width;++z)for(int y=0;y<(map>=FirstExternalArena?Height:map==4?110:map==3?74:40);++y){int b=at(x,y,z);if(!b||barriers[index(x,y,z)]||(at(x-1,y,z)&&at(x+1,y,z)&&at(x,y-1,z)&&at(x,y+1,z)&&at(x,y,z-1)&&at(x,y,z+1)))continue;Color c{148,145,132,255};if(Blocks[b].color)c={static_cast<unsigned char>(Blocks[b].color>>16),static_cast<unsigned char>(Blocks[b].color>>8),static_cast<unsigned char>(Blocks[b].color),255};if(b==Grass)c={106,156,63,255};if(b==Stone||b==StoneBricks)c={126,129,135,255};if(b==Planks||b==Wood)c={137,103,60,255};if(b==RedWool)c=RED;if(b==BlueWool)c=BLUE;if(b==GreenWool)c=GREEN;if(b==YellowWool)c=YELLOW;if(b==PinkWool)c=PINK;if(b==CyanWool)c={55,215,215,255};if(b==WhiteWool)c=RAYWHITE;if(b==GrayWool)c=GRAY;if(b==EndStone)c={207,204,152,255};DrawCube({x+.5f,y+.5f,z+.5f},1,1,1,c);}
     EndMode3D();EndTextureMode();SetTextureFilter(image.texture,TEXTURE_FILTER_BILINEAR);return image;

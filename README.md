@@ -74,7 +74,7 @@ Copie a pasta `dist/windows/` para um computador com **Windows 10/11 x64** e
 OpenGL 3.3. Não é necessário instalar Raylib, zlib ou DLLs do MinGW. Saves e
 configurações são criados no diretório de trabalho; use uma pasta com permissão
 de escrita. Perfis e skins são salvos em `%APPDATA%\MineClone`, separados
-do executável. Linux e Windows usam o protocolo **BedWars LAN 22** e devem estar
+do executável. Linux e Windows usam o protocolo **BedWars LAN 23** e devem estar
 na mesma versão do jogo. A porta TCP 25566 precisa estar liberada no host.
 
 Veja [build e validação Windows](docs/WINDOWS.md) para detalhes e testes.
@@ -375,7 +375,8 @@ construção. Consulte [BedWars LAN](docs/BEDWARS.md#mapa-nc) para detalhes.
 
 ### Progressão no BedWars
 
-Kills normais concedem **5 XP**, kills finais (vítima sem cama) **15 XP** no total,
+No SkyWars, cada kill concede **10 XP** e a vitória concede **25 XP**.
+No BedWars, kills normais concedem **5 XP**, kills finais (vítima sem cama) **15 XP** no total,
 camas destruídas **10 XP** e cada jogador da equipe
 vencedora recebe **25 XP** uma única vez por partida. Empates não dão o bônus
 de vitória. Cada **50 XP acumulados**
@@ -406,6 +407,12 @@ clicar fora da janela do inventário com o botão esquerdo dropa a pilha inteira
 o botão direito dropa uma unidade.
 
 ## Controles por toque
+
+O botão central do D-pad alterna o agachamento: toque para agachar e toque
+novamente para levantar, sem precisar segurar. Abrir um menu cancela o agachamento.
+
+No lobby BedWars, **Escolher time** abre a seleção e **Iniciar partida** aparece
+somente para o host. Esses botões ficam no topo e dispensam teclado no celular.
 
 Ao detectar um toque real na tela, o jogo mostra controles no estilo do Minecraft
 Pocket Edition antigo. Cliques comuns do mouse não ativam a interface touch.
@@ -689,10 +696,21 @@ reconectar. A conexão com o sucessor é testada antes de desconectar o host ant
 O kick exige 1 confirmação com até 3 participantes, 2 com 4–5, 3 com 6–8, 4 com
 9–11, e assim por diante. Não há ban por nick. No Windows há também verificações
 locais de ferramentas conhecidas, módulos suspeitos, integridade do código e
-handles externos de acesso ao processo. Na detecção local, o jogo fecha a janela
+handles externos com permissão de ler ou modificar a memória, com tolerância para componentes com assinatura válida da Microsoft
+(ferramentas legítimas também podem disparar a regra). Na detecção local, o jogo fecha a janela
 e mostra **“LoL try to cheating.”**. Ao clicar em **OK**, o processo encerra sem
-reabrir automaticamente; uma nova abertura deve ser feita manualmente.
+reabrir automaticamente; uma nova abertura deve ser feita manualmente. Não há
+ban de hardware nem bloqueio persistente de sala. O motivo fica em
+`%LOCALAPPDATA%\MineClone\anticheat.log`.
 
 Veja [funcionamento e limites](docs/ANTICHEAT.md). A detecção Windows precisa de
 validação em Windows real; ela não garante detectar todo injetor, DLL ou leitura.
-Host e convidados precisam atualizar para o **protocolo LAN 22**.
+Host e convidados precisam atualizar para o **protocolo LAN 23**.
+
+## SkyWars
+
+O cartão SkyWars abre salas solo no mapa Bosque Celeste, com oito ilhas,
+28 baús com conteúdos variados e compartilhados, loot superior no centro e vitória do último time vivo,
+sem camas nem respawn. Todos começam sem itens e armadura. Ovos e bolas de neve funcionam com knockback multiplayer;
+há equipamentos, blocos, arco, pérolas, maçãs, poções, TNT e baldes.
+Veja [regras, itens e limites](docs/SKYWARS.md). Todos devem atualizar para LAN 23.

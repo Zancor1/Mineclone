@@ -25,7 +25,7 @@ int main(int argc,char**){
     using namespace game;
     std::set<std::string> names;size_t total=0;
     if(argc>1){SetConfigFlags(FLAG_WINDOW_HIDDEN);InitWindow(960,640,"Imported BedWars maps");}
-    for(int map=bw::FirstExternalArena;map<bw::MapCount;++map){
+    for(int map=bw::FirstExternalArena;map<bw::SkywarsMap;++map){
         const auto& arena=bw::ExternalArenaAt(map);const auto& cells=bw::ExternalCells(map);total+=arena.cells;
         Check(names.insert(arena.name).second,"unique imported map name");Check(cells.size()==size_t(arena.cells)*7,"complete compressed map resource");
         ClearRemoteWorld();bw::BuildArenaTerrain(map,16,[](int x,int y,int z,Block block){Check(Inside(x,y,z),"no original arena blocks clipped");if(Liquid(block))SetRemoteBlock(x,y,z,block);else World[x][y][z]=block;});InvalidateLighting();

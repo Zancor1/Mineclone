@@ -16,6 +16,8 @@
 #include <cwctype>
 #include <cstring>
 #include <map>
+#include <filesystem>
+#include <fstream>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -24,10 +26,41 @@ namespace game::ac { namespace {
 std::atomic<bool> tripped{false},running{false};std::thread worker;std::mutex sleepMutex;std::condition_variable wake;
 std::map<std::wstring,bool> trusted;
 std::wstring Lower(std::wstring value){for(auto& c:value)c=wchar_t(std::towlower(c));return value;}
-bool KnownTool(const std::wstring& name){
-    auto n=Lower(name);return n==L"processhacker.exe"||n==L"processhacker2.exe"||n==L"systeminformer.exe"||n==L"extremeinjector.exe"||n==L"extreme injector.exe"||n==L"extreme injector v3.exe"||n==L"xenos.exe"||n==L"xenos64.exe"||n==L"xenos32.exe"||n==L"cheatengine-x86_64.exe"||n==L"cheatengine-i386.exe";
+bool Report(const std::wstring& reason){
+    wchar_t directory[32768]{};
+    DWORD length=GetEnvironmentVariableW(L"LOCALAPPDATA",directory,32768);
+    if(length&&length<32768){
+        std::error_code error;auto folder=std::filesystem::path(directory)/L"MineClone";
+        std::filesystem::create_directories(folder,error);
+        std::ofstream log(folder/L"anticheat.log",std::ios::app);
+        int size=WideCharToMultiByte(CP_UTF8,0,reason.data(),int(reason.size()),nullptr,0,nullptr,nullptr);
+        std::string text(size,'\0');if(size)WideCharToMultiByte(CP_UTF8,0,reason.data(),int(reason.size()),text.data(),size,nullptr,nullptr);
+        SYSTEMTIME now{};GetLocalTime(&now);
+        log<<now.wYear<<'-'<<now.wMonth<<'-'<<now.wDay<<' '<<now.wHour<<':'<<now.wMinute<<':'<<now.wSecond<<" "<<text<<'\n';
+    }
+    return true;
 }
 std::wstring ProcessPath(HANDLE process){std::wstring path(32768,L'\0');DWORD length=DWORD(path.size());if(!QueryFullProcessImageNameW(process,0,path.data(),&length))return {};path.resize(length);return path;}
+std::map<std::wstring,bool> microsoftTrusted;
+bool MicrosoftSigned(const std::wstring& path){
+    if(path.empty())return false;
+    auto key=Lower(path);auto cached=microsoftTrusted.find(key);if(cached!=microsoftTrusted.end())return cached->second;
+    WINTRUST_FILE_INFO file{};file.cbStruct=sizeof(file);file.pcwszFilePath=path.c_str();
+    WINTRUST_DATA data{};data.cbStruct=sizeof(data);data.dwUIChoice=WTD_UI_NONE;data.fdwRevocationChecks=WTD_REVOKE_NONE;data.dwUnionChoice=WTD_CHOICE_FILE;data.pFile=&file;data.dwStateAction=WTD_STATEACTION_VERIFY;data.dwProvFlags=WTD_CACHE_ONLY_URL_RETRIEVAL;
+    GUID policy=WINTRUST_ACTION_GENERIC_VERIFY_V2;bool ok=false;
+    if(WinVerifyTrust(nullptr,&policy,&data)==ERROR_SUCCESS){
+        auto provider=WTHelperProvDataFromStateData(data.hWVTStateData);
+        auto signer=provider?WTHelperGetProvSignerFromChain(provider,0,FALSE,0):nullptr;
+        if(signer&&signer->csCertChain){wchar_t organization[256]{};
+            CertGetNameStringW(signer->pasCertChain[0].pCert,CERT_NAME_ATTR_TYPE,0,(void*)szOID_ORGANIZATION_NAME,organization,256);
+            ok=Lower(organization)==L"microsoft corporation";
+        }
+    }
+    data.dwStateAction=WTD_STATEACTION_CLOSE;WinVerifyTrust(nullptr,&policy,&data);microsoftTrusted[key]=ok;return ok;
+}
+bool KnownTool(const std::wstring& name){
+    auto n=Lower(name);return n==L"processhacker.exe"||n==L"processhacker2.exe"||n==L"systeminformer.exe"||n==L"extremeinjector.exe"||n==L"extreme injector.exe"||n==L"extreme injector v3.exe"||n==L"xenos.exe"||n==L"xenos64.exe"||n==L"xenos32.exe"||n==L"cheatengine.exe"||n==L"cheatengine-x86_64.exe"||n==L"cheatengine-i386.exe"||n==L"cheatengine-x86_64-sse4-avx2.exe";
+}
 bool Signed(const std::wstring& path){
     if(path.empty())return false;
     auto key=Lower(path);auto it=trusted.find(key);if(it!=trusted.end())return it->second;
@@ -42,11 +75,11 @@ bool SystemModule(const std::wstring& path){
 }
 bool ToolsOrModules(){
     HANDLE processes=CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS,0);
-    if(processes!=INVALID_HANDLE_VALUE){PROCESSENTRY32W entry{};entry.dwSize=sizeof(entry);if(Process32FirstW(processes,&entry))do{if(KnownTool(entry.szExeFile)){CloseHandle(processes);return true;}}while(Process32NextW(processes,&entry));CloseHandle(processes);}
+    if(processes!=INVALID_HANDLE_VALUE){PROCESSENTRY32W entry{};entry.dwSize=sizeof(entry);if(Process32FirstW(processes,&entry))do{if(KnownTool(entry.szExeFile)){CloseHandle(processes);return Report(L"known tool: "+std::wstring(entry.szExeFile));}}while(Process32NextW(processes,&entry));CloseHandle(processes);}
     HANDLE modules=CreateToolhelp32Snapshot(TH32CS_SNAPMODULE|TH32CS_SNAPMODULE32,GetCurrentProcessId());
     if(modules!=INVALID_HANDLE_VALUE){MODULEENTRY32W entry{};entry.dwSize=sizeof(entry);if(Module32FirstW(modules,&entry))do{
         if(entry.hModule==GetModuleHandleW(nullptr))continue;
-        if(!SystemModule(entry.szExePath)&&!Signed(entry.szExePath)){CloseHandle(modules);return true;}
+        if(!SystemModule(entry.szExePath)&&!Signed(entry.szExePath)){CloseHandle(modules);return Report(L"unsigned module: "+std::wstring(entry.szExePath));}
     }while(Module32NextW(modules,&entry));CloseHandle(modules);}return false;
 }
 // Inspect only PROCESS handles. No driver, debug privilege or remote memory reads.
@@ -63,17 +96,15 @@ bool ExternalAccess(){
     auto list=reinterpret_cast<const HandleList*>(bytes.data());auto count=std::min(size_t(list->count),(bytes.size()-offsetof(HandleList,entries))/sizeof(HandleEntry));USHORT processType=0;void* ownObject=nullptr;
     for(size_t i=0;i<count;++i)if(list->entries[i].pid==GetCurrentProcessId()&&list->entries[i].handle==reinterpret_cast<ULONG_PTR>(marker)){processType=list->entries[i].type;ownObject=list->entries[i].object;break;}
     CloseHandle(marker);if(!processType||!ownObject)return false;
-    std::map<DWORD,HANDLE> sources;bool found=false;
+    bool found=false;
     for(size_t i=0;i<count&&!found&&running;++i){auto h=list->entries[i];
         if(h.type!=processType||h.object!=ownObject||h.pid==GetCurrentProcessId()||h.pid<=4||!(h.access&(PROCESS_VM_READ|PROCESS_VM_WRITE|PROCESS_VM_OPERATION|PROCESS_CREATE_THREAD)))continue;
-        auto pid=DWORD(h.pid);auto it=sources.find(pid);
-        if(it==sources.end())it=sources.emplace(pid,OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,pid)).first;
-        if(!it->second)continue;
-        auto path=ProcessPath(it->second);
-        // Signed system/driver/security utilities commonly inspect processes.
-        if(!path.empty()&&!Signed(path))found=true;
+        HANDLE source=OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,DWORD(h.pid));
+        if(!source)continue; // Unknown protected processes are not proof of cheating.
+        auto path=ProcessPath(source);CloseHandle(source);
+        if(path.empty()||MicrosoftSigned(path))continue;
+        found=Report(L"external memory handle: pid="+std::to_wstring(h.pid)+L" access="+std::to_wstring(h.access)+L" "+path);
     }
-    for(auto p:sources)if(p.second)CloseHandle(p.second);
     return found;
 }
 bool PrivateThread(){
@@ -86,7 +117,7 @@ bool PrivateThread(){
         void* start=nullptr;if(query(thread,9,&start,sizeof(start),nullptr)>=0&&start){MEMORY_BASIC_INFORMATION memory{};
             if(VirtualQuery(start,&memory,sizeof(memory))&&memory.Type==MEM_PRIVATE&&(memory.Protect&(PAGE_EXECUTE|PAGE_EXECUTE_READ|PAGE_EXECUTE_READWRITE|PAGE_EXECUTE_WRITECOPY)))found=true;
         }CloseHandle(thread);if(found)break;
-    }while(Thread32Next(threads,&entry));CloseHandle(threads);return found;
+    }while(Thread32Next(threads,&entry));CloseHandle(threads);return found?Report(L"thread starts in private executable memory"):false;
 }
 struct CodeSection {const unsigned char* bytes;size_t size;uint64_t hash;};
 std::vector<CodeSection> codeSections;
@@ -100,12 +131,12 @@ void CaptureCode(){
         auto bytes=base+section[i].VirtualAddress;codeSections.push_back({bytes,size,CodeHash(bytes,size)});
     }
 }
-bool ChangedCode(){for(const auto& section:codeSections)if(CodeHash(section.bytes,section.size)!=section.hash)return true;return false;}
+bool ChangedCode(){for(const auto& section:codeSections)if(CodeHash(section.bytes,section.size)!=section.hash)return Report(L"executable code changed");return false;}
 bool Scan(){return ChangedCode()||ToolsOrModules()||ExternalAccess()||PrivateThread();}
 }
-bool StartMonitor(){StopMonitor();trusted.clear();tripped=false;running=true;
+bool StartMonitor(){StopMonitor();trusted.clear();microsoftTrusted.clear();tripped=false;running=true;
     CaptureCode();if(Scan()){tripped=true;running=false;return false;}
-    worker=std::thread([]{while(running){std::unique_lock<std::mutex> lock(sleepMutex);wake.wait_for(lock,std::chrono::seconds(2),[]{return !running;});lock.unlock();if(!running)break;if(Scan()){tripped=true;break;}}});return true;
+    worker=std::thread([]{while(running){std::unique_lock<std::mutex> lock(sleepMutex);wake.wait_for(lock,std::chrono::milliseconds(500),[]{return !running;});lock.unlock();if(!running)break;if(Scan()){tripped=true;break;}}});return true;
 }
 void StopMonitor(){running=false;wake.notify_all();if(worker.joinable())worker.join();}
 bool Detected(){return tripped;}

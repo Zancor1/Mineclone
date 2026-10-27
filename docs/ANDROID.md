@@ -3,6 +3,12 @@
 O projeto Android fica em `android/`, separado do Makefile desktop. Requer Android
 8.0 ou superior e OpenGL ES 2.0. O APK padrão inclui ARM de 32 e 64 bits.
 
+## Iniciar uma partida por toque
+
+No lobby BedWars, toque em **Escolher time** no topo da tela. Quem criou a sala
+também vê **Iniciar partida** ao lado; convidados não podem iniciar. Os botões
+aparecem automaticamente com os controles touch, sem configuração adicional.
+
 ## Compilar no Arch Linux
 
 ```sh

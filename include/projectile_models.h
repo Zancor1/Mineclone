@@ -8,6 +8,10 @@
 namespace game {
 inline Color ProjectilePixel(Block item,int x,int y){
     float dx=x-7.5f,dy=y-7.5f,r=dx*dx+dy*dy;if(r>48)return BLANK;
+    if(item==Snowball||item==Egg){
+        if(item==Egg&&((dx*dx)/.75f+dy*dy>44))return BLANK;
+        int shade=int(225-dy*2-dx*2);return item==Snowball?Color{(unsigned char)shade,(unsigned char)shade,(unsigned char)std::min(255,shade+15),255}:Color{(unsigned char)shade,(unsigned char)(shade-12),(unsigned char)(shade-45),255};
+    }
     if(item==EnderPearl){
         Color c=r>35?Color{13,48,47,255}:r>23?Color{31,104,91,255}:Color{36,159,132,255};
         if(x>=7&&x<=10&&y>=6&&y<=11)c={15,67,70,255};
@@ -24,8 +28,8 @@ inline Color ProjectilePixel(Block item,int x,int y){
 }
 struct ProjectileVertex {Vector3 p;Color color;};
 inline const std::vector<ProjectileVertex>& ProjectileGeometry(Block item){
-    static std::vector<ProjectileVertex> pearl,fire;
-    auto& vertices=item==EnderPearl?pearl:fire;if(!vertices.empty())return vertices;
+    static std::vector<ProjectileVertex> pearl,fire,snowball,egg;
+    auto& vertices=item==EnderPearl?pearl:item==Snowball?snowball:item==Egg?egg:fire;if(!vertices.empty())return vertices;
     constexpr int normals[6][3]={{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
     constexpr int corners[6][4][3]={{{1,0,1},{1,0,0},{1,1,0},{1,1,1}},{{0,0,0},{0,0,1},{0,1,1},{0,1,0}},{{0,1,1},{1,1,1},{1,1,0},{0,1,0}},{{0,0,0},{1,0,0},{1,0,1},{0,0,1}},{{0,0,1},{1,0,1},{1,1,1},{0,1,1}},{{1,0,0},{0,0,0},{0,1,0},{1,1,0}}};
     auto filled=[](int x,int y,int z){return x*x+y*y+z*z<=12;};

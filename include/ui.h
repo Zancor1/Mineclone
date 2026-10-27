@@ -12,7 +12,7 @@ class UI {
 public:
     int selected=0;
     int rushGap=16,mapChoice=0,teamCapacity=1;
-    bool standardLayout=true;
+    bool standardLayout=true,skywars=false;
     ~UI();
     float miningProgress=0,loadingProgress=0;
     std::string loadingText;

@@ -39,7 +39,7 @@ int RunGame() {
     EnableCursor();
     while(!WindowShouldClose()&&!quit) {
         if(ac::Detected()){bw::IntegrityFailure();if(online)net::Disconnect();if(bw::Migrating()){bw::Update(player,std::min(GetFrameTime(),.05f),false,ui.selected);BeginDrawing();ClearBackground(BLACK);DrawText("Transferindo a sala...",24,24,24,WHITE);EndDrawing();continue;}break;}
-        Touch.Update(PollScreenTouches(),GetFrameTime(),GetScreenWidth(),GetScreenHeight(),state==GameState::Playing&&!ui.chatOpen&&IsWindowFocused(),state==GameState::Inventory||state==GameState::ChestScreen||state==GameState::CraftScreen||state==GameState::FurnaceScreen||state==GameState::BedwarsInventory||state==GameState::BedwarsChest||state==GameState::BedwarsShop||state==GameState::BedwarsTeams||state==GameState::ServerInventory);
+        Touch.Update(PollScreenTouches(),GetFrameTime(),GetScreenWidth(),GetScreenHeight(),state==GameState::Playing&&!ui.chatOpen&&IsWindowFocused(),state==GameState::Inventory||state==GameState::ChestScreen||state==GameState::CraftScreen||state==GameState::FurnaceScreen||state==GameState::BedwarsInventory||state==GameState::BedwarsChest||state==GameState::BedwarsShop||state==GameState::BedwarsTeams||state==GameState::ServerInventory,bw::Ready()&&bw::Lobby()&&!bw::Migrating(),bw::Hosting());
         bool capturedMouse=false;
         if(Touch.enabled){
             if(Touch.SuppressMouse()){if(IsCursorHidden())EnableCursor();}
@@ -231,6 +231,7 @@ int RunGame() {
             worldPrimed=renderer.PrepareWorld(player.Camera(),12.f);hasWorld=worldPrimed;
             ui.loadingProgress=renderer.WorldLoadProgress();ui.loadingText=renderer.WorldLoadStage();
         }
+        if(bw::Ready()&&bw::Lobby()&&!bw::Migrating()&&state==GameState::Playing&&!ui.chatOpen&&Touch.teamsPressed)enter(GameState::BedwarsTeams);
         if(bw::Ready()&&bw::Hosting()&&state==GameState::Playing&&!typingAtFrameStart&&!ui.chatOpen){if(ActionPressed(BindingAction::StartRound))bw::StartRound();if(ActionPressed(BindingAction::RestartRound))bw::Restart();}
         bool active=state==GameState::Playing&&IsWindowFocused()&&!transition;
         if(!active)placementRepeat.Reset();

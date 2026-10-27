@@ -5,7 +5,8 @@
 #include <functional>
 #include <vector>
 namespace game::bw {
-constexpr int MapCount=21;
+constexpr int SkywarsMap=21;
+constexpr int MapCount=22;
 const char* MapName(int map);
 const char* MapDescription(int map);
 std::array<Vector3,8> ArenaBases(int gap,int map=0);

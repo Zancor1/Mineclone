@@ -45,7 +45,7 @@ make -C "$root" -j"$jobs" CXX=x86_64-w64-mingw32-g++ \
 if [ -d "$root/sounds" ]; then cp -R "$root/sounds" "$root/dist/windows/"; fi
 cp "$root/README.md" "$root/dist/windows/README.md"
 mkdir -p "$root/dist/windows/docs"
-cp "$root/docs/ANTICHEAT.md" "$root/dist/windows/docs/ANTICHEAT.md"
+cp "$root/docs/ANTICHEAT.md" "$root/docs/BEDWARS.md" "$root/docs/SKYWARS.md" "$root/dist/windows/docs/"
 if [ -d "$root/LICENSES" ]; then cp -R "$root/LICENSES" "$root/dist/windows/"; fi
 cp "$sources/raylib-5.5/LICENSE" "$root/dist/windows/LICENSE-raylib.txt"
 cp "$sources/zlib-1.3.1/LICENSE" "$root/dist/windows/LICENSE-zlib.txt"

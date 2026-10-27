@@ -30,24 +30,30 @@ struct TouchLayout {
     Rectangle& Control(int i){return i==0?pad:i==1?hotbar:buttons[i-2];}
     Rectangle Slot(int i)const{float w=hotbar.width/9;return {hotbar.x+i*w,hotbar.y,w-3,hotbar.height};}
 };
+inline Rectangle TouchLobbyButton(int width,int height,int index){
+    float h=std::clamp(height*.065f,30.f,48.f),w=std::clamp(width*.15f,100.f,190.f);
+    return {width/2.f-w-5+index*(w+10),12,w,h};
+}
 class TouchControls {
     struct Finger {int id=-1,role=-1;Vector2 start{},last{};float age=0;bool dragged=false,usingItem=false;};
     std::vector<Finger> fingers;
     std::array<bool,BindingCount> down{},previous{},pressed{},released{};
     int primary=-1;bool previousMenu=false,wasPlaying=false;
-    float mouseGuard=0;bool worldTap=false;
+    float mouseGuard=0;bool worldTap=false,sneakToggled=false;
 public:
     bool enabled=false,mouseLook=false,playing=false,canGoBack=false,menuDown=false,menuPressed=false,menuReleased=false;
+    bool lobbyControls=false,lobbyHost=false,teamsPressed=false;
     Vector2 look{},pointer{};
-    void Cancel(){worldTap=false;fingers.clear();down={};previous={};pressed={};released={};look={};primary=-1;previousMenu=menuDown=menuPressed=menuReleased=false;}
+    void Cancel(){sneakToggled=false;teamsPressed=false;worldTap=false;fingers.clear();down={};previous={};pressed={};released={};look={};primary=-1;previousMenu=menuDown=menuPressed=menuReleased=false;}
     // Resolve a released world tap after the current camera/target is known.
     void ResolveWorldTap(bool canPlace){if(!worldTap)return;worldTap=false;int action=int(canPlace?BindingAction::Use:BindingAction::Attack);down[action]=pressed[action]=previous[action]=true;}
     bool Down(BindingAction action)const{return down[int(action)];}
     bool Pressed(BindingAction action)const{return pressed[int(action)];}
     bool Released(BindingAction action)const{return released[int(action)];}
     bool SuppressMouse()const{return mouseGuard>0;}
-    void Update(const std::vector<ScreenTouch>& touches,float dt,int width,int height,bool inGame,bool back=false){
+    void Update(const std::vector<ScreenTouch>& touches,float dt,int width,int height,bool inGame,bool back=false,bool lobby=false,bool host=false){
         dt=std::clamp(dt,0.f,.1f);mouseGuard=std::max(0.f,mouseGuard-dt);if(!touches.empty()){enabled=true;mouseLook=false;mouseGuard=.2f;}
+        teamsPressed=false;lobbyControls=lobby;lobbyHost=host;
         worldTap=false;canGoBack=back;playing=inGame;look={};pressed={};released={};down={};menuPressed=menuReleased=false;
         if(inGame!=wasPlaying){Cancel();wasPlaying=inGame;for(auto touch:touches)fingers.push_back({touch.id,-2,touch.position,touch.position});}
         if(!inGame){
@@ -65,6 +71,8 @@ public:
             if(fresh){int role=-1;if(CheckCollisionPointRec(touch.position,layout.pad))role=0;
                 for(int i=0;i<7;++i)if(CheckCollisionPointRec(touch.position,layout.buttons[i]))role=1+i;
                 if(CheckCollisionPointRec(touch.position,layout.hotbar))role=8;
+                if(lobbyControls&&CheckCollisionPointRec(touch.position,TouchLobbyButton(width,height,0)))role=10;
+                if(lobbyControls&&lobbyHost&&CheckCollisionPointRec(touch.position,TouchLobbyButton(width,height,1)))role=11;
                 // A single finger owns looking/using; extra free fingers stay ignored.
                 if(role<0&&std::any_of(fingers.begin(),fingers.end(),[](auto f){return f.role==9;}))role=-2;
                 if(role==-1)role=9;
@@ -80,8 +88,10 @@ public:
                 if(y==2)down[int(BindingAction::Backward)]=true;
                 if(x==0)down[int(BindingAction::Left)]=true;
                 if(x==2)down[int(BindingAction::Right)]=true;
-                if(x==1&&y==1)down[int(BindingAction::Sneak)]=true;}}
+                if(x==1&&y==1&&fresh)sneakToggled=!sneakToggled;}}
             else if(f.role>=1&&f.role<=7){constexpr BindingAction actions[]={BindingAction::Jump,BindingAction::Use,BindingAction::Attack,BindingAction::Sprint,BindingAction::Pause,BindingAction::Inventory,BindingAction::Drop};down[int(actions[f.role-1])]=true;}
+            else if(f.role==10){if(fresh&&lobbyControls)teamsPressed=true;}
+            else if(f.role==11){if(lobbyControls&&lobbyHost)down[int(BindingAction::StartRound)]=true;}
             else if(f.role==8){int slot=std::clamp(int((touch.position.x-layout.hotbar.x)/(layout.hotbar.width/9)),0,8);if(fresh)pressed[int(BindingAction::Hotbar1)+slot]=true;}
             else if(f.role==9){if(f.dragged){float scale=720.f/std::max(240,height);look.x+=delta.x*scale;look.y+=delta.y*scale;}
                 if(!f.dragged&&f.age+1e-5f>=.3f)f.usingItem=true;
@@ -92,6 +102,7 @@ public:
             if(f.role==9&&!f.dragged&&!f.usingItem&&f.age<.3f)worldTap=true;
         }
         fingers.erase(std::remove_if(fingers.begin(),fingers.end(),[&](auto f){return std::none_of(touches.begin(),touches.end(),[&](auto t){return t.id==f.id;});}),fingers.end());
+        down[int(BindingAction::Sneak)]=Settings.touchDpad&&sneakToggled;
         for(int i=0;i<BindingCount;++i){pressed[i]=pressed[i]||(down[i]&&!previous[i]);released[i]=!down[i]&&previous[i];previous[i]=down[i];}
     }
     void Draw(int width,int height)const{
@@ -103,6 +114,7 @@ public:
         else for(int y=0;y<3;++y)for(int x=0;x<3;++x){Rectangle r{l.pad.x+x*l.cell+2,l.pad.y+y*l.cell+2,l.cell-4,l.cell-4};bool held=(y==0&&Down(BindingAction::Forward))||(y==2&&Down(BindingAction::Backward))||(x==0&&Down(BindingAction::Left))||(x==2&&Down(BindingAction::Right))||(x==1&&y==1&&Down(BindingAction::Sneak));box(r,held);Vector2 c{r.x+r.width/2,r.y+r.height/2};float a=l.cell*.18f;
             if(x==1&&y==1)DrawCircleLines(int(c.x),int(c.y),a,Fade(WHITE,.8f));
             else{Vector2 d{float(x-1),float(y-1)};float n=std::hypot(d.x,d.y);d.x/=n;d.y/=n;DrawTriangle({c.x+d.x*a,c.y+d.y*a},{c.x-d.x*a+d.y*a,c.y-d.y*a-d.x*a},{c.x-d.x*a-d.y*a,c.y-d.y*a+d.x*a},Fade(WHITE,.8f));}}
+        if(lobbyControls)for(int i=0;i<(lobbyHost?2:1);++i){auto r=TouchLobbyButton(width,height,i);box(r,i==1&&Down(BindingAction::StartRound));const char* label=i==0?"Escolher time":"Iniciar partida";int font=std::clamp(int(r.height*.35f),12,18);DrawText(label,int(r.x+(r.width-MeasureText(label,font))/2),int(r.y+(r.height-font)/2),font,WHITE);}
         const char* labels[]={"Pular","Usar","Picar","Correr","II","...","Q"};constexpr BindingAction actions[]={BindingAction::Jump,BindingAction::Use,BindingAction::Attack,BindingAction::Sprint,BindingAction::Pause,BindingAction::Inventory,BindingAction::Drop};
         for(int i=0;i<7;++i){auto r=l.buttons[i];box(r,Down(actions[i]));int font=std::clamp(int(l.cell*.23f),11,18);DrawText(labels[i],int(r.x+(r.width-MeasureText(labels[i],font))/2),int(r.y+(r.height-font)/2),font,WHITE);}
     }

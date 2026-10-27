@@ -38,29 +38,7 @@ std::vector<RemoteSlot> RemoteSlots(){
     }
     return list;
 }
-RenderTexture2D CreateSkywarsPreview(){
-    RenderTexture2D preview=LoadRenderTexture(360,210);
-    Camera3D camera{{43,36,43},{0,0,0},{0,1,0},43,CAMERA_PERSPECTIVE};
-    BeginTextureMode(preview);ClearBackground({125,177,213,255});BeginMode3D(camera);
-    auto island=[](float x,float z,int radius){
-        for(int y=-4;y<=0;++y){int r=std::max(1,radius+y/2);
-            for(int dx=-r;dx<=r;++dx)for(int dz=-r;dz<=r;++dz){
-                if(dx*dx+dz*dz>r*r+1)continue;
-                DrawCube({x+dx,float(y),z+dz},1,1,1,y==0?Color{91,145,61,255}:y==-1?Color{123,88,60,255}:Color{112,117,123,255});
-            }
-        }
-    };
-    island(0,0,6);
-    for(int i=0;i<8;++i){float angle=i*2*PI/8,x=17*std::cos(angle),z=17*std::sin(angle);island(x,z,3);
-        DrawCube({x,1.6f,z},.8f,2.2f,.8f,{103,76,46,255});
-        DrawCube({x,3.3f,z},3.5f,2,3.5f,{55,109,53,255});
-        DrawCube({x+1.5f,.9f,z+1.5f},.8f,.8f,.8f,{162,106,42,255});
-    }
-    for(int i=0;i<4;++i){float x=i%2?3.f:-3.f,z=i/2?3.f:-3.f;DrawCube({x,2,z},1,3,1,{166,170,168,255});}
-    DrawCube({0,3.8f,0},8,.7f,8,{151,158,162,255});
-    DrawCube({0,1,0},1.4f,1,1.4f,{191,135,43,255});
-    EndMode3D();EndTextureMode();return preview;
-}
+RenderTexture2D CreateSkywarsPreview(){return bw::CreateMapPreview(bw::SkywarsMap,32);}
 struct ServerBrowserLayout {
     Rectangle left,list,right,fields[5],refresh,create,join,back,onlyOpen;
     ServerBrowserLayout(){
@@ -256,8 +234,8 @@ UiAction UI::Update(GameState state) {
         for(int c=GetCharPressed();c;c=GetCharPressed())if(!control)append(c);
         if(IsKeyPressed(KEY_BACKSPACE)&&!roomName.empty())roomName.pop_back();
         if(PointerPressed(MOUSE_BUTTON_LEFT)){
-            for(int i=0;i<2;++i)if(Hover({x,y+40+i*65,440,50})){if(roomName.find_first_not_of(" ")==std::string::npos){Notify("Escolha um nome para a sala");return UiAction::None;}teamCapacity=i+1;return standardLayout?UiAction::ChooseRush:UiAction::ChooseMap;}
-            if(Hover({x,y+170,440,40})){standardLayout=!standardLayout;mapPage=0;mapChoice=standardLayout?0:3;return UiAction::None;}
+            for(int i=0;i<(skywars?1:2);++i)if(Hover({x,y+40+i*65,440,50})){if(roomName.find_first_not_of(" ")==std::string::npos){Notify("Escolha um nome para a sala");return UiAction::None;}teamCapacity=i+1;if(skywars){mapChoice=bw::SkywarsMap;rushGap=32;return UiAction::HostBedwars;}return standardLayout?UiAction::ChooseRush:UiAction::ChooseMap;}
+            if(!skywars&&Hover({x,y+170,440,40})){standardLayout=!standardLayout;mapPage=0;mapChoice=standardLayout?0:3;return UiAction::None;}
             if(Hover({x,y+220,440,40}))return UiAction::OpenBedwars;
         }
         return UiAction::None;
@@ -269,15 +247,16 @@ UiAction UI::Update(GameState state) {
         if(!skywarsPreview.id)skywarsPreview=CreateSkywarsPreview();
         if(PointerPressed(MOUSE_BUTTON_LEFT)){
             if(Hover(TesterButton()))return UiAction::OpenTester;
-            if(Hover(MinigameCard(0)))return UiAction::OpenBedwars;
+            if(Hover(MinigameCard(0))){skywars=false;roomName="BedWars LAN";return UiAction::OpenBedwars;}
+            if(Hover(MinigameCard(1))){skywars=true;roomName="SkyWars LAN";return UiAction::OpenBedwars;}
             if(Hover(MinigamesBack()))return UiAction::BackToMenu;
         }
         return UiAction::None;
     }
     if(state==GameState::BedwarsMaps){
-        int pages=(bw::MapCount-3+5)/6;
+        int pages=(bw::SkywarsMap-3+5)/6;
         if(!standardLayout){int delta=IsKeyPressed(KEY_RIGHT)?1:IsKeyPressed(KEY_LEFT)?-1:0;delta-=int(GetMouseWheelMove());if(PointerPressed(MOUSE_BUTTON_LEFT)){if(Hover(MapPageButton(false)))--delta;if(Hover(MapPageButton(true)))++delta;}mapPage=std::clamp(mapPage+delta,0,pages-1);}
-        int first=standardLayout?0:3+mapPage*6,last=standardLayout?3:std::min(first+6,bw::MapCount);
+        int first=standardLayout?0:3+mapPage*6,last=standardLayout?3:std::min(first+6,bw::SkywarsMap);
         for(int i=first;i<last;++i)if(!mapPreviews[i].id||(standardLayout&&previewGap!=rushGap)){if(mapPreviews[i].id)UnloadRenderTexture(mapPreviews[i]);mapPreviews[i]=bw::CreateMapPreview(i,rushGap);}
         if(standardLayout)previewGap=rushGap;
         if(PointerPressed(MOUSE_BUTTON_LEFT))for(int i=first;i<last;++i)if(Hover(MapCard(i-first,last-first))){mapChoice=i;return UiAction::HostBedwars;}
@@ -285,7 +264,7 @@ UiAction UI::Update(GameState state) {
     }
 
     if(state==GameState::BedwarsMenu||state==GameState::BedwarsDiscovery){
-        ServerBrowserLayout layout;auto rooms=FilterRooms(roomSearch,mapSearch,pingSearch,onlyOpenRooms);int visible=std::max(1,int((layout.list.height-34)/36));
+        ServerBrowserLayout layout;auto rooms=FilterRooms(roomSearch,mapSearch,pingSearch,onlyOpenRooms);rooms.erase(std::remove_if(rooms.begin(),rooms.end(),[&](const LanRoom* room){return (room->map.find("SkyWars")!=std::string::npos)!=skywars;}),rooms.end());int visible=std::max(1,int((layout.list.height-34)/36));
         if(Hover(layout.list))lanScroll-=int(GetMouseWheelMove());
         if(Hover(layout.right))rosterScroll=std::max(0,rosterScroll-int(GetMouseWheelMove()));
         lanScroll=std::clamp(lanScroll,0,std::max(0,int(rooms.size())-visible));
@@ -555,13 +534,13 @@ void UI::Draw(Texture2D atlas,GameState state) const {
         const char* title="MULTIPLAYER";
         DrawText(title,(GetScreenWidth()-MeasureText(title,30))/2,int(MinigameCard(0).y-65),30,RAYWHITE);
         for(int i=0;i<2;++i){
-            Rectangle r=MinigameCard(i);bool enabled=i==0,hover=enabled&&Hover(r);
+            Rectangle r=MinigameCard(i);bool enabled=true,hover=Hover(r);
             DrawRectangleRec(r,hover?Color{66,71,83,255}:Color{45,47,54,255});
             Rectangle image{r.x+8,r.y+8,r.width-16,165};
-            const auto& preview=enabled?mapPreviews[0]:skywarsPreview;
+            const auto& preview=i==0?mapPreviews[0]:skywarsPreview;
             if(preview.id)DrawTexturePro(preview.texture,{0,0,360,-210},image,{0,0},0,enabled?WHITE:Color{160,160,160,255});
             if(!enabled)DrawRectangleRec(image,Fade(Color{70,70,70,255},.5f));
-            const char* name=enabled?"BEDWARS":"SKYWARS";
+            const char* name=i==0?"BEDWARS":"SKYWARS";
             DrawText(name,int(r.x+(r.width-MeasureText(name,26))/2),int(r.y+188),26,enabled?GOLD:GRAY);
             const char* subtitle=enabled?"Criar sala ou jogar com amigos":"Em breve";
             DrawText(subtitle,int(r.x+(r.width-MeasureText(subtitle,16))/2),int(r.y+229),16,enabled?RAYWHITE:GRAY);
@@ -574,8 +553,8 @@ void UI::Draw(Texture2D atlas,GameState state) const {
         DrawText("CRIAR SERVIDOR",GetScreenWidth()/2-MeasureText("CRIAR SERVIDOR",28)/2,int(y-100),28,GOLD);
         DrawText("Nome do servidor",int(x),int(y-44),16,LIGHTGRAY);
         Rectangle field{x,y-20,440,36};DrawRectangleRec(field,{17,19,25,255});DrawRectangleLinesEx(field,1,GOLD);BrowserText(roomName+(int(GetTime()*2)%2?"_":""),field,18,WHITE);
-        ClassicButton({x,y+40,440,50},"Solo - 1 jogador por time",true);ClassicButton({x,y+105,440,50},"Dupla - 2 jogadores por time",true);
-        ClassicButton({x,y+170,440,40},standardLayout?"Layout padrao: Ligado":"Layout padrao: Desligado",true);
+        ClassicButton({x,y+40,440,50},"Solo - 1 jogador por time",true);if(!skywars)ClassicButton({x,y+105,440,50},"Dupla - 2 jogadores por time",true);
+        if(!skywars)ClassicButton({x,y+170,440,40},standardLayout?"Layout padrao: Ligado":"Layout padrao: Desligado",true);
         ClassicButton({x,y+220,440,40},"Voltar",true);
         if(!message.empty()&&GetTime()<messageUntil)BrowserText(message,{x,y+265,440,24},14,GOLD);
         return;
@@ -584,7 +563,7 @@ void UI::Draw(Texture2D atlas,GameState state) const {
     if(state==GameState::BedwarsTeams){DrawRectangle(0,0,GetScreenWidth(),GetScreenHeight(),Fade(BLACK,.7f));DrawText("ESCOLHA SEU TIME",GetScreenWidth()/2-150,GetScreenHeight()/2-155,26,GOLD);for(const auto& team:bw::TeamChoices()){auto r=TeamButton(team.id);ClassicButton(r,TextFormat("%s %d/%d%s",team.name,team.players,team.capacity,team.id==bw::LocalTeam()?" *":""),team.available);DrawRectangle(int(r.x+6),int(r.y+10),7,26,team.color);}ClassicButton(TeamBack(),"Voltar ao jogo",true);return;}
     if(state==GameState::BedwarsMaps){
         ClearBackground({34,35,43,255});const char* title=standardLayout?"MAPAS BASICOS":"MAPAS AVANCADOS";DrawText(title,(GetScreenWidth()-MeasureText(title,28))/2,28,28,GOLD);
-        int pages=(bw::MapCount-3+5)/6;int first=standardLayout?0:3+mapPage*6,last=standardLayout?3:std::min(first+6,bw::MapCount);
+        int pages=(bw::SkywarsMap-3+5)/6;int first=standardLayout?0:3+mapPage*6,last=standardLayout?3:std::min(first+6,bw::SkywarsMap);
         for(int i=first;i<last;++i){Rectangle r=MapCard(i-first,last-first);DrawRectangleRec(r,Hover(r)?Color{76,80,91,255}:Color{47,50,60,255});DrawRectangleLinesEx(r,2,Hover(r)?GOLD:GRAY);
             float imageHeight=std::min(r.height-78,(r.width-14)*210/360),imageWidth=imageHeight*360/210;if(mapPreviews[i].id)DrawTexturePro(mapPreviews[i].texture,{0,0,360,-210},{r.x+(r.width-imageWidth)/2,r.y+7,imageWidth,imageHeight},{0,0},0,WHITE);
             BrowserText(bw::MapName(i),{r.x+6,r.y+r.height-70,r.width-12,27},20,WHITE);BrowserText(bw::MapDescription(i),{r.x+6,r.y+r.height-44,r.width-12,21},12,LIGHTGRAY);
@@ -595,13 +574,13 @@ void UI::Draw(Texture2D atlas,GameState state) const {
 
     if(state==GameState::BedwarsMenu||state==GameState::BedwarsDiscovery){
         ClearBackground({24,26,33,255});ServerBrowserLayout layout;
-        DrawText("BEDWARS",22,22,28,GOLD);DrawText("SERVIDORES NA REDE LOCAL",190,30,16,LIGHTGRAY);
+        DrawText(skywars?"SKYWARS":"BEDWARS",22,22,28,GOLD);DrawText("SERVIDORES NA REDE LOCAL",190,30,16,LIGHTGRAY);
         for(auto rect:{layout.left,layout.list,layout.right}){DrawRectangleRec(rect,{34,37,46,255});DrawRectangleLinesEx(rect,1,{61,66,81,255});}
         DrawText("FILTROS",int(layout.left.x+12),int(layout.left.y+9),16,GOLD);
         const char* labels[]={"Buscar servidor","Mapa","Ping maximo (ms)","Seu nick"};const std::string* values[]={&roomSearch,&mapSearch,&pingSearch,&playerName,&bedwarsAddress};
         for(int i=0;i<4;++i){Rectangle r=layout.fields[i];DrawText(labels[i],int(r.x),int(r.y-17),14,LIGHTGRAY);DrawRectangleRec(r,{17,19,25,255});DrawRectangleLinesEx(r,1,browserField==i?GOLD:Color{74,79,94,255});BrowserText(*values[i]+(browserField==i&&int(GetTime()*2)%2?"_":""),r,16,WHITE);}
         DrawRectangle(int(layout.onlyOpen.x),int(layout.onlyOpen.y+3),14,14,onlyOpenRooms?GOLD:DARKGRAY);DrawText("Com vagas",int(layout.onlyOpen.x+22),int(layout.onlyOpen.y+2),14,WHITE);
-        auto rooms=FilterRooms(roomSearch,mapSearch,pingSearch,onlyOpenRooms);const LanRoom* selected=nullptr;for(const auto& room:bw::Rooms())if(room.identity==selectedRoom)selected=&room;
+        auto rooms=FilterRooms(roomSearch,mapSearch,pingSearch,onlyOpenRooms);rooms.erase(std::remove_if(rooms.begin(),rooms.end(),[&](const LanRoom* room){return (room->map.find("SkyWars")!=std::string::npos)!=skywars;}),rooms.end());const LanRoom* selected=nullptr;for(const auto& room:bw::Rooms())if(room.identity==selectedRoom)selected=&room;
         float x=layout.list.x,w=layout.list.width,mapWidth=std::min(115.f,w*.28f),nameWidth=w-mapWidth-100;
         DrawRectangle(int(x),int(layout.list.y),int(w),30,{49,54,65,255});BrowserText("Servidor",{x,layout.list.y,nameWidth,28},14,LIGHTGRAY);BrowserText("Mapa",{x+nameWidth,layout.list.y,mapWidth,28},14,LIGHTGRAY);BrowserText("Players",{x+w-100,layout.list.y,58,28},12,LIGHTGRAY);BrowserText("Ping",{x+w-42,layout.list.y,42,28},12,LIGHTGRAY);
         int visible=std::max(1,int((layout.list.height-34)/36)),scroll=std::clamp(lanScroll,0,std::max(0,int(rooms.size())-visible));

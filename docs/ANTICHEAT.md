@@ -85,7 +85,7 @@ convidado reivindicando um slot alheio, mas não contra o host emissor adulterad
 ## Proteção local no Windows
 
 O monitor verifica na abertura e, em uma thread separada, aproximadamente a cada
-dois segundos:
+500 milissegundos entre varreduras (o tempo de cada consulta pode aumentar esse intervalo):
 
 - Nomes conhecidos de ferramentas, incluindo Extreme Injector, Xenos, Process
   Hacker/System Informer e executáveis conhecidos do Cheat Engine.
@@ -93,19 +93,23 @@ dois segundos:
   Authenticode válida. O executável do jogo é excluído dessa regra.
 - Handles de outros processos com direitos de leitura, escrita, operação de
   memória ou criação de thread sobre o jogo, quando o Windows expõe essa
-  informação e o processo de origem não tem assinatura válida.
+  informação. Componentes com assinatura válida da Microsoft recebem tolerância;
+  processos protegidos cuja origem não pode ser consultada não geram acusação. Não é
+  necessário confirmar uma leitura: a permissão no handle já dispara a detecção.
 - Threads do jogo iniciadas em memória executável privada, um sinal possível de
   injeção sem módulo convencional.
 - Alterações nas seções executáveis do jogo em relação ao estado inicial em memória.
 
 Assinaturas são verificadas usando o cache local, sem consulta de revogação pela
-rede. Diretórios protegidos do Windows e programas assinados recebem tolerância
-para drivers, segurança e componentes legítimos. Isso evita bloquear toda DLL ou
-todo acesso legítimo, mas deixa possibilidades de bypass. Overlays não assinados,
+rede. DLLs recebem tolerância por diretório protegido ou assinatura válida.
+Para handles externos, a tolerância exige assinatura válida da Microsoft.
+Outras ferramentas legítimas de diagnóstico
+e segurança também podem disparar essa regra estrita. Overlays não assinados,
 ferramentas de desenvolvimento ou JITs podem causar detecção. Permissões do
 Windows podem impedir consultas: falhas de consulta não são prova de trapaça.
-Renomear ferramentas, modificar o próprio anticheat, usar código assinado abusado
-ou atuar no kernel pode burlar verificações de modo usuário. A proteção não
+A consulta é periódica: handles de duração curta podem passar entre verificações.
+Renomear ferramentas, modificar o próprio anticheat ou atuar no kernel pode burlar
+verificações de modo usuário. A proteção não
 atesta que o jogo está 100% intacto e não tenta verificar processos de outros PCs.
 
 Na detecção local, o jogo sai da sessão de forma controlada, fecha a janela e
@@ -113,12 +117,12 @@ mostra `LoL try to cheating.`. Ao confirmar em OK, o processo encerra sem reabri
 o jogo. Uma nova abertura precisa ser feita manualmente e será bloqueada se a
 ferramenta continuar detectável. Não há crash deliberado.
 
-Para o caso específico de violação de integridade local, o identificador aleatório
-da sala é registrado em `anticheat-rooms.txt`, ao lado da pasta `profiles`. O mesmo
-dispositivo recusa essa mesma sessão mesmo se trocar de nick. É um bloqueio local,
-não um ban do host; reiniciar a sala gera outro identificador. Remover/modificar
-os dados locais ou adulterar o cliente pode contorná-lo. Um kick por consenso não
-cria esse bloqueio local.
+A detecção local apenas encerra o jogo: não há ban de hardware, nick, IP ou bloqueio
+persistente de sala. Arquivos antigos `anticheat-rooms.txt` são ignorados.
+Após fechar a ferramenta detectada, o jogador pode abrir o jogo manualmente.
+O motivo da detecção é registrado em `%LOCALAPPDATA%\MineClone\anticheat.log`
+(nome da ferramenta, DLL, processo com handle de memória ou regra de integridade).
+Esse registro serve somente para diagnóstico e não bloqueia futuras aberturas.
 
 ## Validação
 
@@ -130,5 +134,5 @@ sequência e verifica reconexão, mundo, times, perfis, inventário e TNT. As fi
 antigas de gameplay usam um objeto de teste separado para seus reposicionamentos
 artificiais; produção e testes de anticheat/migração não usam essa exceção.
 A compilação cruzada Windows não valida o comportamento das APIs em Windows real.
-Todos precisam usar a versão LAN 22. O monitor de processos é exclusivo do Windows;
+Todos precisam usar a versão LAN 23. O monitor de processos é exclusivo do Windows;
 a validação da partida e as confirmações também funcionam em Linux e Android.
